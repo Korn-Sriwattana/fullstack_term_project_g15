@@ -27,21 +27,34 @@
     "db:generate": "cross-env NODE_OPTIONS='--import tsx' drizzle-kit generate",
     "db:push": "cross-env NODE_OPTIONS='--import tsx' drizzle-kit push",
     "db:migrate": "cross-env NODE_OPTIONS='--import tsx' drizzle-kit migrate",
-    "db:prototype": "tsx ./db/prototype.ts",
-    "db:run": "tsx backend/db/index.ts"
+    "dev": "nodemon --exec tsx backend/src/service/server.ts",
+    "start": "tsx backend/src/service/server.ts",
+    "build": "tsc && tsc-alias",
+    "db:seed": "tsx backend/src/db/seed.ts"
   },
   "dependencies": {
+    "cors": "^2.8.5",
+    "debug": "^4.4.3",
     "dotenv": "^17.2.2",
     "drizzle-orm": "^0.44.5",
-    "postgres": "^3.4.7"
+    "express": "^5.1.0",
+    "helmet": "^8.1.0",
+    "morgan": "^1.10.1",
+    "postgres": "^3.4.7",
+    "tsc-alias": "^1.8.16"
   },
   "devDependencies": {
     "@tsconfig/node-lts": "^22.0.2",
     "@tsconfig/node-ts": "^23.6.1",
+    "@types/cors": "^2.8.19",
+    "@types/debug": "^4.1.12",
+    "@types/express": "^5.0.3",
+    "@types/morgan": "^1.9.10",
     "@types/node": "^24.5.2",
     "cross-env": "^10.0.0",
     "drizzle-kit": "^0.31.4",
     "esbuild": "^0.25.10",
+    "nodemon": "^3.1.10",
     "tsx": "^4.20.6",
     "typescript": "^5.9.2"
   }

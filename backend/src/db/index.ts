@@ -13,7 +13,6 @@ const db = drizzle({
 async function main() {
   const user: typeof usersTable.$inferInsert = {
     name: "John",
-    age: 30,
     email: "john@example.com",
   };
 
@@ -25,7 +24,7 @@ async function main() {
 
   await db
     .update(usersTable)
-    .set({ age: 31 })
+    .set({ name: "Johnny" })
     .where(eq(usersTable.email, user.email));
   console.log("✏️ User updated");
 
