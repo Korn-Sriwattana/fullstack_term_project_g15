@@ -1,12 +1,12 @@
-name: proj
+name: projG15
 services:
-  postgres:
+  db:
     image: postgres:17-alpine
     container_name: proj-db
     ports:
-      - 5432:${POSTGRES_PORT}
+      - "5433:5432"
     volumes:
-      - prog-data:/var/lib/postgresql/data
+      - proj-data:/var/lib/postgresql/data
       - ./_entrypoint:/docker-entrypoint-initdb.d
     environment:
       - TZ=Asia/Bangkok
@@ -17,7 +17,30 @@ services:
       - POSTGRES_APP_PASSWORD=${POSTGRES_APP_PASSWORD}
     networks:
       - proj-net
+
+  backend:
+    container_name: proj-backend
+    build: .
+    ports:
+      - "${PORT}:3000"
+    volumes:
+      - .:/app
+      - ./logs:/app/logs
+    working_dir: /app
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - NODE_ENV=development
+    networks:
+      - proj-net
+    depends_on:
+      - db
+    # เพิ่ม service สำหรับรัน script
+    profiles:
+      - tools
+
 volumes:
   proj-data:
+
 networks:
   proj-net:
+    driver: bridge
