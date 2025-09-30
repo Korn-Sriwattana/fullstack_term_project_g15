@@ -33,6 +33,7 @@
     "db:seed": "tsx backend/src/db/seed.ts"
   },
   "dependencies": {
+    "better-auth": "^1.3.23",
     "cors": "^2.8.5",
     "debug": "^4.4.3",
     "dotenv": "^17.2.2",
