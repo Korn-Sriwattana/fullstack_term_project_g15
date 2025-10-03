@@ -1,17 +1,129 @@
 import {
-  pgTable,
-  timestamp,
-  uuid,
-  varchar,
-  boolean,
+  pgTable, uuid, varchar, boolean, integer, timestamp, text,
+  index, uniqueIndex,
 } from "drizzle-orm/pg-core";
 
-export const todoTable = pgTable("todo", {
+/* USERS */
+export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
-  todoText: varchar("todo_text", { length: 255 }).notNull(),
-  isDone: boolean("is_done").default(false),
+  name: varchar("name", { length: 255 }).notNull(),
+  email: varchar("email", { length: 255 }).notNull().unique(),
+  password: varchar("password", { length: 255 }).notNull(),
+  profilePic: varchar("profile_pic", { length: 255 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { mode: "date", precision: 3 }).$onUpdate(
-    () => new Date()
-  ),
+  updatedAt: timestamp("updated_at", { mode: "date", precision: 3 }).$onUpdate(() => new Date()).notNull(),
+});
+
+/* FRIENDS (unique คู่ userId, friendId) */
+export const friends = pgTable("friends", {
+  userId: uuid("user_id").notNull().references(() => users.id),
+  friendId: uuid("friend_id").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  userFriendUk: uniqueIndex("friends_user_friend_uk").on(t.userId, t.friendId),
+}));
+
+/* PLAYLISTS */
+export const playlists = pgTable("playlists", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  isPublic: boolean("is_public").default(true),
+  isFavorite: boolean("is_favorite").default(false),
+  ownerId: uuid("owner_id").notNull().references(() => users.id),
+  coverUrl: varchar("cover_url", { length: 255 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  ownerIdx: index("playlists_owner_idx").on(t.ownerId),
+}));
+
+/* SONGS */
+export const songs = pgTable("songs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  youtubeVideoId: varchar("youtube_video_id", { length: 64 }).notNull().unique(),
+  title: varchar("title", { length: 255 }).notNull(),
+  artist: varchar("artist", { length: 255 }),
+  duration: integer("duration").notNull(), // seconds
+  coverUrl: varchar("cover_url", { length: 255 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+/* PLAYLIST_SONGS (unique คู่ playlistId, songId) */
+export const playlistSongs = pgTable("playlist_songs", {
+  playlistId: uuid("playlist_id").notNull().references(() => playlists.id),
+  songId: uuid("song_id").notNull().references(() => songs.id),
+  addedAt: timestamp("added_at").defaultNow().notNull(),
+}, (t) => ({
+  plSongUk: uniqueIndex("playlist_songs_playlist_song_uk").on(t.playlistId, t.songId),
+  plAddedIdx: index("playlist_songs_pl_added_idx").on(t.playlistId, t.addedAt),
+}));
+
+/* LISTENING_ROOMS */
+export const listeningRooms = pgTable("listening_rooms", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  hostId: uuid("host_id").notNull().references(() => users.id),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  isPublic: boolean("is_public").default(true),
+  inviteCode: varchar("invite_code", { length: 50 }).unique(),
+  maxMembers: integer("max_members").default(5),
+  currentSongId: uuid("current_song_id").references(() => songs.id),
+  currentStartedAt: timestamp("current_started_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: "date", precision: 3 }).$onUpdate(() => new Date()).notNull(),
+});
+
+/* ROOM_MEMBERS (unique คู่ roomId, userId) */
+export const roomMembers = pgTable("room_members", {
+  roomId: uuid("room_id").notNull().references(() => listeningRooms.id),
+  userId: uuid("user_id").notNull().references(() => users.id),
+  role: varchar("role", { length: 20 }).default("listener").notNull(),
+  joinedAt: timestamp("joined_at").defaultNow().notNull(),
+}, (t) => ({
+  roomUserUk: uniqueIndex("room_members_room_user_uk").on(t.roomId, t.userId),
+}));
+
+/* ROOM_MESSAGES (index room_id, created_at) */
+export const roomMessages = pgTable("room_messages", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  roomId: uuid("room_id").notNull().references(() => listeningRooms.id),
+  userId: uuid("user_id").notNull().references(() => users.id),
+  message: text("message").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  roomCreatedIdx: index("room_messages_room_created_idx").on(t.roomId, t.createdAt),
+}));
+
+/* ROOM_QUEUE (unique คู่ roomId, queueIndex) */
+export const roomQueue = pgTable("room_queue", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  roomId: uuid("room_id").notNull().references(() => listeningRooms.id),
+  songId: uuid("song_id").notNull().references(() => songs.id),
+  queuedBy: uuid("queued_by").notNull().references(() => users.id),
+  queueIndex: integer("queue_index").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  roomQueueUk: uniqueIndex("room_queue_room_queueindex_uk").on(t.roomId, t.queueIndex),
+  roomCreatedIdx: index("room_queue_room_created_idx").on(t.roomId, t.createdAt),
+}));
+
+/* ROOM_PRESENCE (pk ที่ userId, indexes roomId/lastSeenAt) */
+export const roomPresence = pgTable("room_presence", {
+  userId: uuid("user_id").primaryKey().references(() => users.id),
+  roomId: uuid("room_id").notNull().references(() => listeningRooms.id),
+  joinedAt: timestamp("joined_at").defaultNow().notNull(),
+  lastSeenAt: timestamp("last_seen_at").defaultNow().notNull(),
+  status: varchar("status", { length: 20 }).default("listening").notNull(),
+}, (t) => ({
+  roomIdx: index("room_presence_room_idx").on(t.roomId),
+  lastSeenIdx: index("room_presence_last_seen_idx").on(t.lastSeenAt),
+}));
+
+/* SONG_STATS */
+export const songStats = pgTable("song_stats", {
+  songId: uuid("song_id").primaryKey().references(() => songs.id),
+  playCount: integer("play_count").default(0).notNull(),
+  communityPlayCount: integer("community_play_count").default(0).notNull(),
+  personalPlayCount: integer("personal_play_count").default(0).notNull(),
+  lastPlayedAt: timestamp("last_played_at"),
 });

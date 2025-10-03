@@ -1,12 +1,12 @@
-name: preflight
+name: term-project
 services:
   postgres:
     image: postgres:17-alpine
-    container_name: pf-db
+    container_name: tp-db
     ports:
       - 5432:${POSTGRES_PORT}
     volumes:
-      - pf-data:/var/lib/postgresql/data
+      - tp-data:/var/lib/postgresql/data
       - ./_entrypoint:/docker-entrypoint-initdb.d
     environment:
       - TZ=Asia/Bangkok
@@ -16,8 +16,9 @@ services:
       - POSTGRES_APP_USER=${POSTGRES_APP_USER}
       - POSTGRES_APP_PASSWORD=${POSTGRES_APP_PASSWORD}
     networks:
-      - pf-net
+      - tp-net
+
 volumes:
-  pf-data:
+  tp-data:
 networks:
-  pf-net:
+  tp-net:
