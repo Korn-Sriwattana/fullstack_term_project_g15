@@ -7,8 +7,8 @@ Group Member
 - db 
 1. pnpm install
 2. npm run db:generate
-3. npm run db:push
-4. docker compose up -d
+3. docker compose up -d
+4. npm run db:push
 (ทำครั้งเดียวหลังจากนั้นรันบน docker ได้เลย)
 
 - backend & frontend
