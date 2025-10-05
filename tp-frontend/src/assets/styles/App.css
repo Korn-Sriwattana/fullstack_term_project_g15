@@ -1,0 +1,21 @@
+.app-container {
+    display: flex;
+    flex-direction: column;
+    padding: 0 13px;
+    height: 100vh; /* ให้มันเต็มหน้าจอ */
+}
+
+.app-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    flex-direction: row;
+
+}
+
+.app-main {
+    flex: 1;
+    overflow-y: auto; /* ถ้ามีเนื้อหาเยอะให้ scroll */
+    background-color: #fff;
+    margin-left: 100px;
+}
