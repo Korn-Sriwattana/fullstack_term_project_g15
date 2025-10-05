@@ -123,7 +123,5 @@ export const roomPresence = pgTable("room_presence", {
 export const songStats = pgTable("song_stats", {
   songId: uuid("song_id").primaryKey().references(() => songs.id),
   playCount: integer("play_count").default(0).notNull(),
-  communityPlayCount: integer("community_play_count").default(0).notNull(),
-  personalPlayCount: integer("personal_play_count").default(0).notNull(),
   lastPlayedAt: timestamp("last_played_at"),
 });

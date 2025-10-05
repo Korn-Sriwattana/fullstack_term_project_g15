@@ -70,25 +70,6 @@ export async function addToQueue(io: any, { roomId, songId, userId }: any) {
     queueIndex: newIndex,
   });
 
-  // อัพเดทสถิติทันทีที่เพิ่มเข้า queue
-  const now = new Date();
-  await dbClient
-    .insert(songStats)
-    .values({
-      songId,
-      playCount: 1,
-      communityPlayCount: 1,
-      lastPlayedAt: now,
-    })
-    .onConflictDoUpdate({
-      target: songStats.songId,
-      set: {
-        playCount: sql`${songStats.playCount} + 1`,
-        communityPlayCount: sql`${songStats.communityPlayCount} + 1`,
-        lastPlayedAt: now,
-      },
-    });
-
   const fullQueue = await dbClient
     .select({
       id: roomQueue.id,
