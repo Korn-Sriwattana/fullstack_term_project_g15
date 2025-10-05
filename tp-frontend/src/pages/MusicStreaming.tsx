@@ -13,14 +13,26 @@ interface Song {
   duration: number;
 }
 
+interface QueueItem {
+  id: string;
+  queueIndex: number;
+  source: string;
+  song: Song;
+}
+
 const MusicStreaming = () => {
   const { setUser, user } = useUser();
+  const userId = user?.id || "";
+
   const [userName, setUserName] = useState("");
-  const [userId, setUserId] = useState<number | null>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Song[]>([]);
   const [currentSong, setCurrentSong] = useState<Song | null>(null);
+  
+  const [queue, setQueue] = useState<QueueItem[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -74,6 +86,10 @@ const MusicStreaming = () => {
               } else if (event.data === YT.PlayerState.ENDED) {
                 setIsPlaying(false);
                 setCurrentTime(0);
+                // Auto play next (ถ้าไม่เปิด loop)
+                if (!isLooping) {
+                  handleNext();
+                }
               }
             },
           },
@@ -82,7 +98,7 @@ const MusicStreaming = () => {
     }, 100);
 
     return () => clearInterval(interval);
-  }, [volume]);
+  }, [volume, isLooping]);
 
   // Handle loop separately
   useEffect(() => {
@@ -96,7 +112,6 @@ const MusicStreaming = () => {
         const current = player.getCurrentTime();
         const total = player.getDuration();
         
-        // ถ้าใกล้จบแล้ว (เหลือ 1 วินาที) ให้เริ่มใหม่
         if (total && current >= total - 1) {
           player.seekTo(0);
           player.playVideo();
@@ -143,13 +158,18 @@ const MusicStreaming = () => {
       }
     };
 
-    // Debounce: รอ 300ms หลังจากพิมพ์หยุด
     const timeoutId = setTimeout(() => {
       searchSongs();
     }, 300);
 
     return () => clearTimeout(timeoutId);
   }, [searchQuery]);
+
+  useEffect(() => {
+    if (userId) {
+      loadQueue();
+    }
+  }, [userId]);
 
   const handleCreateUser = async () => {
     if (!userName.trim()) {
@@ -174,7 +194,6 @@ const MusicStreaming = () => {
 
       const data = await res.json();
 
-      setUserId(data.id);
       setUserName(data.name);
 
       console.log("User created:", data);
@@ -229,6 +248,7 @@ const MusicStreaming = () => {
     }
 
     setYoutubeUrl("");
+    alert("Song added!");
   };
 
   const handleSearch = async () => {
@@ -243,23 +263,132 @@ const MusicStreaming = () => {
     }
   };
 
-  const handlePlaySong = (song: Song) => {
-    const player = playerRef.current;
-    if (!player || !isPlayerReady) return;
+  const loadQueue = async () => {
+    if (!userId) return;
+    
+    try {
+      const res = await fetch(`${API_URL}/player/queue/${userId}`);
+      const data = await res.json();
+      setQueue(data);
+    } catch (err) {
+      console.error("Load queue failed:", err);
+    }
+  };
 
-    if (currentVideoIdRef.current === song.youtubeVideoId && isPlaying) {
-      player.pauseVideo();
+  const handlePlaySong = async (song: Song) => {
+    if (!userId) {
+      alert("Please create user first");
       return;
     }
 
-    currentVideoIdRef.current = song.youtubeVideoId;
-    setCurrentSong(song);
-    
-    player.loadVideoById({
-      videoId: song.youtubeVideoId,
-      startSeconds: 0,
-    });
-    player.playVideo();
+    try {
+      const res = await fetch(`${API_URL}/player/play-song`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, songId: song.id }),
+      });
+
+      const data = await res.json();
+      setCurrentSong(data.song);
+      setQueue(data.queue.map((s: Song, i: number) => ({
+        id: s.id,
+        queueIndex: i,
+        source: 'manual',
+        song: s
+      })));
+      setCurrentIndex(0);
+
+      const player = playerRef.current;
+      if (player && isPlayerReady) {
+        currentVideoIdRef.current = data.song.youtubeVideoId;
+        player.loadVideoById({ videoId: data.song.youtubeVideoId, startSeconds: 0 });
+        player.playVideo();
+      }
+    } catch (err) {
+      console.error("Play song failed:", err);
+    }
+  };
+
+  const handleAddToQueue = async (song: Song) => {
+    if (!userId) {
+      alert("Please create user first");
+      return;
+    }
+
+    try {
+      await fetch(`${API_URL}/player/queue/add`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, songId: song.id }),
+      });
+
+      loadQueue();
+      alert("Added to queue!");
+    } catch (err) {
+      console.error("Add to queue failed:", err);
+    }
+  };
+
+  const handleNext = async () => {
+    if (!userId) return;
+
+    try {
+      const res = await fetch(`${API_URL}/player/next`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+
+      const data = await res.json();
+      
+      if (data.song) {
+        setCurrentSong(data.song);
+        setCurrentIndex(data.currentIndex);
+        
+        const player = playerRef.current;
+        if (player && isPlayerReady) {
+          currentVideoIdRef.current = data.song.youtubeVideoId;
+          player.loadVideoById({ videoId: data.song.youtubeVideoId, startSeconds: 0 });
+          player.playVideo();
+        }
+        
+        loadQueue();
+      } else {
+        console.log("End of queue");
+      }
+    } catch (err) {
+      console.error("Next failed:", err);
+    }
+  };
+
+  const handlePrevious = async () => {
+    if (!userId) return;
+
+    try {
+      const res = await fetch(`${API_URL}/player/previous`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+
+      const data = await res.json();
+      
+      if (data.song) {
+        setCurrentSong(data.song);
+        setCurrentIndex(data.currentIndex);
+        
+        const player = playerRef.current;
+        if (player && isPlayerReady) {
+          currentVideoIdRef.current = data.song.youtubeVideoId;
+          player.loadVideoById({ videoId: data.song.youtubeVideoId, startSeconds: 0 });
+          player.playVideo();
+        }
+        
+        loadQueue();
+      }
+    } catch (err) {
+      console.error("Previous failed:", err);
+    }
   };
 
   const togglePlayPause = () => {
@@ -319,20 +448,6 @@ const MusicStreaming = () => {
     setIsLooping(!isLooping);
   };
 
-  const skipBackward = () => {
-    const player = playerRef.current;
-    if (!player || !isPlayerReady) return;
-    const newTime = Math.max(0, currentTime - 10);
-    player.seekTo(newTime, true);
-  };
-
-  const skipForward = () => {
-    const player = playerRef.current;
-    if (!player || !isPlayerReady || !duration) return;
-    const newTime = Math.min(duration, currentTime + 10);
-    player.seekTo(newTime, true);
-  };
-
   const formatTime = (seconds: number) => {
     if (!seconds || isNaN(seconds)) return "0:00";
     const mins = Math.floor(seconds / 60);
@@ -342,7 +457,6 @@ const MusicStreaming = () => {
 
   return (
     <div className={styles.container}>
-      {/* ซ่อนวิดีโอ YouTube */}
       <div ref={containerRef} style={{ position: 'absolute', width: 0, height: 0, opacity: 0, pointerEvents: 'none' }} />
 
       {/* Create User */}
@@ -374,62 +488,133 @@ const MusicStreaming = () => {
         </button>
       </section>
 
-      {/* Search */}
-      <section className={styles.section}>
-        <h3>Search Songs</h3>
-        <div className={styles.searchForm}>
-          <input
-            type="text"
-            placeholder="Search by title or artist..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyPress={(e) => e.key === "Enter" && handleSearch()}
-            className={styles.inputLarge}
-          />
-          <button onClick={handleSearch} className={styles.buttonSecondary}>
-            Search
-          </button>
-        </div>
-      </section>
+      {/* ✅ แสดง Queue และ Search ข้างกัน */}
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px' }}>
+        {/* Left: Search */}
+        <div>
+          <section className={styles.section}>
+            <h3>Search Songs</h3>
+            <div className={styles.searchForm}>
+              <input
+                type="text"
+                placeholder="Search by title or artist..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={(e) => e.key === "Enter" && handleSearch()}
+                className={styles.inputLarge}
+              />
+              <button onClick={handleSearch} className={styles.buttonSecondary}>
+                Search
+              </button>
+            </div>
+          </section>
 
-      {/* No Results */}
-      {searchResults.length === 0 && searchQuery.trim() !== "" && (
-        <section className={styles.section}>
-          <h3>Search Results</h3>
-          <p className={styles.noResults}>No results found.</p>
-        </section>
-      )}
+          {searchResults.length === 0 && searchQuery.trim() !== "" && (
+            <section className={styles.section}>
+              <h3>Search Results</h3>
+              <p className={styles.noResults}>No results found.</p>
+            </section>
+          )}
 
-      {/* Results */}
-      {searchResults.length > 0 && (
-        <section className={styles.section}>
-          <h3>Search Results</h3>
-          <div className={styles.resultsList}>
-            {searchResults.map((song) => (
-              <div
-                key={song.id}
-                onClick={() => handlePlaySong(song)}
-                className={currentSong?.id === song.id ? styles.resultItemActive : styles.resultItem}
-              >
-                {song.coverUrl && (
-                  <img 
-                    src={song.coverUrl} 
-                    alt={song.title}
-                    className={styles.resultCover}
-                  />
-                )}
-                <div className={styles.resultInfo}>
-                  <div className={styles.resultTitle}>{song.title}</div>
-                  <div className={styles.resultArtist}>{song.artist}</div>
-                </div>
-                <div className={styles.resultDuration}>
-                  {formatTime(song.duration)}
-                </div>
+          {searchResults.length > 0 && (
+            <section className={styles.section}>
+              <h3>Search Results</h3>
+              <div className={styles.resultsList}>
+                {searchResults.map((song) => (
+                  <div
+                    key={song.id}
+                    className={currentSong?.id === song.id ? styles.resultItemActive : styles.resultItem}
+                    style={{ display: 'flex', alignItems: 'center', gap: '10px' }}
+                  >
+                    {song.coverUrl && (
+                      <img 
+                        src={song.coverUrl} 
+                        alt={song.title}
+                        className={styles.resultCover}
+                      />
+                    )}
+                    <div className={styles.resultInfo} style={{ flex: 1 }}>
+                      <div className={styles.resultTitle}>{song.title}</div>
+                      <div className={styles.resultArtist}>{song.artist}</div>
+                    </div>
+                    <div className={styles.resultDuration}>
+                      {formatTime(song.duration)}
+                    </div>
+                    {/* ✅ ปุ่ม Play และ Add to Queue */}
+                    <div style={{ display: 'flex', gap: '5px' }}>
+                      <button 
+                        onClick={() => handlePlaySong(song)}
+                        className={styles.buttonPrimary}
+                        style={{ padding: '6px 12px', fontSize: '13px' }}
+                      >
+                        ▶ Play
+                      </button>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); handleAddToQueue(song); }}
+                        className={styles.buttonSecondary}
+                        style={{ padding: '6px 12px', fontSize: '13px' }}
+                      >
+                        + Queue
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </section>
-      )}
+            </section>
+          )}
+        </div>
+
+        {/* ✅ Right: Queue */}
+        <div>
+          <section className={styles.section}>
+            <h3>Queue ({queue.length} songs)</h3>
+            <div style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: '8px', 
+              maxHeight: '600px', 
+              overflowY: 'auto',
+              padding: '10px',
+              background: '#f9f9f9',
+              borderRadius: '8px'
+            }}>
+              {queue.map((item, index) => (
+                <div
+                  key={item.id}
+                  style={{
+                    padding: '10px',
+                    background: index === currentIndex ? '#d4edda' : 'white',
+                    borderRadius: '6px',
+                    border: index === currentIndex ? '2px solid #28a745' : '1px solid #ddd',
+                    fontSize: '14px'
+                  }}
+                >
+                  <div style={{ 
+                    fontWeight: index === currentIndex ? 'bold' : 'normal',
+                    marginBottom: '4px'
+                  }}>
+                    {index + 1}. {item.song.title}
+                  </div>
+                  <div style={{ color: '#666', fontSize: '12px' }}>
+                    {item.song.artist}
+                  </div>
+                </div>
+              ))}
+              {queue.length === 0 && (
+                <div style={{ 
+                  padding: '30px', 
+                  textAlign: 'center', 
+                  color: '#999',
+                  fontStyle: 'italic'
+                }}>
+                  No songs in queue<br/>
+                  <small>Play a song or add to queue</small>
+                </div>
+              )}
+            </div>
+          </section>
+        </div>
+      </div>
 
       {/* Bottom Player */}
       {currentSong && (
@@ -451,15 +636,17 @@ const MusicStreaming = () => {
                 </div>
               </div>
 
-              {/* Controls */}
+              {/* ✅ Controls with Previous/Next */}
               <div className={styles.controls}>
-                <button onClick={skipBackward} className={styles.controlButton}>
+                <button onClick={handlePrevious} className={styles.controlButton} title="Previous">
                   ⏮
                 </button>
+
                 <button onClick={togglePlayPause} className={styles.playButton}>
                   {isPlaying ? "⏸" : "▶"}
                 </button>
-                <button onClick={skipForward} className={styles.controlButton}>
+
+                <button onClick={handleNext} className={styles.controlButton} title="Next">
                   ⏭
                 </button>
                 <button 
