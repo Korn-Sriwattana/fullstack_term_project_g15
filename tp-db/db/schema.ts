@@ -125,3 +125,40 @@ export const songStats = pgTable("song_stats", {
   playCount: integer("play_count").default(0).notNull(),
   lastPlayedAt: timestamp("last_played_at"),
 });
+
+/* PERSONAL_QUEUE - คิวส่วนตัวสำหรับฟังเพลง */
+export const personalQueue = pgTable("personal_queue", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id),
+  songId: uuid("song_id").notNull().references(() => songs.id),
+  queueIndex: integer("queue_index").notNull(),
+  
+  // ข้อมูลเพิ่มเติม: เพลงมาจากไหน
+  source: varchar("source", { length: 50 }), // 'playlist' | 'manual' | 'search'
+  sourcePlaylistId: uuid("source_playlist_id").references(() => playlists.id),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  // Index สำหรับ performance
+  userQueueIdx: index("personal_queue_user_queue_idx").on(t.userId, t.queueIndex),
+}));
+
+/* PLAYER_STATE - สถานะ player ของแต่ละ user */
+export const playerState = pgTable("player_state", {
+  userId: uuid("user_id").primaryKey().references(() => users.id),
+  
+  // เพลงปัจจุบัน
+  currentSongId: uuid("current_song_id").references(() => songs.id),
+  currentIndex: integer("current_index").default(0), // ตำแหน่งใน queue
+  currentTime: integer("current_time").default(0), // วินาทีที่เล่นอยู่
+  
+  // สถานะการเล่น
+  isPlaying: boolean("is_playing").default(false),
+  repeatMode: varchar("repeat_mode", { length: 10 }).default("off"), // 'off' | 'all' | 'one'
+  shuffleMode: boolean("shuffle_mode").default(false),
+  
+  // Shuffle state (เก็บลำดับที่สุ่ม)
+  shuffledIndices: text("shuffled_indices"), // JSON array [2,0,4,1,3]
+  
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});

@@ -12,6 +12,7 @@ import http from "http";
 import { Server } from "socket.io";
 
 // Controllers
+import { playNext, playPrevious, playPlaylist, PersonalplaySong, getQueue, addToPersonalQueue, getPlayerState, toggleShuffle, setRepeatMode } from "./controllers/playerControllers.js";
 import { createUser } from "./controllers/userControllers.js";
 import { createRoom, joinRoom, listPublicRooms } from "./controllers/roomControllers.js";
 import { addToQueue, removeFromQueue, playNextSong, playSong, reorderQueue, fetchYoutubeMetadata } from "./controllers/communityControllers.js";
@@ -47,6 +48,27 @@ const io = new Server(server, {
 app.locals.io = io;
 
 // ----------------- REST API -----------------
+
+// ----------------- Personal Player API -----------------
+
+// Play single song
+app.post("/player/play-song", PersonalplaySong);
+
+// Play playlist
+app.post("/player/play-playlist", playPlaylist);
+
+// Navigation
+app.post("/player/next", playNext);
+app.post("/player/previous", playPrevious);
+
+// Queue management
+app.post("/player/queue/add", addToPersonalQueue);
+app.get("/player/queue/:userId", getQueue);
+
+// Player state
+app.get("/player/state/:userId", getPlayerState);
+app.post("/player/shuffle", toggleShuffle);
+app.post("/player/repeat", setRepeatMode);
 
 // Users
 app.post("/users", createUser);
