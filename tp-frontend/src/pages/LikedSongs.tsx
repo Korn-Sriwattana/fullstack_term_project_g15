@@ -1,16 +1,8 @@
 import styles from "../assets/styles/lokchang-rooms.module.css";
-import Sidebar from "../components/Sidebar";
-import Topbar from "../components/Topbar";
 
 export default function LikedSongs() {
   return (
     <div className={styles.layout}>
-     <div className={styles.topbar}>
-        <Topbar />
-      </div>
-     <div className={styles.sidebar}>
-        <Sidebar />
-      </div>
 
       <main className={styles.content}>
             <div className={styles["lok-page"]}>
