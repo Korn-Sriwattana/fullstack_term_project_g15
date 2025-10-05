@@ -1,9 +1,9 @@
 import "dotenv/config";
 import { dbClient } from "@db/client.js";
-import { roomMessages, users, roomMembers, roomQueue, listeningRooms, songs} from "@db/schema.js";
+import { roomMessages, users, roomMembers, roomQueue, listeningRooms, songs, songStats} from "@db/schema.js";
 import cors from "cors";
 import Debug from "debug";
-import { eq, asc, and, desc, or, ilike } from "drizzle-orm";
+import { eq, asc, and, desc, or, ilike, sql } from "drizzle-orm";
 import type { ErrorRequestHandler, Request, Response, NextFunction } from "express";
 import express from "express";
 import helmet from "helmet";
@@ -157,6 +157,7 @@ app.post("/chat", async (req, res, next) => {
         .onConflictDoNothing({ target: songs.youtubeVideoId })
         .returning();
 
+
       let song = inserted;
       if (!song) {
         [song] = await dbClient
@@ -165,6 +166,23 @@ app.post("/chat", async (req, res, next) => {
           .where(eq(songs.youtubeVideoId, youtubeVideoId))
           .limit(1);
       }
+
+      // อัพเดทสถิติทันทีที่เพิ่ม
+      const now = new Date();
+      await dbClient
+        .insert(songStats)
+        .values({
+          songId: song.id,
+          playCount: 1,
+          lastPlayedAt: now,
+        })
+        .onConflictDoUpdate({
+          target: songStats.songId,
+          set: {
+            playCount: sql`${songStats.playCount} + 1`,
+            lastPlayedAt: now,
+          },
+            });
 
       res.json(song);
     } catch (err) {
