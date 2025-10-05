@@ -1,0 +1,108 @@
+:root{
+  --purple:#8E2D97;
+  --purple2:#B268C1;
+  --grad1:#A65AC0;
+  --grad2:#7E39B3;
+  --text:#111;
+  --muted:#8b8b95;
+  --card:#ffffff;
+  --ring:#E6E6EA;
+}
+
+.shell{
+  min-height:100vh;
+  display:grid;
+  grid-template-columns: 1fr 480px; /* ซ้ายโลโก้ใหญ่ / ขวาการ์ด */
+  position:relative;
+  background:#fff;
+}
+
+/* Sign up ปุ่มมุมขวาบน */
+.topRight{
+  position:absolute; top:16px; right:16px;
+}
+.linkGhost{
+  border:1px solid var(--ring);
+  background:#fff;
+  padding:8px 14px; border-radius:10px;
+  text-decoration:none; color:var(--text);
+  font-weight:600;
+}
+
+/* ซ้าย */
+.left{
+  display:flex; align-items:center; justify-content:center;
+  padding:40px 24px;
+}
+.elephant{
+  max-width:520px; width:80%; height:auto; object-fit:contain;
+}
+
+/* ขวา */
+.right{
+  display:flex; align-items:center; justify-content:center;
+  padding:32px 24px;
+  background:linear-gradient(90deg,#fff 0%, #fff 40%, rgba(142,45,151,0.08) 100%);
+}
+
+.card{
+  width:100%;
+  max-width:480px;
+  border-radius:18px;
+  padding:28px 24px;
+  background: linear-gradient(180deg, var(--grad1), var(--grad2));
+  color:#fff;
+  box-shadow: 0 10px 24px rgba(0,0,0,.08);
+}
+
+.title{
+  text-align:center; font-size:28px; font-weight:800; margin:4px 0 14px;
+}
+
+.form{ display:flex; flex-direction:column; gap:10px; }
+
+.label{ font-size:14px; opacity:.95; }
+
+.input{
+  height:44px; padding:0 12px; border-radius:10px;
+  border:1px solid rgba(255,255,255,.6);
+  background:#fff; color:#333;
+  outline:none;
+}
+
+.loginBtn{
+  margin-top:6px;
+  height:44px; border:none; border-radius:12px;
+  background: rgba(255,255,255,.25);
+  color:#fff; font-weight:700; letter-spacing:.3px; cursor:pointer;
+}
+.loginBtn:disabled{ opacity:.7; cursor:not-allowed; }
+
+.rowBetween{
+  display:flex; align-items:center; justify-content:space-between;
+  margin-top:6px; color:#fff;
+}
+.checkRow{ display:flex; align-items:center; gap:8px; font-size:14px; }
+.linkLight{ color:#fff; text-decoration:none; opacity:.95; }
+
+.withText{ text-align:center; margin:10px 0 6px; opacity:.95; }
+
+.ssoBtn{
+  height:44px; border-radius:10px; border:1px solid rgba(255,255,255,.55);
+  background:#fff; color:var(--purple);
+  display:flex; align-items:center; justify-content:center; gap:10px;
+  font-weight:700; cursor:pointer;
+}
+.ssoBadge{
+  width:22px; height:22px; display:inline-flex; align-items:center; justify-content:center;
+  background: #EBD7F0; color:var(--purple); border-radius:999px;
+}
+.miniNote{ text-align:center; color:#f1e7f6; font-size:12px; margin-top:4px; }
+
+/* Responsive */
+@media (max-width: 980px){
+  .shell{ grid-template-columns: 1fr; }
+  .right{ background:#fff; }
+  .left{ padding-bottom:0; }
+  .elephant{ width:64%; max-width:420px; }
+}

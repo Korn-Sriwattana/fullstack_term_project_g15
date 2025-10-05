@@ -1,0 +1,77 @@
+/* ===== Layout ครอบ Topbar + Sidebar + Content ===== */
+.layout {
+  display: grid;
+  grid-template-rows: 50px 1fr;     
+  grid-template-columns: 220px 1fr; 
+  grid-template-areas:
+    "topbar topbar"
+    "sidebar content";
+  height: 100vh;
+  background-color: #ffffff;
+}
+
+.topbar {
+  grid-area: topbar;
+}
+.sidebar {
+  grid-area: sidebar;
+}
+/* ===== เนื้อหาหลักฝั่งขวา ===== */
+.content {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.lok-page {
+  padding: 20px;
+  background-color: #fff;
+  min-height: 100vh;
+  box-sizing: border-box;
+  font-family: "Inter", sans-serif;
+}
+
+.lok-header {
+  display: flex;
+  flex-direction: column; 
+  align-items: flex-start; 
+  margin-bottom: 24px;
+}
+
+.lok-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #000000;
+  margin: 0;
+}
+
+.lok-btn-wrapper {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end; 
+  width: 100%;              
+  margin-top: 10px;        
+}
+
+.lok-create-btn,
+.lok-join-bt {
+  background-color: #EFEFF1;
+  color: #8E2D97;
+  border: none;
+  padding: 8px 16px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.lok-contents {
+  background: #ffffff;
+}
+
+.lok-banner img {
+  width: 100%;         
+  height: 300px;
+  margin-top: 15px;       
+  object-fit: cover;   
+}
