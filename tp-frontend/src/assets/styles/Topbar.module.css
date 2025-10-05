@@ -1,0 +1,19 @@
+/* Topbar.module.css */
+
+.topbar {
+  height: 50px;
+  background-color: #ffffff;
+  border-bottom: 1px solid #D4D4D4;
+  display: flex;
+  align-items: center; /* elelment แนวตั้ง */
+  justify-content: flex-end; /* element แนวนอน */
+  padding: 0px 13px; /* [บนล่าง], [ซ้าย-ขวา] */
+  gap: 16px; 
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+}
