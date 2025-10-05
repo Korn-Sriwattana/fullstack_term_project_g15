@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useUser } from "../components/userContext";
+import { Link } from "react-router-dom";
 
 const API_URL = "http://localhost:3000";
 
@@ -62,6 +63,8 @@ const MusicStreaming = () => {
         <button onClick={handleCreateUser}>Create User</button>
         <p>Current User: {userName || "Not created"}</p>
       </section>
+
+      <Link to="/community">Go to Community</Link>
     </div>
   );
 };
