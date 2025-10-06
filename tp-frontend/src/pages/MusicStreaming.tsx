@@ -320,14 +320,33 @@ const MusicStreaming = () => {
     }
 
     try {
-      await fetch(`${API_URL}/player/queue/add`, {
+      const res = await fetch(`${API_URL}/player/queue/add`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId, songId: song.id }),
       });
 
+      const data = await res.json();
+
+      // ถ้าเป็นเพลงแรก ให้เล่นทันที
+      if (data.autoPlay) {
+        setCurrentSong(data.song);
+        setCurrentIndex(0);
+
+        const player = playerRef.current;
+        if (player && isPlayerReady) {
+          currentVideoIdRef.current = data.song.youtubeVideoId;
+          player.loadVideoById({ videoId: data.song.youtubeVideoId, startSeconds: 0 });
+          player.playVideo();
+        }
+
+        alert("Added to queue and started playing!");
+      } else {
+        alert("Added to queue!");
+      }
+
       loadQueue();
-      alert("Added to queue!");
+      loadRecentlyPlayed();
     } catch (err) {
       console.error("Add to queue failed:", err);
     }
