@@ -431,6 +431,38 @@ export const addToPersonalQueue: RequestHandler = async (req, res, next) => {
       .where(eq(songs.id, songId))
       .limit(1);
 
+      if (newIndex === 0) {
+      await recordPlayHistory(userId, songId);
+      
+      await dbClient
+        .insert(playerState)
+        .values({
+          userId,
+          currentSongId: songId,
+          currentIndex: 0,
+          currentTime: 0,
+          isPlaying: true,
+        })
+        .onConflictDoUpdate({
+          target: playerState.userId,
+          set: {
+            currentSongId: songId,
+            currentIndex: 0,
+            currentTime: 0,
+            isPlaying: true,
+            updatedAt: new Date(),
+          },
+        });
+
+      res.json({
+        message: "Added to queue and started playing",
+        song: sanitizeSong(song),
+        queueIndex: newIndex,
+        autoPlay: true, // บอก frontend ว่าควรเล่นทันที
+      });
+      return;
+    }
+
     res.json({
       message: "Added to queue",
       song: sanitizeSong(song),
