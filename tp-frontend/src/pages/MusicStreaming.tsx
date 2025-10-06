@@ -591,75 +591,82 @@ const MusicStreaming = () => {
 
         <section className={styles.section}>
           <h3>Recently Played</h3>
-          <div className={styles.resultsList}>
-            {recentlyPlayed.map((item) => (
-              <div key={item.id} className={styles.resultItem}>
-                {item.song.coverUrl && (
-                  <img src={item.song.coverUrl} alt={item.song.title} className={styles.resultCover} />
-                )}
-                <div className={styles.resultInfo}>
-                  <div className={styles.resultTitle}>{item.song.title}</div>
-                  <div className={styles.resultArtist}>{item.song.artist}</div>
+          <div className={styles.recentlyPlayed}>
+            {recentlyPlayed.length > 0 ? (
+              recentlyPlayed.map((item) => (
+                <div key={item.id} className={styles.recentlyPlayedItem}>
+                  {item.song?.coverUrl && (
+                    <img 
+                      src={item.song.coverUrl} 
+                      alt={item.song.title} 
+                      className={styles.recentlyPlayedCover} 
+                    />
+                  )}
+                  <div className={styles.recentlyPlayedInfo}>
+                    <div className={styles.recentlyPlayedTitle}>
+                      {item.song?.title || 'Unknown'}
+                    </div>
+                    <div className={styles.recentlyPlayedArtist}>
+                      {item.song?.artist || 'Unknown Artist'}
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => handlePlaySong(item.song)} 
+                    className={styles.recentlyPlayedButton}
+                  >
+                    ▶
+                  </button>
                 </div>
-                <button onClick={() => handlePlaySong(item.song)} className={styles.buttonPrimary}>
-                  ▶ Play
-                </button>
+              ))
+            ) : (
+              <div className={styles.recentlyPlayedEmpty}>
+                No recently played songs
+                <br />
+                <small>Start playing to see history</small>
               </div>
-            ))}
+            )}
           </div>
         </section>
 
-        {/* ✅ Right: Queue */}
-        <div>
-          <section className={styles.section}>
-            <h3>Queue ({queue.length} songs)</h3>
-            <div style={{ 
-              display: 'flex', 
-              flexDirection: 'column', 
-              gap: '8px', 
-              maxHeight: '600px', 
-              overflowY: 'auto',
-              padding: '10px',
-              background: '#f9f9f9',
-              borderRadius: '8px'
-            }}>
-              {queue.map((item, index) => (
+        <section className={styles.section}>
+          <h3>Queue ({queue.length} songs)</h3>
+          <div className={styles.queueContainer}>
+            {queue.length > 0 ? (
+              queue.map((item, index) => (
                 <div
                   key={item.id}
-                  style={{
-                    padding: '10px',
-                    background: index === currentIndex ? '#d4edda' : 'white',
-                    borderRadius: '6px',
-                    border: index === currentIndex ? '2px solid #28a745' : '1px solid #ddd',
-                    fontSize: '14px'
-                  }}
+                  className={index === currentIndex ? styles.queueItemActive : styles.queueItem}
                 >
-                  <div style={{ 
-                    fontWeight: index === currentIndex ? 'bold' : 'normal',
-                    marginBottom: '4px'
-                  }}>
-                    {index + 1}. {item.song.title}
+                  <div className={styles.queueNumber}>
+                    {index + 1}
                   </div>
-                  <div style={{ color: '#666', fontSize: '12px' }}>
-                    {item.song.artist}
+                  {item.song?.coverUrl && (
+                    <img 
+                      src={item.song.coverUrl} 
+                      alt={item.song.title}
+                      className={styles.queueCover}
+                    />
+                  )}
+                  <div className={styles.queueInfo}>
+                    <div className={styles.queueTitle}>
+                      {item.song?.title || 'Unknown'}
+                    </div>
+                    <div className={styles.queueArtist}>
+                      {item.song?.artist || 'Unknown Artist'}
+                    </div>
                   </div>
                 </div>
-              ))}
-              {queue.length === 0 && (
-                <div style={{ 
-                  padding: '30px', 
-                  textAlign: 'center', 
-                  color: '#999',
-                  fontStyle: 'italic'
-                }}>
-                  No songs in queue<br/>
-                  <small>Play a song or add to queue</small>
-                </div>
-              )}
-            </div>
-          </section>
+              ))
+            ) : (
+              <div className={styles.queueEmpty}>
+                No songs in queue
+                <br />
+                <small>Play a song or add to queue</small>
+              </div>
+            )}
+          </div>
+        </section>
         </div>
-      </div>
 
       {/* Bottom Player */}
       {currentSong && (
@@ -681,7 +688,6 @@ const MusicStreaming = () => {
                 </div>
               </div>
 
-              {/* ✅ Controls with Previous/Next */}
               <div className={styles.controls}>
                 <button onClick={handlePrevious} className={styles.controlButton} title="Previous">
                   ⏮
