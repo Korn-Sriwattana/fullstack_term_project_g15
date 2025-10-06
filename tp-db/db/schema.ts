@@ -162,3 +162,12 @@ export const playerState = pgTable("player_state", {
   
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+export const playHistory = pgTable("play_history", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id),
+  songId: uuid("song_id").notNull().references(() => songs.id),
+  playedAt: timestamp("played_at").defaultNow().notNull(),
+}, (t) => ({
+  userPlayedIdx: index("play_history_user_played_idx").on(t.userId, t.playedAt),
+}));

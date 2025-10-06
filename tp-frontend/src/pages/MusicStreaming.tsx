@@ -45,6 +45,7 @@ const MusicStreaming = () => {
   const [isPlayerReady, setIsPlayerReady] = useState(false);
   const currentVideoIdRef = useRef("");
   const [youtubeUrl, setYoutubeUrl] = useState("");
+  const [recentlyPlayed, setRecentlyPlayed] = useState<any[]>([]);
 
   // Load YouTube API
   useEffect(() => {
@@ -304,6 +305,9 @@ const MusicStreaming = () => {
         player.loadVideoById({ videoId: data.song.youtubeVideoId, startSeconds: 0 });
         player.playVideo();
       }
+
+      
+      loadRecentlyPlayed();
     } catch (err) {
       console.error("Play song failed:", err);
     }
@@ -353,6 +357,7 @@ const MusicStreaming = () => {
         }
         
         loadQueue();
+        loadRecentlyPlayed();
       } else {
         console.log("End of queue");
       }
@@ -385,11 +390,31 @@ const MusicStreaming = () => {
         }
         
         loadQueue();
+        loadRecentlyPlayed();
       }
     } catch (err) {
       console.error("Previous failed:", err);
     }
   };
+
+  // โหลด Recently Played
+  const loadRecentlyPlayed = async () => {
+    if (!userId) return;
+    
+    try {
+      const res = await fetch(`${API_URL}/player/recently-played/${userId}?limit=10`);
+      const data = await res.json();
+      setRecentlyPlayed(data);
+    } catch (err) {
+      console.error("Load recently played failed:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (userId) {
+      loadRecentlyPlayed();
+    }
+  }, [userId]);
 
   const togglePlayPause = () => {
     const player = playerRef.current;
@@ -563,6 +588,26 @@ const MusicStreaming = () => {
             </section>
           )}
         </div>
+
+        <section className={styles.section}>
+          <h3>Recently Played</h3>
+          <div className={styles.resultsList}>
+            {recentlyPlayed.map((item) => (
+              <div key={item.id} className={styles.resultItem}>
+                {item.song.coverUrl && (
+                  <img src={item.song.coverUrl} alt={item.song.title} className={styles.resultCover} />
+                )}
+                <div className={styles.resultInfo}>
+                  <div className={styles.resultTitle}>{item.song.title}</div>
+                  <div className={styles.resultArtist}>{item.song.artist}</div>
+                </div>
+                <button onClick={() => handlePlaySong(item.song)} className={styles.buttonPrimary}>
+                  ▶ Play
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
 
         {/* ✅ Right: Queue */}
         <div>
