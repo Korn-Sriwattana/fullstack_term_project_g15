@@ -202,31 +202,43 @@ const CommunityRoom = () => {
       setCurrentIsPublic(true);
     }
 
-    const res = await fetch(`${API_URL}/rooms/join`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ inviteCode: code, userId }),
-    });
-    const data = await res.json();
+    try {
+      const res = await fetch(`${API_URL}/rooms/join`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inviteCode: code, userId }),
+      });
 
-    if (data.roomId) {
-      setRoomId(data.roomId);
-      setCurrentRoomName(data.roomName);
-      setCurrentInviteCode(data.inviteCode);
-      setCurrentIsPublic(data.isPublic);
+      const data = await res.json();
+
+      // เช็คว่า response สำเร็จหรือไม่
+      if (!res.ok) {
+        // กรณี error (เช่น 403 room full, 404 not found)
+        alert(data.error || "Failed to join room");
+        return;
+      }
+
+      // กรณีสำเร็จ
+      if (data.roomId) {
+        setRoomId(data.roomId);
+        setCurrentRoomName(data.roomName);
+        setCurrentInviteCode(data.inviteCode);
+        setCurrentIsPublic(data.isPublic);
+
+        const [queueRes, chatRes] = await Promise.all([
+          fetch(`${API_URL}/rooms/${data.roomId}/queue`).then((r) => r.json()),
+          fetch(`${API_URL}/chat/${data.roomId}`).then((r) => r.json()),
+        ]);
+
+        setQueue(queueRes);
+        setMessages(chatRes);
+
+        alert(`Joined Room: ${data.roomName}`);
+      }
+    } catch (error) {
+      console.error("Error joining room:", error);
+      alert("Failed to join room");
     }
-
-    if (data.roomId) {
-      const [queueRes, chatRes] = await Promise.all([
-        fetch(`${API_URL}/rooms/${data.roomId}/queue`).then((r) => r.json()),
-        fetch(`${API_URL}/chat/${data.roomId}`).then((r) => r.json()),
-      ]);
-
-      setQueue(queueRes);
-      setMessages(chatRes);
-    }
-
-    alert(`Joined Room: ${data.roomName}`);
   };
 
   const handleCreateRoom = async () => {
