@@ -2,7 +2,7 @@ import type { RequestHandler } from "express";
 import { randomUUID } from "crypto";
 import { dbClient } from "@db/client.js";
 import { listeningRooms, roomMembers } from "@db/schema.js";
-import { eq, and } from "drizzle-orm";
+import { eq, and, count } from "drizzle-orm";
 
 // Create Room
 export const createRoom: RequestHandler = async (req, res, next) => {
@@ -38,13 +38,12 @@ export const createRoom: RequestHandler = async (req, res, next) => {
         isPublic: listeningRooms.isPublic,
       });
 
-    // ✅ auto add host to roomMembers
+    // Auto add host to roomMembers
     await dbClient.insert(roomMembers).values({
       roomId: room.id,
       userId: hostId,
       role: 'host',
     });
-
 
     req.app.locals.io.emit("room-created", {
       roomId: room.id,
@@ -53,7 +52,6 @@ export const createRoom: RequestHandler = async (req, res, next) => {
       inviteCode: room.inviteCode,
       isPublic: room.isPublic,
     });
-
 
     res.status(201).json({
       roomId: room.id,
@@ -66,7 +64,6 @@ export const createRoom: RequestHandler = async (req, res, next) => {
     next(err);
   }
 };
-
 
 // Join Room
 export const joinRoom: RequestHandler = async (req, res, next) => {
@@ -91,30 +88,60 @@ export const joinRoom: RequestHandler = async (req, res, next) => {
       return;
     }
 
-    // check membership
+    // Check if user is already a member
     const [member] = await dbClient
       .select()
       .from(roomMembers)
       .where(and(eq(roomMembers.roomId, room.id), eq(roomMembers.userId, userId)));
 
-    if (!member) {
-      const role = userId === room.hostId ? 'host' : 'listener';
-      
-      await dbClient.insert(roomMembers).values({
+    if (member) {
+      // Already joined
+      res.json({
+        message: "Already joined",
         roomId: room.id,
-        userId,
-        role,
+        roomName: room.name,
+        description: room.description,
+        inviteCode: room.inviteCode,
+        isPublic: room.isPublic,
       });
+      return;
     }
 
+    // Check current member count
+    const [memberCount] = await dbClient
+      .select({ count: count() })
+      .from(roomMembers)
+      .where(eq(roomMembers.roomId, room.id));
+
+    const currentCount = memberCount?.count || 0;
+    const maxMembers = room.maxMembers || 5;
+
+    if (currentCount >= maxMembers) {
+      res.status(403).json({ 
+        error: "Room is full",
+        maxMembers,
+        currentCount 
+      });
+      return;
+    }
+
+    // Add user to room
+    const role = userId === room.hostId ? 'host' : 'listener';
+
+    await dbClient.insert(roomMembers).values({
+      roomId: room.id,
+      userId,
+      role,
+    });
+
     res.json({
-    message: member ? "Already joined" : "Joined successfully",
-    roomId: room.id,
-    roomName: room.name,
-    description: room.description,
-    inviteCode: room.inviteCode,
-    isPublic: room.isPublic,  
-  });
+      message: "Joined successfully",
+      roomId: room.id,
+      roomName: room.name,
+      description: room.description,
+      inviteCode: room.inviteCode,
+      isPublic: room.isPublic,
+    });
   } catch (err) {
     next(err);
   }
@@ -131,26 +158,40 @@ export const listPublicRooms: RequestHandler = async (req, res, next) => {
         description: true,
         inviteCode: true,
         hostId: true,
+        maxMembers: true,
         createdAt: true,
       },
     });
 
-    // ใช้ socket.io adapter ดึงจำนวนคนในแต่ละห้อง
     const io = req.app.locals.io;
 
-    const formattedRooms = rooms.map((r) => {
-      const count = io.sockets.adapter.rooms.get(r.id)?.size || 0;
-      return {
-        roomId: r.id,
-        roomName: r.name,
-        description: r.description,
-        inviteCode: r.inviteCode,
-        hostId: r.hostId,
-        createdAt: r.createdAt,
-        isPublic: true,
-        count,
-      };
-    });
+    const formattedRooms = await Promise.all(
+      rooms.map(async (r) => {
+        // Get actual member count from database
+        const [memberCount] = await dbClient
+          .select({ count: count() })
+          .from(roomMembers)
+          .where(eq(roomMembers.roomId, r.id));
+
+        const dbCount = memberCount?.count || 0;
+        const socketCount = io.sockets.adapter.rooms.get(r.id)?.size || 0;
+        
+        // Use the higher of the two counts for accuracy
+        const actualCount = Math.max(dbCount, socketCount);
+
+        return {
+          roomId: r.id,
+          roomName: r.name,
+          description: r.description,
+          inviteCode: r.inviteCode,
+          hostId: r.hostId,
+          createdAt: r.createdAt,
+          isPublic: true,
+          count: actualCount,
+          maxMembers: r.maxMembers || 5,
+        };
+      })
+    );
 
     res.json(formattedRooms);
   } catch (err) {
