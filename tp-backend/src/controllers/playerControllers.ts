@@ -1,6 +1,6 @@
 import type { RequestHandler } from "express";
 import { dbClient } from "@db/client.js";
-import { personalQueue, playerState, songs, playlists, playlistSongs } from "@db/schema.js";
+import { personalQueue, playerState, songs, playlists, playlistSongs, playHistory } from "@db/schema.js";
 import { eq, and, asc, desc } from "drizzle-orm";
 
 // ========== HELPER FUNCTIONS ==========
@@ -25,6 +25,61 @@ function shuffleArray<T>(array: T[]): T[] {
   }
   return shuffled;
 }
+
+// Helper: บันทึกประวัติการเล่น
+async function recordPlayHistory(userId: string, songId: string) {
+  await dbClient.insert(playHistory).values({
+    userId,
+    songId,
+  });
+}
+
+// ดึง Recently Played
+export const getRecentlyPlayed: RequestHandler = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    const limit = parseInt(req.query.limit as string) || 20;
+
+    if (!userId) {
+      res.status(400).json({ error: "Missing userId" });
+      return;
+    }
+
+    // ดึงทั้งหมดแล้วกรองใน JS
+    const allHistory = await dbClient
+      .select({
+        id: playHistory.id,
+        playedAt: playHistory.playedAt,
+        songId: playHistory.songId,
+        song: {
+          id: songs.id,
+          youtubeVideoId: songs.youtubeVideoId,
+          title: songs.title,
+          artist: songs.artist,
+          coverUrl: songs.coverUrl,
+          duration: songs.duration,
+        },
+      })
+      .from(playHistory)
+      .leftJoin(songs, eq(playHistory.songId, songs.id))
+      .where(eq(playHistory.userId, userId))
+      .orderBy(desc(playHistory.playedAt));
+
+    // กรองให้เหลือเพลงไม่ซ้ำ (เอาครั้งล่าสุดของแต่ละเพลง)
+    const seen = new Set<string>();
+    const uniqueHistory = allHistory
+      .filter(item => {
+        if (seen.has(item.songId)) return false;
+        seen.add(item.songId);
+        return true;
+      })
+      .slice(0, limit);
+
+    res.json(uniqueHistory);
+  } catch (err) {
+    next(err);
+  }
+};
 
 // ========== PLAY SONG (เล่นเพลงเดี่ยว) ==========
 export const PersonalplaySong: RequestHandler = async (req, res, next) => {
@@ -79,6 +134,8 @@ export const PersonalplaySong: RequestHandler = async (req, res, next) => {
           updatedAt: new Date(),
         },
       });
+
+    await recordPlayHistory(userId, songId);
 
     res.json({
       message: "Playing song",
@@ -263,6 +320,8 @@ export const playNext: RequestHandler = async (req, res, next) => {
       })
       .where(eq(playerState.userId, userId));
 
+    await recordPlayHistory(userId, song.id);
+
     res.json({
       message: "Playing next song",
       song: sanitizeSong(song),
@@ -324,6 +383,8 @@ export const playPrevious: RequestHandler = async (req, res, next) => {
         updatedAt: new Date(),
       })
       .where(eq(playerState.userId, userId));
+
+    await recordPlayHistory(userId, song.id);
 
     res.json({
       message: "Playing previous song",

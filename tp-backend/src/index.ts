@@ -12,7 +12,7 @@ import http from "http";
 import { Server } from "socket.io";
 
 // Controllers
-import { playNext, playPrevious, playPlaylist, PersonalplaySong, getQueue, addToPersonalQueue, getPlayerState, toggleShuffle, setRepeatMode } from "./controllers/playerControllers.js";
+import { playNext, playPrevious, playPlaylist, PersonalplaySong, getQueue, addToPersonalQueue, getPlayerState, toggleShuffle, setRepeatMode, getRecentlyPlayed } from "./controllers/playerControllers.js";
 import { createUser } from "./controllers/userControllers.js";
 import { createRoom, joinRoom, listPublicRooms } from "./controllers/roomControllers.js";
 import { addToQueue, removeFromQueue, playNextSong, playSong, reorderQueue, fetchYoutubeMetadata } from "./controllers/communityControllers.js";
@@ -49,6 +49,9 @@ app.locals.io = io;
 
 // ----------------- REST API -----------------
 
+// Users
+app.post("/users", createUser);
+
 // ----------------- Personal Player API -----------------
 
 // Play single song
@@ -69,9 +72,9 @@ app.get("/player/queue/:userId", getQueue);
 app.get("/player/state/:userId", getPlayerState);
 app.post("/player/shuffle", toggleShuffle);
 app.post("/player/repeat", setRepeatMode);
+app.get("/player/recently-played/:userId", getRecentlyPlayed);
 
-// Users
-app.post("/users", createUser);
+// ----------------- Community Player API -----------------
 
 // Rooms
 app.post("/rooms", createRoom);
