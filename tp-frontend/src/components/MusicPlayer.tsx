@@ -1,15 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-
+import type { Song } from "../types/song.ts";
 const API_URL = "http://localhost:3000";
-
-interface Song {
-  id: string;
-  youtubeVideoId: string;
-  title: string;
-  artist: string;
-  coverUrl?: string;
-  duration: number;
-}
 
 interface PlayerProps {
   userId: string;
@@ -18,7 +9,7 @@ interface PlayerProps {
   className?: string;
 }
 
-const SharedMusicPlayer = ({ userId, onQueueUpdate, onCurrentIndexUpdate, className }: PlayerProps) => {
+const MusicPlayer = ({ userId, onQueueUpdate, onCurrentIndexUpdate, className }: PlayerProps) => {
   const [currentSong, setCurrentSong] = useState<Song | null>(null);
   const [queue, setQueue] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -676,4 +667,4 @@ const SharedMusicPlayer = ({ userId, onQueueUpdate, onCurrentIndexUpdate, classN
   );
 };
 
-export default SharedMusicPlayer;
+export default MusicPlayer;
