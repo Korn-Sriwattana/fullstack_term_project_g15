@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useUser } from "../components/userContext";
-import SharedMusicPlayer from "../components/MusicPlayer";
+import MusicPlayer from "../components/MusicPlayer";
 import styles from "../assets/styles/MusicStreaming.module.css";
 import type { Song, QueueItem } from "../types/song.ts";
 
@@ -374,7 +374,7 @@ const Home = () => {
       </div>
 
       {userId && (
-        <SharedMusicPlayer 
+        <MusicPlayer 
           userId={userId}
           onQueueUpdate={setQueue}
           onCurrentIndexUpdate={setCurrentIndex}

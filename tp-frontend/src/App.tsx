@@ -9,7 +9,7 @@ import Sidebar from "./components/Sidebar";
 import Topbar from "./components/Topbar";
 import "./assets/styles/App.css";
 import { useUser } from "./components/userContext";
-import SharedMusicPlayer from "./components/MusicPlayer";
+import MusicPlayer from "./components/MusicPlayer";
 
 export default function App() {
   const { user } = useUser();
@@ -28,8 +28,8 @@ export default function App() {
         <main className="app-main">
           <Routes>
             <Route path="/" element={<Home />} />  
-          <Route path="/community" element={<CommunityRoom />} />
-          <Route path="/signin" element={<Signin />} />
+            <Route path="/community" element={<CommunityRoom />} />
+            <Route path="/signin" element={<Signin />} />
             <Route path="/likedsongs" element={<LikedSongs />} />
             <Route path="/playlist" element={<Playlist />} />
             <Route path="/lokchangrooms" element={<LokchangRooms />} />
@@ -37,7 +37,7 @@ export default function App() {
         </main>
 
       </div>
-      {user?.id && <SharedMusicPlayer userId={user.id} />}
+      {user?.id && <MusicPlayer userId={user.id} />}
     </div>
   );
 }
