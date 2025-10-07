@@ -1,6 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 import CommunityRoom from "./pages/CommunityRoom";
-import MusicStreaming from "./pages/MusicStreaming";
+import Home from "./pages/Home";  
 import LikedSongs from "./pages/LikedSongs";
 import Playlist from "./pages/Playlist";
 import LokchangRooms from "./pages/LokchangRooms";
@@ -8,9 +8,11 @@ import Signin from "./pages/Signin";
 import Sidebar from "./components/Sidebar";
 import Topbar from "./components/Topbar";
 import "./assets/styles/App.css";
+import { useUser } from "./components/userContext";
+import SharedMusicPlayer from "./components/MusicPlayer";
 
 export default function App() {
-
+  const { user } = useUser();
 
   return (
     <div className="app-container">
@@ -25,7 +27,7 @@ export default function App() {
         {/* main */}
         <main className="app-main">
           <Routes>
-            <Route path="/" element={<MusicStreaming />} />  
+            <Route path="/" element={<Home />} />  
           <Route path="/community" element={<CommunityRoom />} />
           <Route path="/signin" element={<Signin />} />
             <Route path="/likedsongs" element={<LikedSongs />} />
@@ -35,6 +37,7 @@ export default function App() {
         </main>
 
       </div>
+      {user?.id && <SharedMusicPlayer userId={user.id} />}
     </div>
   );
 }
