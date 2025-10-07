@@ -497,7 +497,7 @@ const SharedMusicPlayer = ({ userId, onQueueUpdate, onCurrentIndexUpdate, classN
       />
       
       {/* Debug Info */}
-      <div style={{
+      {/* <div style={{
         position: 'fixed',
         top: 10,
         right: 10,
@@ -519,7 +519,7 @@ const SharedMusicPlayer = ({ userId, onQueueUpdate, onCurrentIndexUpdate, classN
             <div style={{ fontSize: '10px', opacity: 0.8 }}>Now: {currentSong.title.substring(0, 30)}...</div>
           </div>
         )}
-      </div>
+      </div> */}
 
       {/* Music Player UI */}
       {currentSong && (
