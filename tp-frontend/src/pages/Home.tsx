@@ -1,12 +1,16 @@
 import { useState, useEffect } from "react";
 import { useUser } from "../components/userContext";
-import MusicPlayer from "../components/MusicPlayer";
 import styles from "../assets/styles/MusicStreaming.module.css";
 import type { Song, QueueItem } from "../types/song.ts";
 
 const API_URL = "http://localhost:3000";
 
-const Home = () => {
+interface HomeProps {
+  queue?: QueueItem[];
+  currentIndex?: number;
+}
+
+const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
   const { setUser, user } = useUser();
   const userId = user?.id || "";
 
@@ -15,8 +19,6 @@ const Home = () => {
   const [searchResults, setSearchResults] = useState<Song[]>([]);
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [recentlyPlayed, setRecentlyPlayed] = useState<any[]>([]);
-  const [queue, setQueue] = useState<QueueItem[]>([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
 
   // Real-time search with debounce
   useEffect(() => {
@@ -372,14 +374,6 @@ const Home = () => {
           </section>
         </div>
       </div>
-
-      {userId && (
-        <MusicPlayer 
-          userId={userId}
-          onQueueUpdate={setQueue}
-          onCurrentIndexUpdate={setCurrentIndex}
-        />
-      )}
     </div>
   );
 };

@@ -1,4 +1,5 @@
 import { Routes, Route } from "react-router-dom";
+import { useState } from "react";
 import CommunityRoom from "./pages/CommunityRoom";
 import Home from "./pages/Home";  
 import LikedSongs from "./pages/LikedSongs";
@@ -13,6 +14,10 @@ import MusicPlayer from "./components/MusicPlayer";
 
 export default function App() {
   const { user } = useUser();
+  
+  // Global queue state
+  const [globalQueue, setGlobalQueue] = useState<any[]>([]);
+  const [globalCurrentIndex, setGlobalCurrentIndex] = useState(0);
 
   return (
     <div className="app-container">
@@ -27,7 +32,15 @@ export default function App() {
         {/* main */}
         <main className="app-main">
           <Routes>
-            <Route path="/" element={<Home />} />  
+            <Route 
+              path="/" 
+              element={
+                <Home 
+                  queue={globalQueue} 
+                  currentIndex={globalCurrentIndex} 
+                />
+              } 
+            />  
             <Route path="/community" element={<CommunityRoom />} />
             <Route path="/signin" element={<Signin />} />
             <Route path="/likedsongs" element={<LikedSongs />} />
@@ -37,7 +50,15 @@ export default function App() {
         </main>
 
       </div>
-      {user?.id && <MusicPlayer userId={user.id} />}
+      
+      {/* Global Music Player */}
+      {user?.id && (
+        <MusicPlayer 
+          userId={user.id}
+          onQueueUpdate={setGlobalQueue}
+          onCurrentIndexUpdate={setGlobalCurrentIndex}
+        />
+      )}
     </div>
   );
 }
