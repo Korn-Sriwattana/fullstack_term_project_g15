@@ -453,6 +453,8 @@ export const addToPersonalQueue: RequestHandler = async (req, res, next) => {
             updatedAt: new Date(),
           },
         });
+      
+      console.log("Auto-playing added song as it's the first in the queue");
 
       res.json({
         message: "Added to queue and started playing",

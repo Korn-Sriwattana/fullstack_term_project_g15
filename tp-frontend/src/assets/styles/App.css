@@ -18,4 +18,5 @@
     overflow-y: auto; /* ถ้ามีเนื้อหาเยอะให้ scroll */
     background-color: #fff;
     margin-left: 100px;
+    margin-bottom: 100px; /* เผื่อพื้นที่ให้ music player */
 }
