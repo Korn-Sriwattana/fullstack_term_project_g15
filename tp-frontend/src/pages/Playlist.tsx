@@ -784,6 +784,7 @@ export default function Playlist() {
                 style={{
                   padding: '10px 20px',
                   border: '1px solid #ddd',
+                  color: '#333',
                   borderRadius: '6px',
                   background: 'white',
                   cursor: 'pointer'
