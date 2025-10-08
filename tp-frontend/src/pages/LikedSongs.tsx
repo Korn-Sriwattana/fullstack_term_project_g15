@@ -198,7 +198,7 @@ export default function LikedSongs() {
                   <AddToPlaylistButton 
                     userId={userId} 
                     song={item.song}
-                    iconOnly={true}
+                    iconOnly={false}
                     buttonClassName={styles.buttonSecondary}
                     buttonStyle={{ padding: '6px 12px', fontSize: '13px' }}
                   />
