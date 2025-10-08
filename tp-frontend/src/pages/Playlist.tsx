@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useUser } from "../components/userContext";
 import type { Song } from "../types/song.ts";
 import LikeButton from "../components/LikeButton";
+import AddToPlaylistButton from "../components/AddToPlaylist";
 
 import styles from "../assets/styles/Playlist.module.css";
 import searchIcon from "../assets/images/search-icon.png";
@@ -249,6 +250,78 @@ export default function Playlist() {
               Create
             </button>
           </div>
+
+          {/* search result */}
+          {searchResults.length === 0 && searchQuery.trim() !== "" && (
+            <section className={styles.section}>
+              <h3>Search Results</h3>
+              <p className={styles.noResults}>No results found.</p>
+            </section>
+          )}
+
+          {searchResults.length > 0 && (
+            <section className={styles.section}>
+              <h3>Search Results</h3>
+              <div className={styles.resultsList}>
+                {searchResults.map((song) => (
+                  <div
+                    key={song.id}
+                    className={styles.resultItem}
+                    style={{ display: 'flex', alignItems: 'center', gap: '10px' }}
+                  >
+                    {song.coverUrl && (
+                      <img 
+                        src={song.coverUrl} 
+                        alt={song.title}
+                        className={styles.resultCover}
+                      />
+                    )}
+                    <div className={styles.resultInfo} style={{ flex: 1 }}>
+                      <div className={styles.resultTitle}>{song.title}</div>
+                      <div className={styles.resultArtist}>{song.artist}</div>
+                    </div>
+                    <div className={styles.resultDuration}>
+                      {formatTime(song.duration)}
+                    </div>
+                    <div style={{ display: 'flex', gap: '5px' }}>
+                      <button 
+                        onClick={() => handlePlaySong(song)}
+                        className={styles.buttonPrimary}
+                        style={{ padding: '6px 12px', fontSize: '13px' }}
+                      >
+                        Play
+                      </button>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); handleAddToQueue(song); }}
+                        className={styles.buttonSecondary}
+                        style={{ padding: '6px 12px', fontSize: '13px' }}
+                      >
+                        + Queue
+                      </button>
+                      {userId && (
+                        <>
+                          <AddToPlaylistButton 
+                            userId={userId} 
+                            song={song}
+                            iconOnly={false}
+                            buttonClassName={styles.buttonSecondary}
+                            buttonStyle={{ padding: '6px 12px', fontSize: '13px' }}
+                          />
+                          <LikeButton 
+                            userId={userId} 
+                            songId={song.id}
+                            onLikeChange={(isLiked) => {
+                              console.log(`Song ${song.title} is now ${isLiked ? 'liked' : 'unliked'}`);
+                            }}
+                          />
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
       <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '20px' }}>
         {/* Left: Playlists List */}
         <div>
