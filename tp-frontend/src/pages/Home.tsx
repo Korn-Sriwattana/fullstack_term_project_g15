@@ -25,7 +25,6 @@ const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const quickAddRef = useRef<HTMLDivElement>(null);
 
-
   // Real-time search with debounce
   useEffect(() => {
     const searchSongs = async () => {
@@ -328,8 +327,10 @@ const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
                           <LikeButton 
                             userId={userId} 
                             songId={song.id}
-                            onLikeChange={(isLiked) => {
+                            onLikeChange={async (isLiked) => {
                               console.log(`Song ${song.title} is now ${isLiked ? 'liked' : 'unliked'}`);
+                              // Reload recently played ถ้ามีการเปลี่ยนแปลง
+                              loadRecentlyPlayed();
                             }}
                           />
                         </>
