@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useUser } from "../components/userContext";
 import type { Song } from "../types/song.ts";
 import LikeButton from "../components/LikeButton";
@@ -16,6 +16,7 @@ interface Playlist {
   description?: string;
   coverUrl?: string;
   songCount: number;
+  isPublic: boolean;
   createdAt: string;
 }
 
@@ -36,6 +37,12 @@ export default function Playlist() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState("");
   const [newPlaylistDesc, setNewPlaylistDesc] = useState("");
+  const [newPlaylistIsPublic, setNewPlaylistIsPublic] = useState(true);
+  const [newPlaylistCoverUrl, setNewPlaylistCoverUrl] = useState("");
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Song[]>([]);
@@ -55,28 +62,28 @@ export default function Playlist() {
   }, [selectedPlaylist]);
 
   // Real-time search with debounce
-    useEffect(() => {
-      const searchSongs = async () => {
-        if (!searchQuery.trim()) {
-          setSearchResults([]);
-          return;
-        }
-  
-        try {
-          const res = await fetch(`${API_URL}/songs/search?q=${encodeURIComponent(searchQuery)}`);
-          const data = await res.json();
-          setSearchResults(data);
-        } catch (err) {
-          console.error("Search failed:", err);
-        }
-      };
-  
-      const timeoutId = setTimeout(() => {
-        searchSongs();
-      }, 300);
-  
-      return () => clearTimeout(timeoutId);
-    }, [searchQuery]);
+  useEffect(() => {
+    const searchSongs = async () => {
+      if (!searchQuery.trim()) {
+        setSearchResults([]);
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_URL}/songs/search?q=${encodeURIComponent(searchQuery)}`);
+        const data = await res.json();
+        setSearchResults(data);
+      } catch (err) {
+        console.error("Search failed:", err);
+      }
+    };
+
+    const timeoutId = setTimeout(() => {
+      searchSongs();
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
 
   const loadPlaylists = async () => {
     try {
@@ -98,6 +105,41 @@ export default function Playlist() {
     }
   };
 
+  const handleCoverSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // แสดง preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setCoverPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    // อัปโหลดรูป
+    setUploadingCover(true);
+    try {
+      const formData = new FormData();
+      formData.append("cover", file);
+
+      const res = await fetch(`${API_URL}/upload/playlist-cover`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error("Failed to upload image");
+
+      const data = await res.json();
+      setNewPlaylistCoverUrl(data.coverUrl);
+    } catch (err) {
+      console.error("Upload failed:", err);
+      alert("Failed to upload image");
+      setCoverPreview(null);
+    } finally {
+      setUploadingCover(false);
+    }
+  };
+
   const handleCreatePlaylist = async () => {
     if (!newPlaylistName.trim()) {
       alert("Please enter playlist name");
@@ -112,6 +154,8 @@ export default function Playlist() {
           userId,
           name: newPlaylistName,
           description: newPlaylistDesc || undefined,
+          isPublic: newPlaylistIsPublic,
+          coverUrl: newPlaylistCoverUrl || undefined,
         }),
       });
 
@@ -119,9 +163,15 @@ export default function Playlist() {
 
       const data = await res.json();
       setPlaylists([...playlists, data]);
+      
+      // Reset form
       setNewPlaylistName("");
       setNewPlaylistDesc("");
+      setNewPlaylistIsPublic(true);
+      setNewPlaylistCoverUrl("");
+      setCoverPreview(null);
       setShowCreateModal(false);
+      
       alert("Playlist created!");
     } catch (err) {
       console.error("Create playlist failed:", err);
@@ -228,100 +278,102 @@ export default function Playlist() {
   return (
     <div className={styles.container}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h1>Your Library</h1> <br/>
+        <h1>Your Library</h1>
       </div>
-          {/* Search + Create */}
-          <div className={styles.actionsRow}>
-            <input
-              type="text"           
-              placeholder="Search"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className={styles.searchInput}
-              style={{
-                backgroundImage: `url(${searchIcon})`,
-                backgroundRepeat: 'no-repeat',
-                backgroundPosition: '16px center',
-                backgroundSize: '20px',
-                paddingLeft: 56,                  
-              }}
-            />
-            <button type="button" className={styles.createBtn} onClick={() => setShowCreateModal(true)}>
-              Create
-            </button>
-          </div>
+      
+      {/* Search + Create */}
+      <div className={styles.actionsRow}>
+        <input
+          type="text"           
+          placeholder="Search"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className={styles.searchInput}
+          style={{
+            backgroundImage: `url(${searchIcon})`,
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: '16px center',
+            backgroundSize: '20px',
+            paddingLeft: 56,                  
+          }}
+        />
+        <button type="button" className={styles.createBtn} onClick={() => setShowCreateModal(true)}>
+          Create
+        </button>
+      </div>
 
-          {/* search result */}
-          {searchResults.length === 0 && searchQuery.trim() !== "" && (
-            <section className={styles.section}>
-              <h3>Search Results</h3>
-              <p className={styles.noResults}>No results found.</p>
-            </section>
-          )}
+      {/* search result */}
+      {searchResults.length === 0 && searchQuery.trim() !== "" && (
+        <section className={styles.section}>
+          <h3>Search Results</h3>
+          <p className={styles.noResults}>No results found.</p>
+        </section>
+      )}
 
-          {searchResults.length > 0 && (
-            <section className={styles.section}>
-              <h3>Search Results</h3>
-              <div className={styles.resultsList}>
-                {searchResults.map((song) => (
-                  <div
-                    key={song.id}
-                    className={styles.resultItem}
-                    style={{ display: 'flex', alignItems: 'center', gap: '10px' }}
+      {searchResults.length > 0 && (
+        <section className={styles.section}>
+          <h3>Search Results</h3>
+          <div className={styles.resultsList}>
+            {searchResults.map((song) => (
+              <div
+                key={song.id}
+                className={styles.resultItem}
+                style={{ display: 'flex', alignItems: 'center', gap: '10px' }}
+              >
+                {song.coverUrl && (
+                  <img 
+                    src={song.coverUrl} 
+                    alt={song.title}
+                    className={styles.resultCover}
+                  />
+                )}
+                <div className={styles.resultInfo} style={{ flex: 1 }}>
+                  <div className={styles.resultTitle}>{song.title}</div>
+                  <div className={styles.resultArtist}>{song.artist}</div>
+                </div>
+                <div className={styles.resultDuration}>
+                  {formatTime(song.duration)}
+                </div>
+                <div style={{ display: 'flex', gap: '5px' }}>
+                  <button 
+                    onClick={() => handlePlaySong(song)}
+                    className={styles.buttonPrimary}
+                    style={{ padding: '6px 12px', fontSize: '13px' }}
                   >
-                    {song.coverUrl && (
-                      <img 
-                        src={song.coverUrl} 
-                        alt={song.title}
-                        className={styles.resultCover}
+                    Play
+                  </button>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); handleAddToQueue(song); }}
+                    className={styles.buttonSecondary}
+                    style={{ padding: '6px 12px', fontSize: '13px' }}
+                  >
+                    + Queue
+                  </button>
+                  {userId && (
+                    <>
+                      <AddToPlaylistButton 
+                        userId={userId} 
+                        song={song}
+                        iconOnly={false}
+                        buttonClassName={styles.buttonSecondary}
+                        buttonStyle={{ padding: '6px 12px', fontSize: '13px' }}
                       />
-                    )}
-                    <div className={styles.resultInfo} style={{ flex: 1 }}>
-                      <div className={styles.resultTitle}>{song.title}</div>
-                      <div className={styles.resultArtist}>{song.artist}</div>
-                    </div>
-                    <div className={styles.resultDuration}>
-                      {formatTime(song.duration)}
-                    </div>
-                    <div style={{ display: 'flex', gap: '5px' }}>
-                      <button 
-                        onClick={() => handlePlaySong(song)}
-                        className={styles.buttonPrimary}
-                        style={{ padding: '6px 12px', fontSize: '13px' }}
-                      >
-                        Play
-                      </button>
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); handleAddToQueue(song); }}
-                        className={styles.buttonSecondary}
-                        style={{ padding: '6px 12px', fontSize: '13px' }}
-                      >
-                        + Queue
-                      </button>
-                      {userId && (
-                        <>
-                          <AddToPlaylistButton 
-                            userId={userId} 
-                            song={song}
-                            iconOnly={false}
-                            buttonClassName={styles.buttonSecondary}
-                            buttonStyle={{ padding: '6px 12px', fontSize: '13px' }}
-                          />
-                          <LikeButton 
-                            userId={userId} 
-                            songId={song.id}
-                            onLikeChange={(isLiked) => {
-                              console.log(`Song ${song.title} is now ${isLiked ? 'liked' : 'unliked'}`);
-                            }}
-                          />
-                        </>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                      <LikeButton 
+                        userId={userId} 
+                        songId={song.id}
+                        onLikeChange={(isLiked) => {
+                          console.log(`Song ${song.title} is now ${isLiked ? 'liked' : 'unliked'}`);
+                        }}
+                      />
+                    </>
+                  )}
+                </div>
               </div>
-            </section>
-          )}
+            ))}
+          </div>
+        </section>
+      )}
+
       <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '20px' }}>
         {/* Left: Playlists List */}
         <div>
@@ -339,40 +391,82 @@ export default function Playlist() {
                       borderRadius: '8px',
                       cursor: 'pointer',
                       backgroundColor: selectedPlaylist?.id === playlist.id ? '#f0fdf4' : 'white',
-                      transition: 'all 0.2s'
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      gap: '12px',
+                      alignItems: 'center'
                     }}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 600, marginBottom: '4px' }}>
-                          {playlist.name}
-                        </div>
-                        <div style={{ fontSize: '12px', color: '#666' }}>
-                          {playlist.songCount} songs
-                        </div>
-                      </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeletePlaylist(playlist.id);
-                        }}
+                    {/* Cover Image */}
+                    {playlist.coverUrl ? (
+                      <img 
+                        src={`${API_URL}${playlist.coverUrl}`}
+                        alt={playlist.name}
                         style={{
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          fontSize: '16px',
-                          padding: '4px'
+                          width: '50px',
+                          height: '50px',
+                          borderRadius: '4px',
+                          objectFit: 'cover'
                         }}
-                        title="Delete playlist"
-                      >
-                        🗑️
-                      </button>
-                    </div>
-                    {playlist.description && (
-                      <div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>
-                        {playlist.description}
+                      />
+                    ) : (
+                      <div style={{
+                        width: '50px',
+                        height: '50px',
+                        borderRadius: '4px',
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '24px'
+                      }}>
+                        🎵
                       </div>
                     )}
+
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                        <span style={{ fontWeight: 600 }}>
+                          {playlist.name}
+                        </span>
+                        {!playlist.isPublic && (
+                          <span style={{ 
+                            fontSize: '10px', 
+                            padding: '2px 6px', 
+                            background: '#666', 
+                            color: 'white', 
+                            borderRadius: '4px' 
+                          }}>
+                            Private
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#666' }}>
+                        {playlist.songCount} songs
+                      </div>
+                      {playlist.description && (
+                        <div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>
+                          {playlist.description}
+                        </div>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeletePlaylist(playlist.id);
+                      }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: '16px',
+                        padding: '4px'
+                      }}
+                      title="Delete playlist"
+                    >
+                      🗑️
+                    </button>
                   </div>
                 ))
               ) : (
@@ -401,6 +495,7 @@ export default function Playlist() {
                 )}
                 <div style={{ fontSize: '14px', color: '#888', marginTop: '8px' }}>
                   {selectedPlaylist.songCount} songs · Created {formatDate(selectedPlaylist.createdAt)}
+                  {!selectedPlaylist.isPublic && ' · Private'}
                 </div>
               </div>
 
@@ -523,11 +618,71 @@ export default function Playlist() {
             backgroundColor: 'white',
             padding: '30px',
             borderRadius: '12px',
-            width: '400px',
+            width: '450px',
             boxShadow: '0 4px 20px rgba(0,0,0,0.3)'
           }}>
             <h2 style={{ marginBottom: '20px' }}>Create New Playlist</h2>
             
+            {/* Cover Upload */}
+            <div style={{ marginBottom: '20px', textAlign: 'center' }}>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleCoverSelect}
+                style={{ display: 'none' }}
+              />
+              
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                style={{
+                  width: '120px',
+                  height: '120px',
+                  margin: '0 auto',
+                  borderRadius: '8px',
+                  border: '2px dashed #ddd',
+                  cursor: 'pointer',
+                  overflow: 'hidden',
+                  transition: 'all 0.2s',
+                  position: 'relative',
+                  background: coverPreview ? 'transparent' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                }}
+              >
+                {coverPreview ? (
+                  <img 
+                    src={coverPreview} 
+                    alt="Preview" 
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover'
+                    }}
+                  />
+                ) : (
+                  <div style={{ 
+                    width: '100%',
+                    height: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    textAlign: 'center', 
+                    color: 'white' 
+                  }}>
+                    <div>
+                      <div style={{ fontSize: '32px' }}>📷</div>
+                      <div style={{ fontSize: '12px', marginTop: '4px' }}>
+                        {uploadingCover ? 'Uploading...' : 'Add Cover'}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <small style={{ color: '#666', marginTop: '8px', display: 'block' }}>
+                Click to upload cover image (Max 5MB)
+              </small>
+            </div>
+
+            {/* Playlist Name */}
             <div style={{ marginBottom: '16px' }}>
               <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>
                 Playlist Name *
@@ -548,7 +703,8 @@ export default function Playlist() {
               />
             </div>
 
-            <div style={{ marginBottom: '20px' }}>
+            {/* Description */}
+            <div style={{ marginBottom: '16px' }}>
               <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>
                 Description (optional)
               </label>
@@ -568,23 +724,84 @@ export default function Playlist() {
               />
             </div>
 
+            {/* Privacy Toggle */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>
+                Privacy
+              </label>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setNewPlaylistIsPublic(true)}
+                  style={{
+                    flex: 1,
+                    padding: '10px',
+                    border: newPlaylistIsPublic ? '2px solid #1db954' : '1px solid #ddd',
+                    borderRadius: '6px',
+                    background: newPlaylistIsPublic ? '#f0fdf4' : 'white',
+                    cursor: 'pointer',
+                    fontWeight: newPlaylistIsPublic ? 600 : 400,
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  🌍 Public
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setNewPlaylistIsPublic(false)}
+                  style={{
+                    flex: 1,
+                    padding: '10px',
+                    border: !newPlaylistIsPublic ? '2px solid #1db954' : '1px solid #ddd',
+                    borderRadius: '6px',
+                    background: !newPlaylistIsPublic ? '#f0fdf4' : 'white',
+                    cursor: 'pointer',
+                    fontWeight: !newPlaylistIsPublic ? 600 : 400,
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  🔒 Private
+                </button>
+              </div>
+              <small style={{ color: '#666', marginTop: '4px', display: 'block' }}>
+                {newPlaylistIsPublic 
+                  ? 'Anyone can see this playlist' 
+                  : 'Only you can see this playlist'}
+              </small>
+            </div>
+
+            {/* Actions */}
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
               <button
                 onClick={() => {
                   setShowCreateModal(false);
                   setNewPlaylistName("");
                   setNewPlaylistDesc("");
+                  setNewPlaylistIsPublic(true);
+                  setNewPlaylistCoverUrl("");
+                  setCoverPreview(null);
                 }}
-                className={styles.buttonPrimary}
+                style={{
+                  padding: '10px 20px',
+                  border: '1px solid #ddd',
+                  borderRadius: '6px',
+                  background: 'white',
+                  cursor: 'pointer'
+                }}
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreatePlaylist}
+                disabled={uploadingCover}
                 className={styles.buttonPrimary}
-                style={{ padding: '10px 20px' }}
+                style={{ 
+                  padding: '10px 20px',
+                  opacity: uploadingCover ? 0.5 : 1,
+                  cursor: uploadingCover ? 'not-allowed' : 'pointer'
+                }}
               >
-                Create
+                {uploadingCover ? 'Uploading...' : 'Create'}
               </button>
             </div>
           </div>
