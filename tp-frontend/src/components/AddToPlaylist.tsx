@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import type { Song } from "../types/song.ts";
+import type { Song } from "../types/song";
 
 const API_URL = "http://localhost:3000";
 
@@ -9,20 +9,22 @@ interface Playlist {
   songCount: number;
 }
 
-interface AddToPlaylistButtonProps {
+export interface AddToPlaylistButtonProps {
   userId: string;
   song: Song;
-  buttonStyle?: React.CSSProperties;
-  buttonClassName?: string;
   iconOnly?: boolean;
+  buttonClassName?: string;
+  buttonStyle?: React.CSSProperties;
+  onSuccess?: () => void | Promise<void>;
 }
 
 export default function AddToPlaylistButton({
   userId,
   song,
-  buttonStyle,
-  buttonClassName,
   iconOnly = false,
+  buttonClassName = "",
+  buttonStyle = {},
+  onSuccess,
 }: AddToPlaylistButtonProps) {
   const [showModal, setShowModal] = useState(false);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
@@ -36,18 +38,16 @@ export default function AddToPlaylistButton({
 
   const loadPlaylists = async () => {
     try {
-      setLoading(true);
       const res = await fetch(`${API_URL}/playlists/${userId}`);
       const data = await res.json();
       setPlaylists(data);
     } catch (err) {
       console.error("Load playlists failed:", err);
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleAddToPlaylist = async (playlistId: string) => {
+    setLoading(true);
     try {
       const res = await fetch(`${API_URL}/playlists/${playlistId}/songs`, {
         method: "POST",
@@ -56,15 +56,27 @@ export default function AddToPlaylistButton({
       });
 
       if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Failed to add");
+        const errorData = await res.json();
+        if (res.status === 409) {
+          alert(errorData.message || "Song already in playlist");
+        } else {
+          throw new Error("Failed to add song");
+        }
+        return;
       }
 
       alert("Added to playlist!");
       setShowModal(false);
-    } catch (err: any) {
+      
+      // เรียก callback เมื่อสำเร็จ
+      if (onSuccess) {
+        await onSuccess();
+      }
+    } catch (err) {
       console.error("Add to playlist failed:", err);
-      alert(err.message || "Failed to add to playlist");
+      alert("Failed to add to playlist");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -76,24 +88,15 @@ export default function AddToPlaylistButton({
           setShowModal(true);
         }}
         className={buttonClassName}
-        style={
-          buttonStyle || {
-            padding: "6px 12px",
-            fontSize: "13px",
-            background: "white",
-            border: "1px solid #ddd",
-            borderRadius: "4px",
-            cursor: "pointer",
-          }
-        }
+        style={buttonStyle}
         title="Add to playlist"
       >
-        {iconOnly ? "+" : "Add to Playlist"}
+        {iconOnly ? "➕" : "+ Playlist"}
       </button>
 
-      {/* Modal */}
       {showModal && (
         <div
+          onClick={() => setShowModal(false)}
           style={{
             position: "fixed",
             top: 0,
@@ -106,111 +109,96 @@ export default function AddToPlaylistButton({
             justifyContent: "center",
             zIndex: 1000,
           }}
-          onClick={() => setShowModal(false)}
         >
           <div
+            onClick={(e) => e.stopPropagation()}
             style={{
               backgroundColor: "white",
-              padding: "30px",
+              padding: "24px",
               borderRadius: "12px",
               width: "400px",
               maxHeight: "500px",
-              boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
-              overflow: "hidden",
               display: "flex",
               flexDirection: "column",
+              boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
             }}
-            onClick={(e) => e.stopPropagation()}
           >
-            <h2 style={{ marginBottom: "16px" }}>Add to Playlist</h2>
-
-            {/* Song Info */}
-            <div
-              style={{
-                padding: "12px",
-                backgroundColor: "#f5f5f5",
-                borderRadius: "8px",
-                marginBottom: "20px",
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-              }}
-            >
-              {song.coverUrl && (
-                <img
-                  src={song.coverUrl}
-                  alt={song.title}
-                  style={{
-                    width: "40px",
-                    height: "40px",
-                    borderRadius: "4px",
-                  }}
-                />
-              )}
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 600, fontSize: "14px" }}>
-                  {song.title}
-                </div>
-                <div style={{ fontSize: "12px", color: "#666" }}>
-                  {song.artist}
+            <div style={{ marginBottom: "16px" }}>
+              <h3 style={{ margin: 0, marginBottom: "8px" }}>
+                Add to Playlist
+              </h3>
+              <div
+                style={{
+                  fontSize: "14px",
+                  color: "#666",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                }}
+              >
+                {song.coverUrl && (
+                  <img
+                    src={song.coverUrl}
+                    alt={song.title}
+                    style={{
+                      width: "32px",
+                      height: "32px",
+                      borderRadius: "4px",
+                      objectFit: "cover",
+                    }}
+                  />
+                )}
+                <div>
+                  <div style={{ fontWeight: 500 }}>{song.title}</div>
+                  <div style={{ fontSize: "12px", color: "#888" }}>
+                    {song.artist}
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Playlists List */}
             <div
               style={{
                 flex: 1,
                 overflowY: "auto",
-                marginBottom: "20px",
+                marginBottom: "16px",
               }}
             >
-              {loading ? (
-                <div
-                  style={{
-                    textAlign: "center",
-                    padding: "40px 20px",
-                    color: "#666",
-                  }}
-                >
-                  Loading...
-                </div>
-              ) : playlists.length > 0 ? (
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "8px",
-                  }}
-                >
+              {playlists.length > 0 ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                   {playlists.map((playlist) => (
-                    <div
+                    <button
                       key={playlist.id}
                       onClick={() => handleAddToPlaylist(playlist.id)}
+                      disabled={loading}
                       style={{
                         padding: "12px",
                         border: "1px solid #ddd",
                         borderRadius: "8px",
-                        cursor: "pointer",
+                        background: "white",
+                        cursor: loading ? "not-allowed" : "pointer",
+                        textAlign: "left",
                         transition: "all 0.2s",
-                        backgroundColor: "white",
+                        opacity: loading ? 0.6 : 1,
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = "#f0fdf4";
-                        e.currentTarget.style.borderColor = "#1db954";
+                        if (!loading) {
+                          e.currentTarget.style.background = "#f0fdf4";
+                          e.currentTarget.style.borderColor = "#1db954";
+                        }
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = "white";
+                        e.currentTarget.style.background = "white";
                         e.currentTarget.style.borderColor = "#ddd";
                       }}
                     >
-                      <div style={{ fontWeight: 600, marginBottom: "4px" }}>
+                      <div style={{ fontWeight: 500, marginBottom: "4px", color: "#333", }}>
                         {playlist.name}
                       </div>
                       <div style={{ fontSize: "12px", color: "#666" }}>
                         {playlist.songCount} songs
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </div>
               ) : (
@@ -221,29 +209,29 @@ export default function AddToPlaylistButton({
                     color: "#666",
                   }}
                 >
-                  <div style={{ fontSize: "36px", marginBottom: "12px" }}>
-                    📋
+                  <div style={{ fontSize: "48px", marginBottom: "12px" }}>
+                    📝
                   </div>
-                  <p>No playlists yet</p>
-                  <small>Create a playlist first in Your Library</small>
+                  <div style={{ marginBottom: "8px" }}>No playlists yet</div>
+                  <div style={{ fontSize: "14px", color: "#888" }}>
+                    Create a playlist first
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* Close Button */}
             <button
               onClick={() => setShowModal(false)}
               style={{
-                padding: "10px 20px",
+                padding: "10px",
                 border: "1px solid #ddd",
                 color: "#333",
                 borderRadius: "6px",
                 background: "white",
                 cursor: "pointer",
-                width: "100%",
               }}
             >
-              Close
+              Cancel
             </button>
           </div>
         </div>
