@@ -203,10 +203,10 @@ export default function Playlist() {
         <h1>Your Library</h1>
         <button 
           onClick={() => setShowCreateModal(true)}
-          className={styles.buttonPrimary}
-          style={{ padding: '10px 20px' }}
+          className={styles.createBtn}
+          style={{ padding: '30px 100px' }}
         >
-          + Create Playlist
+          Create Playlist
         </button>
       </div>
 
@@ -463,19 +463,13 @@ export default function Playlist() {
                   setNewPlaylistName("");
                   setNewPlaylistDesc("");
                 }}
-                style={{
-                  padding: '10px 20px',
-                  border: '1px solid #ddd',
-                  borderRadius: '6px',
-                  background: 'white',
-                  cursor: 'pointer'
-                }}
+                className={styles.buttonPrimary}
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreatePlaylist}
-                className={styles.buttonPrimary}
+                className={styles.createBtn}
                 style={{ padding: '10px 20px' }}
               >
                 Create
