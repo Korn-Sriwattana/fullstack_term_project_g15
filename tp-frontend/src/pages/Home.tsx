@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useUser } from "../components/userContext";
-import styles from "../assets/styles/MusicStreaming.module.css";
+import styles from "../assets/styles/Home.module.css";
 import type { Song, QueueItem } from "../types/song.ts";
+import searchIcon from "../assets/images/search-icon.png";
 
 const API_URL = "http://localhost:3000";
 
@@ -19,6 +20,9 @@ const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
   const [searchResults, setSearchResults] = useState<Song[]>([]);
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [recentlyPlayed, setRecentlyPlayed] = useState<any[]>([]);
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const quickAddRef = useRef<HTMLDivElement>(null);
+
 
   // Real-time search with debounce
   useEffect(() => {
@@ -187,58 +191,83 @@ const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
+  // ADD: click-outside + Esc 
+  useEffect(() => {
+    const handleDocMouseDown = (e: MouseEvent) => {
+      if (!showQuickAdd) return;
+      const el = quickAddRef.current;
+      if (el && !el.contains(e.target as Node)) {
+        setShowQuickAdd(false);
+      }
+    };
+
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setShowQuickAdd(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleDocMouseDown);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleDocMouseDown);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [showQuickAdd]);
+
+
   return (
     <div className={styles.container}>
-      {/* Create User */}
-      <section className={styles.section}>
-        <h3>Create User (Test)</h3>
-        <input
-          type="text"
-          placeholder="Enter your name"
-          value={userName}
-          onChange={(e) => setUserName(e.target.value)}
-          className={styles.inputSmall}
-        />
-        <button onClick={handleCreateUser} className={styles.buttonPrimary}>
-          Create User
-        </button>
-        <p className={styles.userInfo}>Current User: {user?.name || "Not created"}</p>
-      </section>
-
-      <section className={styles.section}>
-        <h3>Add Song</h3>
-        <input
-          type="text"
-          placeholder="Paste YouTube link"
-          value={youtubeUrl}
-          onChange={(e) => setYoutubeUrl(e.target.value)}
-        />
-        <button onClick={handleAdd} className={styles.buttonPrimary}>
-          Add
-        </button>
-      </section>
-
-      {/* Search  Recently Played */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px' }}>
-        {/* Left: Search */}
+      {/* Search */}
+      
         <div>
-          <section className={styles.section}>
-            <h3>Search Songs</h3>
-            <div className={styles.searchForm}>
-              <input
-                type="text"
-                placeholder="Search by title or artist..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && handleSearch()}
-                className={styles.inputLarge}
-              />
-              <button onClick={handleSearch} className={styles.buttonSecondary}>
-                Search
+          <input
+            type="text"           
+            placeholder="Search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className={styles.searchInput}
+            style={{
+              backgroundImage: `url(${searchIcon})`,
+              backgroundRepeat: 'no-repeat',
+              backgroundPosition: '16px center',
+              backgroundSize: '20px',
+              paddingLeft: 56,                  
+            }}
+          />
+
+          {/*add songs*/}
+          <div ref={quickAddRef}>
+            <div>
+              <button
+                type="button"
+                onClick={() => setShowQuickAdd((v) => !v)}
+                className={styles.buttonSecondary}
+              >
+                + Add song
               </button>
             </div>
-          </section>
 
+            {showQuickAdd && (
+              <div>
+                <input
+                  type="text"
+                  placeholder="Paste a YouTube link"
+                  value={youtubeUrl}
+                  onChange={(e) => setYoutubeUrl(e.target.value)}
+                  className={styles.inputSmall}
+                />
+                <button
+                  type="button"
+                  onClick={handleAdd}
+                  className={styles.buttonPrimary}
+                >
+                  +
+                </button>
+              </div>
+            )}
+          </div>
+          {/* search result */}
           {searchResults.length === 0 && searchQuery.trim() !== "" && (
             <section className={styles.section}>
               <h3>Search Results</h3>
@@ -293,86 +322,101 @@ const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
           )}
         </div>
 
-        {/* Right: Recently Played & Queue */}
-        <div>
-          <section className={styles.section}>
-            <h3>Recently Played</h3>
-            <div className={styles.recentlyPlayed}>
-              {recentlyPlayed.length > 0 ? (
-                recentlyPlayed.map((item) => (
-                  <div key={item.id} className={styles.recentlyPlayedItem}>
-                    {item.song?.coverUrl && (
-                      <img 
-                        src={item.song.coverUrl} 
-                        alt={item.song.title} 
-                        className={styles.recentlyPlayedCover} 
-                      />
-                    )}
-                    <div className={styles.recentlyPlayedInfo}>
-                      <div className={styles.recentlyPlayedTitle}>
-                        {item.song?.title || 'Unknown'}
-                      </div>
-                      <div className={styles.recentlyPlayedArtist}>
-                        {item.song?.artist || 'Unknown Artist'}
-                      </div>
-                    </div>
-                    <button 
-                      onClick={() => handlePlaySong(item.song)} 
-                      className={styles.recentlyPlayedButton}
-                    >
-                      Play
-                    </button>
-                  </div>
-                ))
-              ) : (
-                <div className={styles.recentlyPlayedEmpty}>
-                  No recently played songs
-                  <br />
-                  <small>Start playing to see history</small>
-                </div>
-              )}
-            </div>
-          </section>
+      {/* Create User */}
+      <section className={styles.section}>
+        <h3>Create User (Test)</h3>
+        <input
+          type="text"
+          placeholder="Enter your name"
+          value={userName}
+          onChange={(e) => setUserName(e.target.value)}
+          className={styles.inputSmall}
+        />
+        <button onClick={handleCreateUser} className={styles.buttonPrimary}>
+          Create User
+        </button>
+        <p className={styles.userInfo}>Current User: {user?.name || "Not created"}</p>
+      </section>
 
-          <section className={styles.section}>
-            <h3>Queue ({queue.length} songs)</h3>
-            <div className={styles.queueContainer}>
-              {queue.length > 0 ? (
-                queue.map((item, index) => (
-                  <div
-                    key={item.id}
-                    className={index === currentIndex ? styles.queueItemActive : styles.queueItem}
-                  >
-                    <div className={styles.queueNumber}>
-                      {index + 1}
+      {/* Right: Recently Played & Queue */}
+      <div>
+        <section className={styles.section}>
+          <h3>Recently Played</h3>
+          <div className={styles.recentlyPlayed}>
+            {recentlyPlayed.length > 0 ? (
+              recentlyPlayed.map((item) => (
+                <div key={item.id} className={styles.recentlyPlayedItem}>
+                  {item.song?.coverUrl && (
+                    <img 
+                      src={item.song.coverUrl} 
+                      alt={item.song.title} 
+                      className={styles.recentlyPlayedCover} 
+                    />
+                  )}
+                  <div className={styles.recentlyPlayedInfo}>
+                    <div className={styles.recentlyPlayedTitle}>
+                      {item.song?.title || 'Unknown'}
                     </div>
-                    {item.song?.coverUrl && (
-                      <img 
-                        src={item.song.coverUrl} 
-                        alt={item.song.title}
-                        className={styles.queueCover}
-                      />
-                    )}
-                    <div className={styles.queueInfo}>
-                      <div className={styles.queueTitle}>
-                        {item.song?.title || 'Unknown'}
-                      </div>
-                      <div className={styles.queueArtist}>
-                        {item.song?.artist || 'Unknown Artist'}
-                      </div>
+                    <div className={styles.recentlyPlayedArtist}>
+                      {item.song?.artist || 'Unknown Artist'}
                     </div>
                   </div>
-                ))
-              ) : (
-                <div className={styles.queueEmpty}>
-                  No songs in queue
-                  <br />
-                  <small>Play a song or add to queue</small>
+                  <button 
+                    onClick={() => handlePlaySong(item.song)} 
+                    className={styles.recentlyPlayedButton}
+                  >
+                    Play
+                  </button>
                 </div>
-              )}
-            </div>
-          </section>
-        </div>
+              ))
+            ) : (
+              <div className={styles.recentlyPlayedEmpty}>
+                No recently played songs
+                <br />
+                <small>Start playing to see history</small>
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section className={styles.section}>
+          <h3>Queue ({queue.length} songs)</h3>
+          <div className={styles.queueContainer}>
+            {queue.length > 0 ? (
+              queue.map((item, index) => (
+                <div
+                  key={item.id}
+                  className={index === currentIndex ? styles.queueItemActive : styles.queueItem}
+                >
+                  <div className={styles.queueNumber}>
+                    {index + 1}
+                  </div>
+                  {item.song?.coverUrl && (
+                    <img 
+                      src={item.song.coverUrl} 
+                      alt={item.song.title}
+                      className={styles.queueCover}
+                    />
+                  )}
+                  <div className={styles.queueInfo}>
+                    <div className={styles.queueTitle}>
+                      {item.song?.title || 'Unknown'}
+                    </div>
+                    <div className={styles.queueArtist}>
+                      {item.song?.artist || 'Unknown Artist'}
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className={styles.queueEmpty}>
+                No songs in queue
+                <br />
+                <small>Play a song or add to queue</small>
+              </div>
+            )}
+          </div>
+        </section>
       </div>
     </div>
   );
