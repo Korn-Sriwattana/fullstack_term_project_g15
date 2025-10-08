@@ -201,8 +201,7 @@ export default function LikedSongs() {
                     songId={item.song.id}
                     onLikeChange={(isLiked) => {
                       if (!isLiked) {
-                        // ลบออกจาก local state ทันที
-                        setLikedSongs(prev => prev.filter(s => s.song.id !== item.song.id));
+                        refreshLikedSongs(userId!);
                       }
                     }}
                   />
