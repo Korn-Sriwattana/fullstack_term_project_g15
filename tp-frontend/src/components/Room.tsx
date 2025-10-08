@@ -1,4 +1,9 @@
 import React from "react";
+import styles from "../assets/styles/lokchang-rooms.module.css";
+
+//images
+import coverImg from "../assets/images/cover_chatroom.jpg";
+
 
 interface Props {
   roomNameInput: string;
@@ -59,7 +64,10 @@ const RoomSection: React.FC<Props> = (props) => {
         <option value="public">Public</option>
         <option value="private">Private</option>
       </select>
-      <button onClick={handleCreateRoom}>Create Room</button>
+      <button 
+      onClick={handleCreateRoom}
+      className={styles["lok-create-btn"]}
+      >Create Room</button>
 
       <h3>🔑 Join Room</h3>
       <input
@@ -68,7 +76,10 @@ const RoomSection: React.FC<Props> = (props) => {
         value={inviteCodeInput}
         onChange={(e) => setInviteCodeInput(e.target.value)}
       />
-      <button onClick={() => handleJoinRoom()}>Join Room</button>
+      <button 
+      onClick={() => handleJoinRoom()}
+      className={styles["lok-join-bt"]}
+      >Join Room</button>
 
       <h2>🌍 Public Rooms</h2>
       <ul>

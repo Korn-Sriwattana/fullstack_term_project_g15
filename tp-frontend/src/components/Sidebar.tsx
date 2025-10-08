@@ -43,7 +43,6 @@ export default function Sidebar() {
         <div className={styles.section}>
             <div className = {styles.sectionTitle}>Community</div>
             {link("/lokchangrooms", "LuckChangRooms", roomIcon)}
-            {link("/community", "community ver1", roomIcon)}
         </div>
     </div>
   );

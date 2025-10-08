@@ -1,10 +1,9 @@
 import { Routes, Route } from "react-router-dom";
 import { useState } from "react";
-import CommunityRoom from "./pages/CommunityRoom";
 import Home from "./pages/Home";  
+import LokchangRooms from "./pages/LokchangRooms";
 import LikedSongs from "./pages/LikedSongs";
 import Playlist from "./pages/Playlist";
-import LokchangRooms from "./pages/LokchangRooms";
 import Signin from "./pages/Signin";
 import Sidebar from "./components/Sidebar";
 import Topbar from "./components/Topbar";
@@ -41,7 +40,6 @@ export default function App() {
                 />
               } 
             />  
-            <Route path="/community" element={<CommunityRoom />} />
             <Route path="/signin" element={<Signin />} />
             <Route path="/likedsongs" element={<LikedSongs />} />
             <Route path="/playlist" element={<Playlist />} />
