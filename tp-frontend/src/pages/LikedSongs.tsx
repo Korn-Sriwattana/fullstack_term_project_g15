@@ -218,7 +218,7 @@ export default function LikedSongs() {
           </div>
         ) : ( 
           <section className={styles.emptyWrap}>
-            <img src={""} alt="empty liked songs" className={styles.emptyImg} />
+            <img src={emptyImg} alt="empty liked songs" className={styles.emptyImg} />
             <h2 className={styles.emptyTitle}>You haven’t liked any songs yet</h2>
             <p className={styles.emptyHint}>
               Tap the heart on tracks you love to keep them all in one place

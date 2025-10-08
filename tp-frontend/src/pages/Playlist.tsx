@@ -362,7 +362,7 @@ export default function Playlist() {
                   ))
                 ) : (
                   <section className={styles.emptyWrap}>
-                    <img className={styles.emptyImage} src={""} alt="empty playlist" />
+                    <img className={styles.emptyImage} src={emptyImg} alt="empty playlist" />
                     <h2 className={styles.emptyTitle}>Your playlist is still empty</h2>
                     <p className={styles.emptyHint}>
                       Tap the + button or start browsing from Search.
