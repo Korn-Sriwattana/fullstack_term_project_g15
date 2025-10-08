@@ -50,24 +50,6 @@ export default function LikedSongs() {
     }
   };
 
-  const handleRemoveFromLiked = async (songId: string) => {
-    if (!userId) return;
-
-    try {
-      const res = await fetch(`${API_URL}/liked-songs/${userId}/${songId}`, {
-        method: "DELETE",
-      });
-
-      if (!res.ok) throw new Error("Failed to remove");
-
-      setLikedSongs(likedSongs.filter(item => item.song.id !== songId));
-      alert("Removed from Liked Songs!");
-    } catch (err) {
-      console.error("Remove failed:", err);
-      alert("Failed to remove from Liked Songs");
-    }
-  };
-
   const handlePlaySong = async (song: Song) => {
     if (!userId) {
       alert("Please create user first");
@@ -219,8 +201,7 @@ export default function LikedSongs() {
                     songId={item.song.id}
                     onLikeChange={(isLiked) => {
                       if (!isLiked) {
-                        // ลบออกจาก local state ทันที
-                        setLikedSongs(prev => prev.filter(s => s.song.id !== item.song.id));
+                        refreshLikedSongs(userId!);
                       }
                     }}
                   />

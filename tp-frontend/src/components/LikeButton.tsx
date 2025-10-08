@@ -1,13 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useLikedSongs } from "./LikedSongsContext";
-
-const API_URL = "http://localhost:3000";
-
-interface LikeButtonProps {
-  userId: string;
-  songId: string;
-  onLikeChange?: (isLiked: boolean) => void | Promise<void>;
-}
 
 function LikeButton({ 
   userId, 

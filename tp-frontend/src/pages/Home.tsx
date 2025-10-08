@@ -136,18 +136,6 @@ const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
     alert("Song added!");
   };
 
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
-
-    try {
-      const res = await fetch(`${API_URL}/songs/search?q=${encodeURIComponent(searchQuery)}`);
-      const data = await res.json();
-      setSearchResults(data);
-    } catch (err) {
-      console.error("Search failed:", err);
-    }
-  };
-
   const handlePlaySong = async (song: Song) => {
     if (!userId) {
       alert("Please create user first");
