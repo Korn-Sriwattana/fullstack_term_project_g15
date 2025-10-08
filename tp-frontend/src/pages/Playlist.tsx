@@ -264,11 +264,13 @@ export default function Playlist() {
                   </div>
                 ))
               ) : (
-                <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-                  No playlists yet
-                  <br />
-                  <small>Create your first playlist!</small>
-                </div>
+                <section className={styles.emptyWrap}>
+                  <img className={styles.emptyImage} src={emptyImg} alt="empty playlist" />
+                  <h2 className={styles.emptyTitle}>Your playlist is still empty</h2>
+                  <p className={styles.emptyHint}>
+                    Tap the + button or start browsing from Search.
+                  </p>
+                </section>
               )}
             </div>
           </section>
@@ -361,13 +363,15 @@ export default function Playlist() {
                     </div>
                   ))
                 ) : (
-                  <section className={styles.emptyWrap}>
-                    <img className={styles.emptyImage} src={emptyImg} alt="empty playlist" />
-                    <h2 className={styles.emptyTitle}>Your playlist is still empty</h2>
-                    <p className={styles.emptyHint}>
-                      Tap the + button or start browsing from Search.
-                    </p>
-                  </section>
+                  <div style={{ 
+                    textAlign: 'center', 
+                    padding: '40px', 
+                    color: '#666' 
+                  }}>
+                    No songs in this playlist
+                    <br />
+                    <small>Search for songs and add them to this playlist</small>
+                  </div>
                 )}
               </div>
             </section>
