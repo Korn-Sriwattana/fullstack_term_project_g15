@@ -3,9 +3,6 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 
-// ⚠️ ต้องติดตั้ง package ก่อน:
-// npm install multer
-// npm install --save-dev @types/multer
 
 // สร้างโฟลเดอร์สำหรับเก็บรูป
 const uploadDir = "./uploads/playlist-covers";
