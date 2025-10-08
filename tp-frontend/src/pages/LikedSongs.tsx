@@ -3,6 +3,8 @@ import { useUser } from "../components/userContext";
 import styles from "../assets/styles/LikedSongs.module.css"; 
 import emptyImg from "../assets/images/empty/empty-box.png";
 import type { Song } from "../types/song.ts";
+import LikeButton from "../components/LikeButton";
+import AddToPlaylistButton from "../components/AddToPlaylist";
 
 const API_URL = "http://localhost:3000";
 
@@ -193,21 +195,23 @@ export default function LikedSongs() {
                   >
                     + Queue
                   </button>
-                  <button 
-                    onClick={() => handleRemoveFromLiked(item.song.id)}
-                    style={{ 
-                      padding: '6px 12px', 
-                      fontSize: '18px',
-                      background: 'transparent',
-                      color: '#dc2626',
-                      border: 'none',
-                      borderRadius: '4px',
-                      cursor: 'pointer'
+                  <AddToPlaylistButton 
+                    userId={userId} 
+                    song={item.song}
+                    iconOnly={true}
+                    buttonClassName={styles.buttonSecondary}
+                    buttonStyle={{ padding: '6px 12px', fontSize: '13px' }}
+                  />
+                  <LikeButton 
+                    userId={userId} 
+                    songId={item.song.id}
+                    onLikeChange={(isLiked) => {
+                      if (!isLiked) {
+                        // ถ้า unlike แล้ว ให้ลบออกจากลิสต์
+                        setLikedSongs(likedSongs.filter(s => s.song.id !== item.song.id));
+                      }
                     }}
-                    title="Remove from Liked Songs"
-                  >
-                    💔
-                  </button>
+                  />
                 </div>
               </div>
             ))}
