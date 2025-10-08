@@ -36,6 +36,9 @@ export default function Playlist() {
   const [newPlaylistName, setNewPlaylistName] = useState("");
   const [newPlaylistDesc, setNewPlaylistDesc] = useState("");
 
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<Song[]>([]);
+  
   // Load playlists
   useEffect(() => {
     if (userId) {
@@ -49,6 +52,30 @@ export default function Playlist() {
       loadPlaylistSongs(selectedPlaylist.id);
     }
   }, [selectedPlaylist]);
+
+  // Real-time search with debounce
+    useEffect(() => {
+      const searchSongs = async () => {
+        if (!searchQuery.trim()) {
+          setSearchResults([]);
+          return;
+        }
+  
+        try {
+          const res = await fetch(`${API_URL}/songs/search?q=${encodeURIComponent(searchQuery)}`);
+          const data = await res.json();
+          setSearchResults(data);
+        } catch (err) {
+          console.error("Search failed:", err);
+        }
+      };
+  
+      const timeoutId = setTimeout(() => {
+        searchSongs();
+      }, 300);
+  
+      return () => clearTimeout(timeoutId);
+    }, [searchQuery]);
 
   const loadPlaylists = async () => {
     try {
@@ -200,16 +227,28 @@ export default function Playlist() {
   return (
     <div className={styles.container}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h1>Your Library</h1>
-        <button 
-          onClick={() => setShowCreateModal(true)}
-          className={styles.createBtn}
-          style={{ padding: '30px 100px' }}
-        >
-          Create Playlist
-        </button>
+        <h1>Your Library</h1> <br/>
       </div>
-
+          {/* Search + Create */}
+          <div className={styles.actionsRow}>
+            <input
+              type="text"           
+              placeholder="Search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className={styles.searchInput}
+              style={{
+                backgroundImage: `url(${searchIcon})`,
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: '16px center',
+                backgroundSize: '20px',
+                paddingLeft: 56,                  
+              }}
+            />
+            <button type="button" className={styles.createBtn} onClick={() => setShowCreateModal(true)}>
+              Create
+            </button>
+          </div>
       <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '20px' }}>
         {/* Left: Playlists List */}
         <div>
@@ -469,7 +508,7 @@ export default function Playlist() {
               </button>
               <button
                 onClick={handleCreatePlaylist}
-                className={styles.createBtn}
+                className={styles.buttonPrimary}
                 style={{ padding: '10px 20px' }}
               >
                 Create
