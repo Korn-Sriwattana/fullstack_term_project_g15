@@ -33,6 +33,7 @@ export default function Playlist() {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [selectedPlaylist, setSelectedPlaylist] = useState<Playlist | null>(null);
   const [playlistSongs, setPlaylistSongs] = useState<PlaylistSong[]>([]);
+  const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
   
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState("");
@@ -47,21 +48,18 @@ export default function Playlist() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Song[]>([]);
   
-  // Load playlists
   useEffect(() => {
     if (userId) {
       loadPlaylists();
     }
   }, [userId]);
 
-  // Load songs when playlist selected
   useEffect(() => {
-    if (selectedPlaylist) {
+    if (selectedPlaylist && viewMode === 'detail') {
       loadPlaylistSongs(selectedPlaylist.id);
     }
-  }, [selectedPlaylist]);
+  }, [selectedPlaylist, viewMode]);
 
-  // Real-time search with debounce
   useEffect(() => {
     const searchSongs = async () => {
       if (!searchQuery.trim()) {
@@ -91,7 +89,6 @@ export default function Playlist() {
       const data = await res.json();
       setPlaylists(data);
       
-      // ✅ ถ้า selectedPlaylist มีอยู่ ให้อัปเดตข้อมูลของมันด้วย
       if (selectedPlaylist) {
         const updatedPlaylist = data.find((p: Playlist) => p.id === selectedPlaylist.id);
         if (updatedPlaylist) {
@@ -117,14 +114,12 @@ export default function Playlist() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // แสดง preview
     const reader = new FileReader();
     reader.onloadend = () => {
       setCoverPreview(reader.result as string);
     };
     reader.readAsDataURL(file);
 
-    // อัปโหลดรูป
     setUploadingCover(true);
     try {
       const formData = new FormData();
@@ -169,10 +164,8 @@ export default function Playlist() {
 
       if (!res.ok) throw new Error("Failed to create playlist");
 
-      // ✅ Reload playlists เพื่อให้เห็น playlist ใหม่
       await loadPlaylists();
       
-      // Reset form
       setNewPlaylistName("");
       setNewPlaylistDesc("");
       setNewPlaylistIsPublic(true);
@@ -197,12 +190,12 @@ export default function Playlist() {
 
       if (!res.ok) throw new Error("Failed to delete");
 
-      // ✅ Reload playlists
       await loadPlaylists();
       
       if (selectedPlaylist?.id === playlistId) {
         setSelectedPlaylist(null);
         setPlaylistSongs([]);
+        setViewMode('list');
       }
       
       alert("Playlist deleted!");
@@ -223,7 +216,6 @@ export default function Playlist() {
 
       if (!res.ok) throw new Error("Failed to remove");
 
-      // ✅ Reload ทั้ง playlists (เพื่อเห็นจำนวนเพลงอัปเดต) และ playlist songs
       await Promise.all([
         loadPlaylists(),
         loadPlaylistSongs(selectedPlaylist.id)
@@ -259,13 +251,90 @@ export default function Playlist() {
     }
   };
 
-  // ✅ เพิ่ม callback สำหรับ AddToPlaylistButton
-  const handleSongAddedToPlaylist = async () => {
-    // Reload playlists เพื่ออัปเดตจำนวนเพลง
-    await loadPlaylists();
+  const handleOpenPlaylist = (playlist: Playlist) => {
+    setSelectedPlaylist(playlist);
+    setViewMode('detail');
+  };
+
+  const handleBackToList = () => {
+    setViewMode('list');
+    setSelectedPlaylist(null);
+    setPlaylistSongs([]);
+  };
+
+  const handlePlayPlaylist = async () => {
+    if (!selectedPlaylist || playlistSongs.length === 0) {
+      alert("No songs in this playlist");
+      return;
+    }
+
+    if ((window as any).musicPlayer) {
+      const [firstSong, ...restSongs] = playlistSongs.map(item => item.song);
+      
+      await (window as any).musicPlayer.playSong(firstSong);
+      
+      for (const song of restSongs) {
+        await (window as any).musicPlayer.addToQueue(song);
+      }
+      
+      alert(`Playing ${playlistSongs.length} songs from ${selectedPlaylist.name}`);
+    }
+  };
+
+  // ✅ เล่น playlist จากหน้า Grid
+  const handlePlayPlaylistFromCard = async (e: React.MouseEvent, playlist: Playlist) => {
+    e.stopPropagation(); // ป้องกันไม่ให้เปิด playlist
     
-    // ถ้ากำลังดู playlist ที่เพิ่มเพลง ให้ reload เพลงด้วย
-    if (selectedPlaylist) {
+    try {
+      // Load เพลงใน playlist
+      const res = await fetch(`${API_URL}/playlists/${playlist.id}/songs`);
+      const songs: PlaylistSong[] = await res.json();
+      
+      if (songs.length === 0) {
+        alert("No songs in this playlist");
+        return;
+      }
+
+      if ((window as any).musicPlayer) {
+        const [firstSong, ...restSongs] = songs.map(item => item.song);
+        
+        await (window as any).musicPlayer.playSong(firstSong);
+        
+        for (const song of restSongs) {
+          await (window as any).musicPlayer.addToQueue(song);
+        }
+        
+        alert(`Playing ${songs.length} songs from ${playlist.name}`);
+      }
+    } catch (err) {
+      console.error("Failed to play playlist:", err);
+      alert("Failed to play playlist");
+    }
+  };
+
+  const handleShufflePlaylist = async () => {
+    if (!selectedPlaylist || playlistSongs.length === 0) {
+      alert("No songs in this playlist");
+      return;
+    }
+
+    if ((window as any).musicPlayer) {
+      const shuffled = [...playlistSongs].sort(() => Math.random() - 0.5);
+      const [firstSong, ...restSongs] = shuffled.map(item => item.song);
+      
+      await (window as any).musicPlayer.playSong(firstSong);
+      
+      for (const song of restSongs) {
+        await (window as any).musicPlayer.addToQueue(song);
+      }
+      
+      alert(`Shuffling ${playlistSongs.length} songs from ${selectedPlaylist.name}`);
+    }
+  };
+
+  const handleSongAddedToPlaylist = async () => {
+    await loadPlaylists();
+    if (selectedPlaylist && viewMode === 'detail') {
       await loadPlaylistSongs(selectedPlaylist.id);
     }
   };
@@ -296,64 +365,67 @@ export default function Playlist() {
 
   return (
     <div className={styles.container}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h1>Your Library</h1>
+      {/* Header */}
+      <div className={styles.header}>
+        <div className={styles.headerLeft}>
+          {viewMode === 'detail' && (
+            <button onClick={handleBackToList} className={styles.backButton} title="Back to playlists">
+              ←
+            </button>
+          )}
+          <h1 className={styles.title}>
+            {viewMode === 'list' ? 'Your Library' : selectedPlaylist?.name}
+          </h1>
+        </div>
       </div>
       
       {/* Search + Create */}
-      <div className={styles.actionsRow}>
-        <input
-          type="text"           
-          placeholder="Search"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className={styles.searchInput}
-          style={{
-            backgroundImage: `url(${searchIcon})`,
-            backgroundRepeat: 'no-repeat',
-            backgroundPosition: '16px center',
-            backgroundSize: '20px',
-            paddingLeft: 56,                  
-          }}
-        />
-        <button type="button" className={styles.createBtn} onClick={() => setShowCreateModal(true)}>
-          Create
-        </button>
-      </div>
+      {viewMode === 'list' && (
+        <div className={styles.actionsRow}>
+          <input
+            type="text"           
+            placeholder="Search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className={styles.searchInput}
+            style={{
+              backgroundImage: `url(${searchIcon})`,
+              backgroundRepeat: 'no-repeat',
+              backgroundPosition: '16px center',
+              backgroundSize: '20px',
+            }}
+          />
+          <button type="button" className={styles.createBtn} onClick={() => setShowCreateModal(true)}>
+            Create
+          </button>
+        </div>
+      )}
 
-      {/* search result */}
-      {searchResults.length === 0 && searchQuery.trim() !== "" && (
+      {/* Search Results */}
+      {viewMode === 'list' && searchResults.length === 0 && searchQuery.trim() !== "" && (
         <section className={styles.section}>
           <h3>Search Results</h3>
           <p className={styles.noResults}>No results found.</p>
         </section>
       )}
 
-      {searchResults.length > 0 && (
+      {viewMode === 'list' && searchResults.length > 0 && (
         <section className={styles.section}>
           <h3>Search Results</h3>
           <div className={styles.resultsList}>
             {searchResults.map((song) => (
-              <div
-                key={song.id}
-                className={styles.resultItem}
-                style={{ display: 'flex', alignItems: 'center', gap: '10px' }}
-              >
+              <div key={song.id} className={styles.resultItem}>
                 {song.coverUrl && (
-                  <img 
-                    src={song.coverUrl} 
-                    alt={song.title}
-                    className={styles.resultCover}
-                  />
+                  <img src={song.coverUrl} alt={song.title} className={styles.resultCover} />
                 )}
-                <div className={styles.resultInfo} style={{ flex: 1 }}>
+                <div className={styles.resultInfo}>
                   <div className={styles.resultTitle}>{song.title}</div>
                   <div className={styles.resultArtist}>{song.artist}</div>
                 </div>
                 <div className={styles.resultDuration}>
                   {formatTime(song.duration)}
                 </div>
-                <div style={{ display: 'flex', gap: '5px' }}>
+                <div className={styles.resultActions}>
                   <button 
                     onClick={() => handlePlaySong(song)}
                     className={styles.buttonPrimary}
@@ -368,25 +440,21 @@ export default function Playlist() {
                   >
                     + Queue
                   </button>
-                  {userId && (
-                    <>
-                      <AddToPlaylistButton 
-                        userId={userId} 
-                        song={song}
-                        iconOnly={false}
-                        buttonClassName={styles.buttonSecondary}
-                        buttonStyle={{ padding: '6px 12px', fontSize: '13px' }}
-                        onSuccess={handleSongAddedToPlaylist}
-                      />
-                      <LikeButton 
-                        userId={userId} 
-                        songId={song.id}
-                        onLikeChange={(isLiked) => {
-                          console.log(`Song ${song.title} is now ${isLiked ? 'liked' : 'unliked'}`);
-                        }}
-                      />
-                    </>
-                  )}
+                  <AddToPlaylistButton 
+                    userId={userId} 
+                    song={song}
+                    iconOnly={false}
+                    buttonClassName={styles.buttonSecondary}
+                    buttonStyle={{ padding: '6px 12px', fontSize: '13px' }}
+                    onSuccess={handleSongAddedToPlaylist}
+                  />
+                  <LikeButton 
+                    userId={userId} 
+                    songId={song.id}
+                    onLikeChange={(isLiked) => {
+                      console.log(`Song ${song.title} is now ${isLiked ? 'liked' : 'unliked'}`);
+                    }}
+                  />
                 </div>
               </div>
             ))}
@@ -394,257 +462,208 @@ export default function Playlist() {
         </section>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '20px' }}>
-        {/* Left: Playlists List */}
-        <div>
-          <section className={styles.section}>
-            <h3>Playlists ({playlists.length})</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {playlists.length > 0 ? (
-                playlists.map((playlist) => (
-                  <div
-                    key={playlist.id}
-                    onClick={() => setSelectedPlaylist(playlist)}
-                    style={{
-                      padding: '12px',
-                      border: selectedPlaylist?.id === playlist.id ? '2px solid #1db954' : '1px solid #ddd',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      backgroundColor: selectedPlaylist?.id === playlist.id ? '#f0fdf4' : 'white',
-                      transition: 'all 0.2s',
-                      display: 'flex',
-                      gap: '12px',
-                      alignItems: 'center'
+      {/* LIST VIEW - Playlists Grid */}
+      {viewMode === 'list' && (
+        <section className={styles.section}>
+          <h3>Playlists ({playlists.length})</h3>
+          
+          {playlists.length > 0 ? (
+            <div className={styles.playlistGrid}>
+              {playlists.map((playlist) => (
+                <div key={playlist.id} className={styles.playlistCard} onClick={() => handleOpenPlaylist(playlist)}>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeletePlaylist(playlist.id);
                     }}
+                    className={styles.deleteButton}
+                    title="Delete playlist"
                   >
-                    {/* Cover Image */}
+                    🗑️
+                  </button>
+
+                  <div className={styles.playlistCoverWrapper}>
                     {playlist.coverUrl ? (
                       <img 
                         src={`${API_URL}${playlist.coverUrl}`}
                         alt={playlist.name}
-                        style={{
-                          width: '50px',
-                          height: '50px',
-                          borderRadius: '4px',
-                          objectFit: 'cover'
-                        }}
+                        className={styles.playlistCover}
                       />
                     ) : (
-                      <div style={{
-                        width: '50px',
-                        height: '50px',
-                        borderRadius: '4px',
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '24px'
-                      }}>
+                      <div className={styles.playlistCoverPlaceholder}>
                         🎵
                       </div>
                     )}
-
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                        <span style={{ fontWeight: 600 }}>
-                          {playlist.name}
-                        </span>
-                        {!playlist.isPublic && (
-                          <span style={{ 
-                            fontSize: '10px', 
-                            padding: '2px 6px', 
-                            background: '#666', 
-                            color: 'white', 
-                            borderRadius: '4px' 
-                          }}>
-                            Private
-                          </span>
-                        )}
-                      </div>
-                      <div style={{ fontSize: '12px', color: '#666' }}>
-                        {playlist.songCount} songs
-                      </div>
-                      {playlist.description && (
-                        <div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>
-                          {playlist.description}
-                        </div>
-                      )}
-                    </div>
-
+                    
+                    {/* ✅ ปุ่ม Play ตรง Cover */}
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeletePlaylist(playlist.id);
-                      }}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontSize: '16px',
-                        padding: '4px'
-                      }}
-                      title="Delete playlist"
+                      onClick={(e) => handlePlayPlaylistFromCard(e, playlist)}
+                      className={styles.playlistPlayButton}
+                      title={`Play ${playlist.name}`}
                     >
-                      🗑️
+                      ▶
                     </button>
                   </div>
-                ))
-              ) : (
-                <section className={styles.emptyWrap}>
-                  <img className={styles.emptyImage} src={emptyImg} alt="empty playlist" />
-                  <h2 className={styles.emptyTitle}>Your playlist is still empty</h2>
-                  <p className={styles.emptyHint}>
-                    Tap the + button or start browsing from Search.
-                  </p>
-                </section>
-              )}
-            </div>
-          </section>
-        </div>
 
-        {/* Right: Playlist Songs */}
-        <div>
-          {selectedPlaylist ? (
-            <section className={styles.section}>
-              <div style={{ marginBottom: '20px' }}>
-                <h2>{selectedPlaylist.name}</h2>
+                  <div className={styles.playlistInfo}>
+                    <div className={styles.playlistName}>
+                      <div className={styles.playlistNameText}>
+                        {playlist.name}
+                      </div>
+                      {!playlist.isPublic && (
+                        <span className={styles.playlistPrivateBadge}>
+                          Private
+                        </span>
+                      )}
+                    </div>
+                    
+                    <div className={styles.playlistSongCount}>
+                      {playlist.songCount} songs
+                    </div>
+                    
+                    {playlist.description && (
+                      <div className={styles.playlistDescription}>
+                        {playlist.description}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <section className={styles.emptyWrap}>
+              <img className={styles.emptyImage} src={emptyImg} alt="empty playlist" />
+              <h2 className={styles.emptyTitle}>Your playlist is still empty</h2>
+              <p className={styles.emptyHint}>
+                Tap the Create button to start building your collection
+              </p>
+            </section>
+          )}
+        </section>
+      )}
+
+      {/* DETAIL VIEW - Playlist Songs */}
+      {viewMode === 'detail' && selectedPlaylist && (
+        <section className={styles.section}>
+          <div className={styles.playlistHeader}>
+            {selectedPlaylist.coverUrl ? (
+              <img 
+                src={`${API_URL}${selectedPlaylist.coverUrl}`}
+                alt={selectedPlaylist.name}
+                className={styles.playlistHeaderCover}
+              />
+            ) : (
+              <div className={styles.playlistHeaderCoverPlaceholder}>
+                🎵
+              </div>
+            )}
+
+            <div className={styles.playlistHeaderInfo}>
+              <div>
+                <div className={styles.playlistHeaderLabel}>
+                  PLAYLIST
+                </div>
+                <h1 className={styles.playlistHeaderTitle}>
+                  {selectedPlaylist.name}
+                </h1>
                 {selectedPlaylist.description && (
-                  <p style={{ color: '#666', marginTop: '8px' }}>
+                  <p className={styles.playlistHeaderDescription}>
                     {selectedPlaylist.description}
                   </p>
                 )}
-                <div style={{ fontSize: '14px', color: '#888', marginTop: '8px' }}>
+                <div className={styles.playlistHeaderMeta}>
                   {selectedPlaylist.songCount} songs · Created {formatDate(selectedPlaylist.createdAt)}
                   {!selectedPlaylist.isPublic && ' · Private'}
                 </div>
               </div>
 
-              <div className={styles.resultsList}>
-                {playlistSongs.length > 0 ? (
-                  playlistSongs.map((item, index) => (
-                    <div
-                      key={item.id}
-                      className={styles.resultItem}
-                      style={{ display: 'flex', alignItems: 'center', gap: '10px' }}
-                    >
-                      <div style={{ 
-                        minWidth: '30px', 
-                        textAlign: 'center',
-                        color: '#666',
-                        fontSize: '14px'
-                      }}>
-                        {index + 1}
-                      </div>
-                      
-                      {item.song.coverUrl && (
-                        <img 
-                          src={item.song.coverUrl} 
-                          alt={item.song.title}
-                          className={styles.resultCover}
-                        />
-                      )}
-                      
-                      <div className={styles.resultInfo} style={{ flex: 1 }}>
-                        <div className={styles.resultTitle}>{item.song.title}</div>
-                        <div className={styles.resultArtist}>{item.song.artist}</div>
-                      </div>
-                      
-                      <div className={styles.resultDuration}>
-                        {formatTime(item.song.duration)}
-                      </div>
-                      
-                      <div style={{ display: 'flex', gap: '5px' }}>
-                        <button 
-                          onClick={() => handlePlaySong(item.song)}
-                          className={styles.buttonPrimary}
-                          style={{ padding: '6px 12px', fontSize: '13px' }}
-                        >
-                          Play
-                        </button>
-                        <button 
-                          onClick={() => handleAddToQueue(item.song)}
-                          className={styles.buttonSecondary}
-                          style={{ padding: '6px 12px', fontSize: '13px' }}
-                        >
-                          + Queue
-                        </button>
-                        <LikeButton 
-                          userId={userId} 
-                          songId={item.song.id}
-                        />
-                        <button 
-                          onClick={() => handleRemoveSong(item.id)}
-                          style={{ 
-                            padding: '6px 12px', 
-                            fontSize: '13px',
-                            background: '#dc2626',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div style={{ 
-                    textAlign: 'center', 
-                    padding: '40px', 
-                    color: '#666' 
-                  }}>
-                    No songs in this playlist
-                    <br />
-                    <small>Search for songs and add them to this playlist</small>
+              {playlistSongs.length > 0 && (
+                <div className={styles.playlistControls}>
+                  <button onClick={handlePlayPlaylist} className={styles.playButton}>
+                    ▶️ Play All
+                  </button>
+
+                  <button onClick={handleShufflePlaylist} className={styles.shuffleButton}>
+                    🔀 Shuffle
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className={styles.resultsList}>
+            {playlistSongs.length > 0 ? (
+              playlistSongs.map((item, index) => (
+                <div key={item.id} className={styles.resultItem}>
+                  <div className={styles.resultIndex}>
+                    {index + 1}
                   </div>
-                )}
-              </div>
-            </section>
-          ) : (
-            <section className={styles.section}>
-              <div style={{ 
-                textAlign: 'center', 
-                padding: '60px', 
-                color: '#666' 
-              }}>
-                <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎵</div>
-                <h3>Select a playlist</h3>
+                  
+                  {item.song.coverUrl && (
+                    <img 
+                      src={item.song.coverUrl} 
+                      alt={item.song.title}
+                      className={styles.resultCover}
+                    />
+                  )}
+                  
+                  <div className={styles.resultInfo}>
+                    <div className={styles.resultTitle}>{item.song.title}</div>
+                    <div className={styles.resultArtist}>{item.song.artist}</div>
+                  </div>
+                  
+                  <div className={styles.resultDuration}>
+                    {formatTime(item.song.duration)}
+                  </div>
+                  
+                  <div className={styles.resultActions}>
+                    <button 
+                      onClick={() => handlePlaySong(item.song)}
+                      className={styles.buttonPrimary}
+                      style={{ padding: '6px 12px', fontSize: '13px' }}
+                    >
+                      Play
+                    </button>
+                    <button 
+                      onClick={() => handleAddToQueue(item.song)}
+                      className={styles.buttonSecondary}
+                      style={{ padding: '6px 12px', fontSize: '13px' }}
+                    >
+                      + Queue
+                    </button>
+                    <LikeButton 
+                      userId={userId} 
+                      songId={item.song.id}
+                    />
+                    <button 
+                      onClick={() => handleRemoveSong(item.id)}
+                      className={styles.buttonDanger}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className={styles.emptyCenter}>
+                <div className={styles.emptyIcon}>🎵</div>
+                <h3>No songs in this playlist</h3>
                 <p style={{ marginTop: '8px' }}>
-                  Choose a playlist from the left to view its songs
+                  Search for songs and add them to this playlist
                 </p>
               </div>
-            </section>
-          )}
-        </div>
-      </div>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* Create Playlist Modal */}
       {showCreateModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            padding: '30px',
-            borderRadius: '12px',
-            width: '450px',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.3)'
-          }}>
-            <h2 style={{ marginBottom: '20px' }}>Create New Playlist</h2>
+        <div className={styles.modalOverlay} onClick={() => setShowCreateModal(false)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <h2 className={styles.modalTitle}>Create New Playlist</h2>
             
-            {/* Cover Upload */}
-            <div style={{ marginBottom: '20px', textAlign: 'center' }}>
+            <div className={styles.coverUploadSection}>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -653,41 +672,11 @@ export default function Playlist() {
                 style={{ display: 'none' }}
               />
               
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                style={{
-                  width: '120px',
-                  height: '120px',
-                  margin: '0 auto',
-                  borderRadius: '8px',
-                  border: '2px dashed #ddd',
-                  cursor: 'pointer',
-                  overflow: 'hidden',
-                  transition: 'all 0.2s',
-                  position: 'relative',
-                  background: coverPreview ? 'transparent' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-                }}
-              >
+              <div className={styles.coverUploadBox} onClick={() => fileInputRef.current?.click()}>
                 {coverPreview ? (
-                  <img 
-                    src={coverPreview} 
-                    alt="Preview" 
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover'
-                    }}
-                  />
+                  <img src={coverPreview} alt="Preview" className={styles.coverPreview} />
                 ) : (
-                  <div style={{ 
-                    width: '100%',
-                    height: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    textAlign: 'center', 
-                    color: 'white' 
-                  }}>
+                  <div className={styles.coverUploadPlaceholder}>
                     <div>
                       <div style={{ fontSize: '32px' }}>📷</div>
                       <div style={{ fontSize: '12px', marginTop: '4px' }}>
@@ -697,14 +686,13 @@ export default function Playlist() {
                   </div>
                 )}
               </div>
-              <small style={{ color: '#666', marginTop: '8px', display: 'block' }}>
+              <small className={styles.coverUploadHint}>
                 Click to upload cover image (Max 5MB)
               </small>
             </div>
 
-            {/* Playlist Name */}
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel}>
                 Playlist Name *
               </label>
               <input
@@ -712,20 +700,13 @@ export default function Playlist() {
                 placeholder="My Awesome Playlist"
                 value={newPlaylistName}
                 onChange={(e) => setNewPlaylistName(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '10px',
-                  border: '1px solid #ddd',
-                  borderRadius: '6px',
-                  fontSize: '14px'
-                }}
+                className={styles.formInput}
                 autoFocus
               />
             </div>
 
-            {/* Description */}
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel}>
                 Description (optional)
               </label>
               <textarea
@@ -733,65 +714,38 @@ export default function Playlist() {
                 value={newPlaylistDesc}
                 onChange={(e) => setNewPlaylistDesc(e.target.value)}
                 rows={3}
-                style={{
-                  width: '100%',
-                  padding: '10px',
-                  border: '1px solid #ddd',
-                  borderRadius: '6px',
-                  fontSize: '14px',
-                  resize: 'vertical'
-                }}
+                className={styles.formTextarea}
               />
             </div>
 
-            {/* Privacy Toggle */}
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel}>
                 Privacy
               </label>
-              <div style={{ display: 'flex', gap: '10px' }}>
+              <div className={styles.privacyToggle}>
                 <button
                   type="button"
                   onClick={() => setNewPlaylistIsPublic(true)}
-                  style={{
-                    flex: 1,
-                    padding: '10px',
-                    border: newPlaylistIsPublic ? '2px solid #1db954' : '1px solid #ddd',
-                    borderRadius: '6px',
-                    background: newPlaylistIsPublic ? '#f0fdf4' : 'white',
-                    cursor: 'pointer',
-                    fontWeight: newPlaylistIsPublic ? 600 : 400,
-                    transition: 'all 0.2s'
-                  }}
+                  className={`${styles.privacyButton} ${newPlaylistIsPublic ? styles.privacyButtonActive : styles.privacyButtonInactive}`}
                 >
                   🌍 Public
                 </button>
                 <button
                   type="button"
                   onClick={() => setNewPlaylistIsPublic(false)}
-                  style={{
-                    flex: 1,
-                    padding: '10px',
-                    border: !newPlaylistIsPublic ? '2px solid #1db954' : '1px solid #ddd',
-                    borderRadius: '6px',
-                    background: !newPlaylistIsPublic ? '#f0fdf4' : 'white',
-                    cursor: 'pointer',
-                    fontWeight: !newPlaylistIsPublic ? 600 : 400,
-                    transition: 'all 0.2s'
-                  }}
+                  className={`${styles.privacyButton} ${!newPlaylistIsPublic ? styles.privacyButtonActive : styles.privacyButtonInactive}`}
                 >
                   🔒 Private
                 </button>
               </div>
-              <small style={{ color: '#666', marginTop: '4px', display: 'block' }}>
+              <small className={styles.privacyHint}>
                 {newPlaylistIsPublic 
                   ? 'Anyone can see this playlist' 
                   : 'Only you can see this playlist'}
               </small>
             </div>
 
-            {/* Actions */}
-            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+            <div className={styles.modalActions}>
               <button
                 onClick={() => {
                   setShowCreateModal(false);
@@ -801,14 +755,8 @@ export default function Playlist() {
                   setNewPlaylistCoverUrl("");
                   setCoverPreview(null);
                 }}
-                style={{
-                  padding: '10px 20px',
-                  border: '1px solid #ddd',
-                  color: '#333',
-                  borderRadius: '6px',
-                  background: 'white',
-                  cursor: 'pointer'
-                }}
+                className={styles.buttonSecondary}
+                style={{ padding: '10px 20px' }}
               >
                 Cancel
               </button>
