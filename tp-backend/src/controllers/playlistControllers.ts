@@ -111,7 +111,9 @@ export const getPlaylistSongs: RequestHandler = async (req, res, next) => {
 
     const playlistSongsData = await dbClient
       .select({
-        id: playlistSongs.playlistId, // ใช้เป็น unique id
+        id: playlistSongs.id, // ใช้ id ของ playlistSongs (UUID)
+        playlistId: playlistSongs.playlistId,
+        songId: playlistSongs.songId,
         addedAt: playlistSongs.addedAt,
         song: {
           id: songs.id,
@@ -127,13 +129,13 @@ export const getPlaylistSongs: RequestHandler = async (req, res, next) => {
       .where(eq(playlistSongs.playlistId, playlistId))
       .orderBy(asc(playlistSongs.addedAt));
 
-    // สร้าง unique id สำหรับแต่ละ item (playlistId + songId)
+    // ส่ง id ที่แท้จริงของ playlistSongs
     const formattedData = playlistSongsData
       .filter((item): item is typeof item & { song: NonNullable<typeof item.song> } => 
         item.song !== null
       )
-      .map((item, index) => ({
-        id: `${playlistId}-${item.song.id}`, // unique id
+      .map((item) => ({
+        id: item.id, // ใช้ id จริงจาก database
         addedAt: item.addedAt,
         song: item.song,
       }));
@@ -202,23 +204,16 @@ export const removeSongFromPlaylist: RequestHandler = async (req, res, next) => 
       return;
     }
 
-    // แยก songId จาก playlistSongId (format: "playlistId-songId")
-    const songId = playlistSongId.split('-')[1];
+    // ใช้ id ของ playlistSongs โดยตรง
+    const result = await dbClient
+      .delete(playlistSongs)
+      .where(eq(playlistSongs.id, playlistSongId))
+      .returning();
 
-    if (!songId) {
-      res.status(400).json({ error: "Invalid playlistSongId format" });
+    if (result.length === 0) {
+      res.status(404).json({ error: "Song not found in playlist" });
       return;
     }
-
-    // ลบเพลงออกจาก playlist
-    await dbClient
-      .delete(playlistSongs)
-      .where(
-        and(
-          eq(playlistSongs.playlistId, playlistId),
-          eq(playlistSongs.songId, songId)
-        )
-      );
 
     res.json({ 
       success: true, 

@@ -90,6 +90,14 @@ export default function Playlist() {
       const res = await fetch(`${API_URL}/playlists/${userId}`);
       const data = await res.json();
       setPlaylists(data);
+      
+      // ✅ ถ้า selectedPlaylist มีอยู่ ให้อัปเดตข้อมูลของมันด้วย
+      if (selectedPlaylist) {
+        const updatedPlaylist = data.find((p: Playlist) => p.id === selectedPlaylist.id);
+        if (updatedPlaylist) {
+          setSelectedPlaylist(updatedPlaylist);
+        }
+      }
     } catch (err) {
       console.error("Load playlists failed:", err);
     }
@@ -161,8 +169,8 @@ export default function Playlist() {
 
       if (!res.ok) throw new Error("Failed to create playlist");
 
-      const data = await res.json();
-      setPlaylists([...playlists, data]);
+      // ✅ Reload playlists เพื่อให้เห็น playlist ใหม่
+      await loadPlaylists();
       
       // Reset form
       setNewPlaylistName("");
@@ -189,11 +197,14 @@ export default function Playlist() {
 
       if (!res.ok) throw new Error("Failed to delete");
 
-      setPlaylists(playlists.filter(p => p.id !== playlistId));
+      // ✅ Reload playlists
+      await loadPlaylists();
+      
       if (selectedPlaylist?.id === playlistId) {
         setSelectedPlaylist(null);
         setPlaylistSongs([]);
       }
+      
       alert("Playlist deleted!");
     } catch (err) {
       console.error("Delete failed:", err);
@@ -212,14 +223,11 @@ export default function Playlist() {
 
       if (!res.ok) throw new Error("Failed to remove");
 
-      setPlaylistSongs(playlistSongs.filter(ps => ps.id !== playlistSongId));
-      
-      // Update song count
-      setPlaylists(playlists.map(p => 
-        p.id === selectedPlaylist.id 
-          ? { ...p, songCount: p.songCount - 1 }
-          : p
-      ));
+      // ✅ Reload ทั้ง playlists (เพื่อเห็นจำนวนเพลงอัปเดต) และ playlist songs
+      await Promise.all([
+        loadPlaylists(),
+        loadPlaylistSongs(selectedPlaylist.id)
+      ]);
       
       alert("Song removed from playlist!");
     } catch (err) {
@@ -248,6 +256,17 @@ export default function Playlist() {
     if ((window as any).musicPlayer) {
       await (window as any).musicPlayer.addToQueue(song);
       alert("Added to queue!");
+    }
+  };
+
+  // ✅ เพิ่ม callback สำหรับ AddToPlaylistButton
+  const handleSongAddedToPlaylist = async () => {
+    // Reload playlists เพื่ออัปเดตจำนวนเพลง
+    await loadPlaylists();
+    
+    // ถ้ากำลังดู playlist ที่เพิ่มเพลง ให้ reload เพลงด้วย
+    if (selectedPlaylist) {
+      await loadPlaylistSongs(selectedPlaylist.id);
     }
   };
 
@@ -357,6 +376,7 @@ export default function Playlist() {
                         iconOnly={false}
                         buttonClassName={styles.buttonSecondary}
                         buttonStyle={{ padding: '6px 12px', fontSize: '13px' }}
+                        onSuccess={handleSongAddedToPlaylist}
                       />
                       <LikeButton 
                         userId={userId} 
