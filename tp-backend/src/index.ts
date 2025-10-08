@@ -16,7 +16,8 @@ import { playNext, playPrevious, playPlaylist, PersonalplaySong, getQueue, addTo
 import { createUser } from "./controllers/userControllers.js";
 import { createRoom, joinRoom, listPublicRooms } from "./controllers/roomControllers.js";
 import { addToQueue, removeFromQueue, playNextSong, playSong, reorderQueue, fetchYoutubeMetadata } from "./controllers/communityControllers.js";
-
+import { getUserPlaylists, createPlaylist, deletePlaylist, getPlaylistSongs, addSongToPlaylist, removeSongFromPlaylist, updatePlaylist } from "./controllers/playlistControllers.js";
+import { getLikedSongs, addLikedSong, removeLikedSong, checkLikedSong, playLikedSongs } from "./controllers/likedSongsControllers.js";
 const debug = Debug("pf-backend");
 
 // Initializing the express app
@@ -73,6 +74,46 @@ app.get("/player/state/:userId", getPlayerState);
 app.post("/player/shuffle", toggleShuffle);
 app.post("/player/repeat", setRepeatMode);
 app.get("/player/recently-played/:userId", getRecentlyPlayed);
+
+// ----------------- Playlist API -----------------
+
+// Get user playlists
+app.get("/playlists/:userId", getUserPlaylists);
+
+// Create playlist
+app.post("/playlists", createPlaylist);
+
+// Update playlist
+app.patch("/playlists/:playlistId", updatePlaylist);
+
+// Delete playlist
+app.delete("/playlists/:playlistId", deletePlaylist);
+
+// Get playlist songs
+app.get("/playlists/:playlistId/songs", getPlaylistSongs);
+
+// Add song to playlist
+app.post("/playlists/:playlistId/songs", addSongToPlaylist);
+
+// Remove song from playlist
+app.delete("/playlists/:playlistId/songs/:playlistSongId", removeSongFromPlaylist);
+
+// ----------------- Liked Songs API -----------------
+
+// Get liked songs
+app.get("/liked-songs/:userId", getLikedSongs);
+
+// Add to liked songs
+app.post("/liked-songs", addLikedSong);
+
+// Remove from liked songs
+app.delete("/liked-songs/:userId/:songId", removeLikedSong);
+
+// Check if song is liked
+app.get("/liked-songs/:userId/:songId/check", checkLikedSong);
+
+// Play all liked songs
+app.post("/liked-songs/:userId/play", playLikedSongs);
 
 // ----------------- Community Player API -----------------
 
