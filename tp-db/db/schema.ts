@@ -50,13 +50,14 @@ export const songs = pgTable("songs", {
 /* PLAYLIST_SONGS (unique คู่ playlistId, songId) */
 export const playlistSongs = pgTable("playlist_songs", {
   id: uuid("id").primaryKey().defaultRandom(),
-  playlistId: uuid("playlist_id").notNull().references(() => playlists.id),
-  songId: uuid("song_id").notNull().references(() => songs.id),
+  playlistId: uuid("playlist_id").notNull().references(() => playlists.id, { onDelete: "cascade" }),
+  songId: uuid("song_id").notNull().references(() => songs.id, { onDelete: "cascade" }),
   addedAt: timestamp("added_at").defaultNow().notNull(),
 }, (t) => ({
   plSongUk: uniqueIndex("playlist_songs_playlist_song_uk").on(t.playlistId, t.songId),
   plAddedIdx: index("playlist_songs_pl_added_idx").on(t.playlistId, t.addedAt),
 }));
+
 
 /* LISTENING_ROOMS */
 export const listeningRooms = pgTable("listening_rooms", {
