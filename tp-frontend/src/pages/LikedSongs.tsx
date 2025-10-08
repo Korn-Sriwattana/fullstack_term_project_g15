@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { useUser } from "../components/userContext";
-import styles from "../assets/styles/MusicStreaming.module.css";
+import styles from "../assets/styles/LikedSongs.module.css"; 
+import emptyImg from "../assets/images/empty/empty-box.png";
 import type { Song } from "../types/song.ts";
 import LikeButton from "../components/LikeButton";
-import AddToPlaylistButton from "../components/AddToPlaylistButton";
+import AddToPlaylistButton from "../components/AddToPlaylist";
 
 const API_URL = "http://localhost:3000";
 
@@ -215,18 +216,14 @@ export default function LikedSongs() {
               </div>
             ))}
           </div>
-        ) : (
-          <div style={{ 
-            textAlign: 'center', 
-            padding: '60px', 
-            color: '#666' 
-          }}>
-            <div style={{ fontSize: '64px', marginBottom: '16px' }}>💜</div>
-            <h3>No liked songs yet</h3>
-            <p style={{ marginTop: '8px' }}>
-              Songs you like will appear here
+        ) : ( 
+          <section className={styles.emptyWrap}>
+            <img src={emptyImg} alt="empty liked songs" className={styles.emptyImg} />
+            <h2 className={styles.emptyTitle}>You haven’t liked any songs yet</h2>
+            <p className={styles.emptyHint}>
+              Tap the heart on tracks you love to keep them all in one place
             </p>
-          </div>
+          </section>
         )}
       </section>
     </div>

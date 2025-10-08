@@ -1,8 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useUser } from "../components/userContext";
-import styles from "../assets/styles/MusicStreaming.module.css";
 import type { Song } from "../types/song.ts";
 import LikeButton from "../components/LikeButton";
+
+import styles from "../assets/styles/Playlist.module.css";
+import searchIcon from "../assets/images/search-icon.png";
+import emptyImg from "../assets/images/empty/empty-box.png";
 
 const API_URL = "http://localhost:3000";
 
@@ -200,10 +203,10 @@ export default function Playlist() {
         <h1>Your Library</h1>
         <button 
           onClick={() => setShowCreateModal(true)}
-          className={styles.buttonPrimary}
-          style={{ padding: '10px 20px' }}
+          className={styles.createBtn}
+          style={{ padding: '30px 100px' }}
         >
-          + Create Playlist
+          Create Playlist
         </button>
       </div>
 
@@ -261,11 +264,13 @@ export default function Playlist() {
                   </div>
                 ))
               ) : (
-                <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-                  No playlists yet
-                  <br />
-                  <small>Create your first playlist!</small>
-                </div>
+                <section className={styles.emptyWrap}>
+                  <img className={styles.emptyImage} src={emptyImg} alt="empty playlist" />
+                  <h2 className={styles.emptyTitle}>Your playlist is still empty</h2>
+                  <p className={styles.emptyHint}>
+                    Tap the + button or start browsing from Search.
+                  </p>
+                </section>
               )}
             </div>
           </section>
@@ -458,19 +463,13 @@ export default function Playlist() {
                   setNewPlaylistName("");
                   setNewPlaylistDesc("");
                 }}
-                style={{
-                  padding: '10px 20px',
-                  border: '1px solid #ddd',
-                  borderRadius: '6px',
-                  background: 'white',
-                  cursor: 'pointer'
-                }}
+                className={styles.buttonPrimary}
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreatePlaylist}
-                className={styles.buttonPrimary}
+                className={styles.createBtn}
                 style={{ padding: '10px 20px' }}
               >
                 Create
@@ -479,3 +478,6 @@ export default function Playlist() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
