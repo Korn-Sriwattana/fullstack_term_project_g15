@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef } from "react";  
 import type { Song } from "../types/song.ts";
+import { useUser } from "../components/userContext";
+import LikeButton from "./LikeButton";
+import AddToPlaylist from "./AddToPlaylist";
 // css
 import styles from "../assets/styles/MusicPlayer.module.css";
 // images
@@ -25,6 +28,7 @@ const MusicPlayer = ({ userId, onQueueUpdate, onCurrentIndexUpdate, className }:
   const [currentSong, setCurrentSong] = useState<Song | null>(null);
   const [queue, setQueue] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const { user } = useUser();
   
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -531,6 +535,24 @@ const MusicPlayer = ({ userId, onQueueUpdate, onCurrentIndexUpdate, className }:
                   </div>
                 </div>
               </div>
+
+              {user?.id && (
+              <>
+                <AddToPlaylist
+                  userId={user.id} 
+                  song={currentSong}
+                  iconOnly={true}
+                  buttonStyle={{ padding: '6px 12px', fontSize: '13px' }}
+                />
+                <LikeButton 
+                  userId={user.id} 
+                  songId={currentSong.id}
+                  onLikeChange={(isLiked) => {
+                    console.log(`Song ${currentSong.title} is now ${isLiked ? 'liked' : 'unliked'}`);
+                  }}
+                />
+              </>
+            )}
 
               {/* Controls */}
               <div className={styles.controls}>

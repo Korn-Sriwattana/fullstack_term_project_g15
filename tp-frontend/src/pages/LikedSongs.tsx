@@ -1,100 +1,234 @@
-import { useEffect, useRef, useState } from "react";
-//css
-import styles from "../assets/styles/LikeSongs.module.css"; 
-//images
-import emptyImg from "../assets/images/empty/empty-box.png";
+import { useState, useEffect } from "react";
+import { useUser } from "../components/userContext";
+import styles from "../assets/styles/MusicStreaming.module.css";
+import type { Song } from "../types/song.ts";
+import LikeButton from "../components/LikeButton";
+import AddToPlaylistButton from "../components/AddToPlaylistButton";
 
-type Song = {
+const API_URL = "http://localhost:3000";
+
+interface LikedSong {
   id: string;
-  title: string;
-  artist: string;
-  cover_url?: string;
-  duration?: number;
-};
-
-const API_BASE = import.meta.env.VITE_API_URL || "/api";
+  likedAt: string;
+  song: Song;
+}
 
 export default function LikedSongs() {
-  const [songs, setSongs] = useState<Song[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const ownerId = "user_1";
-  const abortRef = useRef<AbortController | null>(null);
+  const { user } = useUser();
+  const userId = user?.id;
 
-  const fetchLiked = async () => {
+  const [likedSongs, setLikedSongs] = useState<LikedSong[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (userId) {
+      loadLikedSongs();
+    }
+  }, [userId]);
+
+  const loadLikedSongs = async () => {
+    if (!userId) return;
+    
     try {
       setLoading(true);
-      setError("");
-      abortRef.current?.abort();
-      const ctl = new AbortController();
-      abortRef.current = ctl;
-
-      const res = await fetch(`${API_BASE}/liked-songs?ownerId=${ownerId}`, {
-        headers: { "Content-Type": "application/json" },
-        signal: ctl.signal,
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const res = await fetch(`${API_URL}/liked-songs/${userId}`);
       const data = await res.json();
-      setSongs(Array.isArray(data?.items) ? data.items : []);
-    } catch (e: any) {
-      if (e?.name === "AbortError") return;
-      console.error("Fetch liked-songs failed:", e);
-      setError("Failed to load liked songs");
-      setSongs([]);
+      setLikedSongs(data);
+    } catch (err) {
+      console.error("Load liked songs failed:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchLiked();
-    return () => abortRef.current?.abort();
-  }, []);
+  const handleRemoveFromLiked = async (songId: string) => {
+    if (!userId) return;
 
-  const handleUnlike = async (songId: string) => {
     try {
-      setSongs((prev) => prev.filter((s) => s.id !== songId)); // ลบออกก่อนแบบ optimistic
-      const res = await fetch(`${API_BASE}/liked-songs/${songId}?ownerId=${ownerId}`, {
+      const res = await fetch(`${API_URL}/liked-songs/${userId}/${songId}`, {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    } catch (e) {
-      console.error("Unlike failed:", e);
-      fetchLiked();
+
+      if (!res.ok) throw new Error("Failed to remove");
+
+      setLikedSongs(likedSongs.filter(item => item.song.id !== songId));
+      alert("Removed from Liked Songs!");
+    } catch (err) {
+      console.error("Remove failed:", err);
+      alert("Failed to remove from Liked Songs");
     }
   };
 
-  const formatTime = (sec?: number) => {
-    if (!sec || isNaN(sec)) return "";
-    const m = Math.floor(sec / 60);
-    const s = Math.floor(sec % 60).toString().padStart(2, "0");
-    return `${m}:${s}`;
+  const handlePlaySong = async (song: Song) => {
+    if (!userId) {
+      alert("Please create user first");
+      return;
+    }
+
+    if ((window as any).musicPlayer) {
+      await (window as any).musicPlayer.playSong(song);
+    }
   };
 
-  const showEmpty = !loading && songs.length === 0;
+  const handleAddToQueue = async (song: Song) => {
+    if (!userId) {
+      alert("Please create user first");
+      return;
+    }
+
+    if ((window as any).musicPlayer) {
+      await (window as any).musicPlayer.addToQueue(song);
+      alert("Added to queue!");
+    }
+  };
+
+  const formatTime = (seconds: number) => {
+    if (!seconds || isNaN(seconds)) return "0:00";
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric' 
+    });
+  };
+
+  if (!userId) {
+    return (
+      <div className={styles.container}>
+        <h2>Please create user first</h2>
+      </div>
+    );
+  }
 
   return (
-    <div className={styles.layout}>
-      <main className={styles.content}>
-        <h1 className={styles.title}>Liked Songs</h1>
+    <div className={styles.container}>
+      <div style={{ marginBottom: '30px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '20px' }}>
+          <div style={{ 
+            width: '200px', 
+            height: '200px', 
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            borderRadius: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '80px'
+          }}>
+            💜
+          </div>
+          <div>
+            <div style={{ fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', marginBottom: '8px' }}>
+              Playlist
+            </div>
+            <h1 style={{ fontSize: '48px', fontWeight: 'bold', margin: '0 0 12px 0' }}>
+              Liked Songs
+            </h1>
+            <div style={{ fontSize: '14px', color: '#666' }}>
+              {user.name} • {likedSongs.length} songs
+            </div>
+          </div>
+        </div>
+      </div>
 
-        {loading && <div className={styles.loading}>Loading...</div>}
-        {!!error && <div className={styles.error}>{error}</div>}
-
-        {/* empty */}
-        {showEmpty && (
-          <section className={styles.emptyWrap}>
-            <img src={emptyImg} alt="empty liked songs" className={styles.emptyImg} />
-            <h2 className={styles.emptyTitle}>You haven’t liked any songs yet</h2>
-            <p className={styles.emptyHint}>
-              Tap the heart on tracks you love to keep them all in one place
+      <section className={styles.section}>
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+            Loading...
+          </div>
+        ) : likedSongs.length > 0 ? (
+          <div className={styles.resultsList}>
+            {likedSongs.map((item, index) => (
+              <div
+                key={item.id}
+                className={styles.resultItem}
+                style={{ display: 'flex', alignItems: 'center', gap: '10px' }}
+              >
+                <div style={{ 
+                  minWidth: '30px', 
+                  textAlign: 'center',
+                  color: '#666',
+                  fontSize: '14px'
+                }}>
+                  {index + 1}
+                </div>
+                
+                {item.song.coverUrl && (
+                  <img 
+                    src={item.song.coverUrl} 
+                    alt={item.song.title}
+                    className={styles.resultCover}
+                  />
+                )}
+                
+                <div className={styles.resultInfo} style={{ flex: 1 }}>
+                  <div className={styles.resultTitle}>{item.song.title}</div>
+                  <div className={styles.resultArtist}>{item.song.artist}</div>
+                </div>
+                
+                <div style={{ fontSize: '12px', color: '#888', minWidth: '100px' }}>
+                  {formatDate(item.likedAt)}
+                </div>
+                
+                <div className={styles.resultDuration}>
+                  {formatTime(item.song.duration)}
+                </div>
+                
+                <div style={{ display: 'flex', gap: '5px' }}>
+                  <button 
+                    onClick={() => handlePlaySong(item.song)}
+                    className={styles.buttonPrimary}
+                    style={{ padding: '6px 12px', fontSize: '13px' }}
+                  >
+                    Play
+                  </button>
+                  <button 
+                    onClick={() => handleAddToQueue(item.song)}
+                    className={styles.buttonSecondary}
+                    style={{ padding: '6px 12px', fontSize: '13px' }}
+                  >
+                    + Queue
+                  </button>
+                  <AddToPlaylistButton 
+                    userId={userId} 
+                    song={item.song}
+                    iconOnly={true}
+                    buttonClassName={styles.buttonSecondary}
+                    buttonStyle={{ padding: '6px 12px', fontSize: '13px' }}
+                  />
+                  <LikeButton 
+                    userId={userId} 
+                    songId={item.song.id}
+                    onLikeChange={(isLiked) => {
+                      if (!isLiked) {
+                        // ถ้า unlike แล้ว ให้ลบออกจากลิสต์
+                        setLikedSongs(likedSongs.filter(s => s.song.id !== item.song.id));
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ 
+            textAlign: 'center', 
+            padding: '60px', 
+            color: '#666' 
+          }}>
+            <div style={{ fontSize: '64px', marginBottom: '16px' }}>💜</div>
+            <h3>No liked songs yet</h3>
+            <p style={{ marginTop: '8px' }}>
+              Songs you like will appear here
             </p>
-          </section>
+          </div>
         )}
-
-        {/* no-empty */}
-      </main>
+      </section>
     </div>
   );
 }

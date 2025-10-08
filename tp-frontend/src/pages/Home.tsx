@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { useUser } from "../components/userContext";
 import styles from "../assets/styles/Home.module.css";
 import type { Song, QueueItem } from "../types/song.ts";
+import LikeButton from "../components/LikeButton";
+import AddToPlaylistButton from "../components/AddToPlaylist";
 import searchIcon from "../assets/images/search-icon.png";
 
 const API_URL = "http://localhost:3000";
@@ -314,6 +316,24 @@ const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
                       >
                         + Queue
                       </button>
+                      {userId && (
+                        <>
+                          <AddToPlaylistButton 
+                            userId={userId} 
+                            song={song}
+                            iconOnly={true}
+                            buttonClassName={styles.buttonSecondary}
+                            buttonStyle={{ padding: '6px 12px', fontSize: '13px' }}
+                          />
+                          <LikeButton 
+                            userId={userId} 
+                            songId={song.id}
+                            onLikeChange={(isLiked) => {
+                              console.log(`Song ${song.title} is now ${isLiked ? 'liked' : 'unliked'}`);
+                            }}
+                          />
+                        </>
+                      )}
                     </div>
                   </div>
                 ))}
