@@ -8,6 +8,13 @@
       "when": 1759517519345,
       "tag": "0000_rapid_argent",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1759857720081,
+      "tag": "0001_gifted_scarecrow",
+      "breakpoints": true
     }
   ]
 }
