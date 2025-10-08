@@ -27,13 +27,7 @@ export default function LikedSongs() {
     if (userId) {
       loadLikedSongs();
     }
-  }, [userId, likedSongIds])
-
-  useEffect(() => {
-    if (userId) {
-      loadLikedSongs();
-    }
-  }, [userId]);
+  }, [userId, likedSongIds]);
 
   const loadLikedSongs = async () => {
     if (!userId) return;
@@ -47,6 +41,47 @@ export default function LikedSongs() {
       console.error("Load liked songs failed:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ✅ Play All Liked Songs
+  const handlePlayAll = async () => {
+    if (!userId || likedSongs.length === 0) {
+      alert("No songs to play");
+      return;
+    }
+
+    if ((window as any).musicPlayer) {
+      const [firstSong, ...restSongs] = likedSongs.map(item => item.song);
+      
+      await (window as any).musicPlayer.playSong(firstSong);
+      
+      for (const song of restSongs) {
+        await (window as any).musicPlayer.addToQueue(song);
+      }
+      
+      alert(`Playing ${likedSongs.length} liked songs`);
+    }
+  };
+
+  // ✅ Shuffle Liked Songs
+  const handleShuffle = async () => {
+    if (!userId || likedSongs.length === 0) {
+      alert("No songs to shuffle");
+      return;
+    }
+
+    if ((window as any).musicPlayer) {
+      const shuffled = [...likedSongs].sort(() => Math.random() - 0.5);
+      const [firstSong, ...restSongs] = shuffled.map(item => item.song);
+      
+      await (window as any).musicPlayer.playSong(firstSong);
+      
+      for (const song of restSongs) {
+        await (window as any).musicPlayer.addToQueue(song);
+      }
+      
+      alert(`Shuffling ${likedSongs.length} liked songs`);
     }
   };
 
@@ -99,34 +134,113 @@ export default function LikedSongs() {
 
   return (
     <div className={styles.container}>
+      {/* Header Section */}
       <div style={{ marginBottom: '30px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '24px', marginBottom: '24px' }}>
+          {/* Cover Image */}
           <div style={{ 
-            width: '200px', 
-            height: '200px', 
+            width: '232px', 
+            height: '232px', 
             background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
             borderRadius: '8px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: '80px'
+            fontSize: '80px',
+            boxShadow: '0 8px 24px rgba(102, 126, 234, 0.15)',
+            flexShrink: 0
           }}>
             💜
           </div>
-          <div>
+
+          {/* Info Section */}
+          <div style={{ flex: 1, paddingBottom: '8px' }}>
             <div style={{ fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', marginBottom: '8px' }}>
-              Playlist
+              PLAYLIST
             </div>
-            <h1 style={{ fontSize: '48px', fontWeight: 'bold', margin: '0 0 12px 0' }}>
+            <h1 style={{ fontSize: '96px', fontWeight: 'bold', margin: '0 0 24px 0', lineHeight: '96px', letterSpacing: '-0.04em' }}>
               Liked Songs
             </h1>
-            <div style={{ fontSize: '14px', color: '#666' }}>
+            <div style={{ fontSize: '14px', color: '#666', fontWeight: 600 }}>
               {user.name} • {likedSongs.length} songs
             </div>
           </div>
         </div>
+
+        {/* ✅ Play Controls - แสดงเฉพาะเมื่อมีเพลง */}
+        {likedSongs.length > 0 && (
+          <div style={{ 
+            display: 'flex', 
+            gap: '16px', 
+            alignItems: 'center',
+            padding: '24px 0',
+            borderBottom: '1px solid #e5e5e5'
+          }}>
+            <button 
+              onClick={handlePlayAll}
+              style={{
+                padding: '12px 32px',
+                background: '#1DB954',
+                color: 'white',
+                border: 'none',
+                borderRadius: '500px',
+                fontSize: '16px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'all 0.2s',
+                boxShadow: '0 4px 12px rgba(29, 185, 84, 0.3)'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.04)';
+                e.currentTarget.style.background = '#1ed760';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.background = '#1DB954';
+              }}
+            >
+              <span style={{ fontSize: '20px' }}>▶️</span>
+              Play All
+            </button>
+
+            <button 
+              onClick={handleShuffle}
+              style={{
+                padding: '12px 24px',
+                background: 'transparent',
+                color: '#666',
+                border: '1px solid #d1d1d1',
+                borderRadius: '500px',
+                fontSize: '16px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.04)';
+                e.currentTarget.style.borderColor = '#000';
+                e.currentTarget.style.color = '#000';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.borderColor = '#d1d1d1';
+                e.currentTarget.style.color = '#666';
+              }}
+            >
+              <span style={{ fontSize: '18px' }}>🔀</span>
+              Shuffle
+            </button>
+          </div>
+        )}
       </div>
 
+      {/* Songs List */}
       <section className={styles.section}>
         {loading ? (
           <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
@@ -192,7 +306,6 @@ export default function LikedSongs() {
                     buttonClassName={styles.buttonSecondary}
                     buttonStyle={{ padding: '6px 12px', fontSize: '13px' }}
                     onSuccess={async () => {
-                      // Reload liked songs ถ้าจำเป็น
                       console.log('Song added to playlist');
                     }}
                   />
@@ -212,7 +325,7 @@ export default function LikedSongs() {
         ) : ( 
           <section className={styles.emptyWrap}>
             <img src={emptyImg} alt="empty liked songs" className={styles.emptyImg} />
-            <h2 className={styles.emptyTitle}>You haven’t liked any songs yet</h2>
+            <h2 className={styles.emptyTitle}>You haven't liked any songs yet</h2>
             <p className={styles.emptyHint}>
               Tap the heart on tracks you love to keep them all in one place
             </p>
