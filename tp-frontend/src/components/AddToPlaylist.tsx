@@ -88,7 +88,7 @@ export default function AddToPlaylistButton({
         }
         title="Add to playlist"
       >
-        {iconOnly ? "📋" : "📋 Playlist"}
+        {iconOnly ? "+" : "Add to Playlist"}
       </button>
 
       {/* Modal */}

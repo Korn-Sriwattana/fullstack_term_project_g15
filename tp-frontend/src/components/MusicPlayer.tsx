@@ -513,7 +513,7 @@ const MusicPlayer = ({ userId, onQueueUpdate, onCurrentIndexUpdate, className }:
       </div> */}
 
       {/* Music Player UI */}
-      {currentSong && (
+       {currentSong && (
         <div className={`${className ? className + " " : ""}${styles.player}`}>
           <div className={styles.inner}>
             <div className={styles.topRow}>
@@ -541,7 +541,7 @@ const MusicPlayer = ({ userId, onQueueUpdate, onCurrentIndexUpdate, className }:
                 <AddToPlaylist
                   userId={user.id} 
                   song={currentSong}
-                  iconOnly={true}
+                  iconOnly={false}
                   buttonStyle={{ padding: '6px 12px', fontSize: '13px' }}
                 />
                 <LikeButton 
