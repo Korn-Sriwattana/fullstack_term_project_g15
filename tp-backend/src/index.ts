@@ -18,6 +18,8 @@ import { createRoom, joinRoom, listPublicRooms } from "./controllers/roomControl
 import { addToQueue, removeFromQueue, playNextSong, playSong, reorderQueue, fetchYoutubeMetadata } from "./controllers/communityControllers.js";
 import { getUserPlaylists, createPlaylist, deletePlaylist, getPlaylistSongs, addSongToPlaylist, removeSongFromPlaylist, updatePlaylist } from "./controllers/playlistControllers.js";
 import { getLikedSongs, addLikedSong, removeLikedSong, checkLikedSong, playLikedSongs } from "./controllers/likedSongsControllers.js";
+import { upload, uploadPlaylistCover } from "./controllers/imageControllers.js";
+
 const debug = Debug("pf-backend");
 
 // Initializing the express app
@@ -25,8 +27,13 @@ const app = express();
 
 // Middleware
 app.use(morgan("dev"));
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  })
+);
 app.use(express.json());
+app.use("/uploads", express.static("uploads"));
 
 // Enable CORS for HTTP requests
 app.use(
@@ -34,6 +41,7 @@ app.use(
     origin: "http://localhost:5173", // frontend dev
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
   })
 );
 
@@ -74,6 +82,9 @@ app.get("/player/state/:userId", getPlayerState);
 app.post("/player/shuffle", toggleShuffle);
 app.post("/player/repeat", setRepeatMode);
 app.get("/player/recently-played/:userId", getRecentlyPlayed);
+
+// ----------------- Image Upload API -----------------
+app.post("/upload/playlist-cover", upload.single("cover"), uploadPlaylistCover);
 
 // ----------------- Playlist API -----------------
 

@@ -20,7 +20,7 @@ export const getUserPlaylists: RequestHandler = async (req, res, next) => {
         name: playlists.name,
         description: playlists.description,
         coverUrl: playlists.coverUrl,
-        isPublic: playlists.isPublic,
+        isPublic: playlists.isPublic, 
         createdAt: playlists.createdAt,
       })
       .from(playlists)
@@ -51,7 +51,7 @@ export const getUserPlaylists: RequestHandler = async (req, res, next) => {
 // ========== CREATE PLAYLIST ==========
 export const createPlaylist: RequestHandler = async (req, res, next) => {
   try {
-    const { userId, name, description, isPublic = true } = req.body;
+    const { userId, name, description, isPublic = true, coverUrl } = req.body;
 
     if (!userId || !name?.trim()) {
       res.status(400).json({ error: "Missing userId or playlist name" });
@@ -65,6 +65,7 @@ export const createPlaylist: RequestHandler = async (req, res, next) => {
         name: name.trim(),
         description: description?.trim() || null,
         isPublic,
+        coverUrl: coverUrl || null, 
       })
       .returning();
 
@@ -232,7 +233,7 @@ export const removeSongFromPlaylist: RequestHandler = async (req, res, next) => 
 export const updatePlaylist: RequestHandler = async (req, res, next) => {
   try {
     const { playlistId } = req.params;
-    const { name, description, isPublic, isFavorite } = req.body;
+    const { name, description, isPublic, coverUrl } = req.body;
 
     if (!playlistId) {
       res.status(400).json({ error: "Missing playlistId" });
@@ -243,7 +244,7 @@ export const updatePlaylist: RequestHandler = async (req, res, next) => {
     if (name !== undefined) updates.name = name.trim();
     if (description !== undefined) updates.description = description?.trim() || null;
     if (isPublic !== undefined) updates.isPublic = isPublic;
-    if (isFavorite !== undefined) updates.isFavorite = isFavorite;
+    if (coverUrl !== undefined) updates.coverUrl = coverUrl;
 
     if (Object.keys(updates).length === 0) {
       res.status(400).json({ error: "No fields to update" });
