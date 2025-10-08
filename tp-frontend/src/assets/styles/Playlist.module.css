@@ -1,0 +1,131 @@
+.content {
+  width: 100%;
+  max-width: 800px;
+  padding: 32px 16px 0px;
+}
+
+.title {
+  align-self: flex-start;    
+  font-size: 32px;
+  font-weight: 30px;
+  line-height: 1.2;
+  color: #111827;
+  text-align: left;       
+  font-family: "Inter Tight", sans-serif;
+  font-style: normal;      
+}
+
+/* search */
+.searchInput {
+  box-sizing: border-box;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 40px !important;     
+  padding: 0 14px 0 46px;     
+  line-height: 1;             
+
+  width: 100%;
+  max-width: 560px;
+  background-color: #f4f4f5;
+  border: none;
+  border-radius: 10px !important;
+  box-shadow: none;
+  font-size: 16px;
+  color: #222;
+  transition: box-shadow .2s ease, background-color .2s ease;
+}
+
+/* create bt */
+.createBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  color: #8E2D97 !important;
+  background-color: #EFEFF1!important;
+  border: none;
+  border-radius: 10px;
+  border-color: #EFEFF1 !important;
+  font-size: 16px !important;
+  cursor: pointer;
+  width: 90px !important;
+  height: 40px !important;
+  margin-left: 10px;
+
+}
+
+.createBtn::before {
+  content: "+";
+  font-size: 20px; 
+  font-weight: 800;
+  color: #8E2D97;
+  line-height: 1;
+  display: inline-block;
+
+}
+
+.createBtn:active {
+  transform: scale(0.98);
+}
+
+.createBtn:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(147, 51, 234, 0.2);
+}
+
+
+/* Empty state */
+.emptyWrap {
+  margin-top: 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.emptyImage {
+  width: 120px;          
+  height: auto;
+  margin-bottom: 18px;
+}
+.emptyTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: #374151;
+  margin-bottom: 8px;
+}
+.emptyHint {
+  font-size: 14px;
+  color: #6b7280;
+}
+.purple { color: #8E2D97; font-weight: 700; }
+.muted  { color: #9ca3af; }
+.link {
+  color: #8E2D97;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(142, 45, 151, .25);
+}
+
+
+.list {
+  margin-top: 20px;
+  display: grid;
+  gap: 10px;
+}
+.listItem {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #f9fafb;
+}
+
+/*loading + error */
+.loading {
+  margin-top: 10px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.error {
+  margin-top: 10px;
+  color: #b91c1c;
+  font-size: 14px;
+}
