@@ -3,7 +3,8 @@ import { useUser } from "../components/userContext";
 import styles from "../assets/styles/LikedSongs.module.css"; 
 import emptyImg from "../assets/images/empty/empty-box.png";
 import type { Song } from "../types/song.ts";
-import LikeButton from "../components/LikeButton";
+import LikeButton from "../components/LikeButton.tsx";
+import { useLikedSongs } from "../components/LikedSongsContext.tsx";
 import AddToPlaylistButton from "../components/AddToPlaylist";
 
 const API_URL = "http://localhost:3000";
@@ -20,6 +21,13 @@ export default function LikedSongs() {
 
   const [likedSongs, setLikedSongs] = useState<LikedSong[]>([]);
   const [loading, setLoading] = useState(true);
+  const { likedSongIds, refreshLikedSongs } = useLikedSongs();
+
+  useEffect(() => {
+    if (userId) {
+      loadLikedSongs();
+    }
+  }, [userId, likedSongIds])
 
   useEffect(() => {
     if (userId) {
@@ -201,14 +209,18 @@ export default function LikedSongs() {
                     iconOnly={false}
                     buttonClassName={styles.buttonSecondary}
                     buttonStyle={{ padding: '6px 12px', fontSize: '13px' }}
+                    onSuccess={async () => {
+                      // Reload liked songs ถ้าจำเป็น
+                      console.log('Song added to playlist');
+                    }}
                   />
                   <LikeButton 
-                    userId={userId} 
+                    userId={userId!} 
                     songId={item.song.id}
                     onLikeChange={(isLiked) => {
                       if (!isLiked) {
-                        // ถ้า unlike แล้ว ให้ลบออกจากลิสต์
-                        setLikedSongs(likedSongs.filter(s => s.song.id !== item.song.id));
+                        // ลบออกจาก local state ทันที
+                        setLikedSongs(prev => prev.filter(s => s.song.id !== item.song.id));
                       }
                     }}
                   />

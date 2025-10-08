@@ -393,6 +393,7 @@ export default function Playlist() {
               backgroundRepeat: 'no-repeat',
               backgroundPosition: '16px center',
               backgroundSize: '20px',
+              paddingLeft: 56,                  
             }}
           />
           <button type="button" className={styles.createBtn} onClick={() => setShowCreateModal(true)}>
