@@ -72,6 +72,18 @@ const LokchangRooms = () => {
   }, [roomId]);
 
   useEffect(() => {
+  if (!roomId) return;
+  fetch(`${API_URL}/chat/${roomId}`)
+    .then((res) => res.json())
+    .then((data) => {
+      console.log("📩 Chat messages loaded:", data); // เพิ่มบรรทัดนี้
+      console.log("First message:", data[0]); // ดูข้อความแรก
+      setMessages(data);
+    })
+    .catch(console.error);
+}, [roomId]);
+
+  useEffect(() => {
     if (socketRef.current) return;
 
     const socket = io(API_URL, {
@@ -110,7 +122,7 @@ const LokchangRooms = () => {
     });
 
     socket.on("queue-sync", ({ queue }: { queue: any[] }) => {
-      console.log("✅ queue-sync received:", queue.length, "items");
+      console.log(" queue-sync received:", queue.length, "items");
       setQueue(queue);
       
       setIsProcessing(false);
@@ -440,7 +452,13 @@ const LokchangRooms = () => {
                 handleJoinRoom, publicRooms, currentRoomName, currentInviteCode,
                 currentIsPublic, roomCount, roomId, handleLeaveRoom }}
         />
-        <ChatSection {...{ messages, message, setMessage, handleSendMessage }} />
+        <ChatSection 
+          messages={messages}
+          message={message}
+          setMessage={setMessage}
+          handleSendMessage={handleSendMessage}
+          currentUserId={userId}
+        />
         <QueueSection {...{ queue, nowPlaying, youtubeUrl, setYoutubeUrl,
                             handleAdd, handleRemove, isMuted, handleToggleMute,
                             socketRef, roomIdRef, handleSkip, handleReorder, isHost: userId === roomHostId, isProcessing }} />
