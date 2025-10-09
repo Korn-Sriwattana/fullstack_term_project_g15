@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import styles from "../assets/styles/lokchang-rooms.module.css";
 
 interface Props {
   roomNameInput: string;
