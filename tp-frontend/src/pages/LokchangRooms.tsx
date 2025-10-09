@@ -52,6 +52,9 @@ const LokchangRooms = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const processingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // 🆕 Modal state
+  const [showCreateRoomModal, setShowCreateRoomModal] = useState(false);
+
   function extractVideoId(url: string): string | null {
     try {
       const parsed = new URL(url);
@@ -106,12 +109,10 @@ const LokchangRooms = () => {
       if (updatedRoomId === roomIdRef.current) setRoomCount(count);
     });
 
-    // ฟัง queue-sync
     socket.on("queue-sync", ({ queue }: { queue: any[] }) => {
       console.log("✅ queue-sync received:", queue.length, "items");
       setQueue(queue);
       
-      // 🔓 ปลด lock เมื่อได้ queue ใหม่
       setIsProcessing(false);
       if (processingTimeoutRef.current) {
         clearTimeout(processingTimeoutRef.current);
@@ -119,7 +120,6 @@ const LokchangRooms = () => {
       }
     });
 
-    // ฟัง now-playing
     socket.on("now-playing", ({ roomId: rId, song, startedAt, hostId }: any) => {
       console.log("now-playing received:", { rId, song, startedAt });
       
@@ -176,7 +176,6 @@ const LokchangRooms = () => {
       .catch(console.error);
   }, [roomId]);
 
-  // โหลด queue ครั้งแรกเมื่อเข้าห้อง
   useEffect(() => {
     if (!roomId) return;
 
@@ -216,14 +215,11 @@ const LokchangRooms = () => {
 
       const data = await res.json();
 
-      // เช็คว่า response สำเร็จหรือไม่
       if (!res.ok) {
-        // กรณี error (เช่น 403 room full, 404 not found)
         alert(data.error || "Failed to join room");
         return;
       }
 
-      // กรณีสำเร็จ
       if (data.roomId) {
         setRoomId(data.roomId);
         setCurrentRoomName(data.roomName);
@@ -283,6 +279,9 @@ const LokchangRooms = () => {
         setQueue(data);
       });
 
+    // 🆕 ปิด modal หลังสร้างห้อง
+    setShowCreateRoomModal(false);
+
     alert(
       `Room created & joined: ${created.roomName} (${created.isPublic ? "Public" : "Private"})`
     );
@@ -325,7 +324,7 @@ const LokchangRooms = () => {
     setIsProcessing(true);
     processingTimeoutRef.current = setTimeout(() => {
       setIsProcessing(false);
-    }, 3000); // timeout หลัง 3 วินาที
+    }, 3000);
 
     const res = await fetch(`${API_URL}/songs/add`, {
       method: "POST",
@@ -361,13 +360,11 @@ const LokchangRooms = () => {
       alert("Only the host can remove songs");
       return;
     }
-    // 🔒 ป้องกันการกดซ้ำ
     if (isProcessing) {
       console.log("⚠️ Already processing, please wait...");
       return;
     }
 
-    // เช็คว่า queueId ยังมีอยู่ใน queue จริงๆ หรือไม่
     const itemExists = queue.find(item => item.id === queueId);
     if (!itemExists) {
       console.log("⚠️ Item not in queue anymore");
@@ -378,7 +375,6 @@ const LokchangRooms = () => {
     processingTimeoutRef.current = setTimeout(() => {
       setIsProcessing(false);
     }, 3000);
-    // ลบออกจาก state ก่อนเลย
     setQueue(prev => prev.filter(item => item.id !== queueId));
 
     console.log("📤 Emitting queue-remove:", { roomId, queueId });
@@ -437,21 +433,300 @@ const LokchangRooms = () => {
       <div style={{ padding: "1rem", fontFamily: "sans-serif" }}>
         <h1 className={styles["lok-title"]}>Look Chang Room</h1>
 
-      <div className={styles["lok-banner"]}>
-        <img src={coverImg} alt="cover" />
+        <div className={styles["lok-banner"]}>
+          <img src={coverImg} alt="cover" />
+        </div>
+
+        {/* 🆕 Header with Create Button */}
+        {!roomId && (
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            marginBottom: '1.5rem',
+            padding: '0 0.5rem'
+          }}>
+            <h2 style={{ margin: 0, fontSize: '1.5rem' }}>Join or Create Room</h2>
+            <button 
+              onClick={() => setShowCreateRoomModal(true)}
+              style={{
+                padding: '10px 24px',
+                fontSize: '14px',
+                fontWeight: '600',
+                color: 'white',
+                backgroundColor: '#1db954',
+                border: 'none',
+                borderRadius: '24px',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#1ed760';
+                e.currentTarget.style.transform = 'scale(1.05)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#1db954';
+                e.currentTarget.style.transform = 'scale(1)';
+              }}
+            >
+              Create Room
+            </button>
+          </div>
+        )}
+
+        <RoomSection
+          {...{ roomNameInput, setRoomNameInput, roomDescriptionInput, setRoomDescriptionInput,
+                mode, setMode, handleCreateRoom, inviteCodeInput, setInviteCodeInput,
+                handleJoinRoom, publicRooms, currentRoomName, currentInviteCode,
+                currentIsPublic, roomCount, roomId, handleLeaveRoom }}
+        />
+        <ChatSection {...{ messages, message, setMessage, handleSendMessage }} />
+        <QueueSection {...{ queue, nowPlaying, youtubeUrl, setYoutubeUrl,
+                            handleAdd, handleRemove, isMuted, handleToggleMute,
+                            socketRef, roomIdRef, handleSkip, handleReorder, isHost: userId === roomHostId, isProcessing }} />
       </div>
 
-      <RoomSection
-        {...{ roomNameInput, setRoomNameInput, roomDescriptionInput, setRoomDescriptionInput,
-              mode, setMode, handleCreateRoom, inviteCodeInput, setInviteCodeInput,
-              handleJoinRoom, publicRooms, currentRoomName, currentInviteCode,
-              currentIsPublic, roomCount, roomId, handleLeaveRoom }}
-      />
-      <ChatSection {...{ messages, message, setMessage, handleSendMessage }} />
-      <QueueSection {...{ queue, nowPlaying, youtubeUrl, setYoutubeUrl,
-                          handleAdd, handleRemove, isMuted, handleToggleMute,
-                          socketRef, roomIdRef, handleSkip, handleReorder, isHost: userId === roomHostId, isProcessing }} />
-    </div>
+      {/* 🆕 Create Room Modal - คล้ายกับ Playlist Modal */}
+      {showCreateRoomModal && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            backdropFilter: 'blur(4px)'
+          }}
+          onClick={() => setShowCreateRoomModal(false)}
+        >
+          <div 
+            style={{
+              backgroundColor: '#282828',
+              borderRadius: '16px',
+              padding: '32px',
+              width: '90%',
+              maxWidth: '500px',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
+              animation: 'slideIn 0.3s ease-out'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 style={{ 
+              margin: '0 0 24px 0', 
+              fontSize: '24px',
+              fontWeight: '700',
+              color: 'white'
+            }}>
+              Create New Room
+            </h2>
+
+            {/* Room Name */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ 
+                display: 'block',
+                marginBottom: '8px',
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#b3b3b3'
+              }}>
+                Room Name *
+              </label>
+              <input
+                type="text"
+                placeholder="My Awesome Room"
+                value={roomNameInput}
+                onChange={(e) => setRoomNameInput(e.target.value)}
+                autoFocus
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  fontSize: '16px',
+                  backgroundColor: '#3e3e3e',
+                  border: '1px solid #535353',
+                  borderRadius: '8px',
+                  color: 'white',
+                  outline: 'none',
+                  transition: 'all 0.2s'
+                }}
+                onFocus={(e) => e.target.style.borderColor = '#1db954'}
+                onBlur={(e) => e.target.style.borderColor = '#535353'}
+              />
+            </div>
+
+            {/* Description */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ 
+                display: 'block',
+                marginBottom: '8px',
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#b3b3b3'
+              }}>
+                Description (optional)
+              </label>
+              <textarea
+                placeholder="Describe your room..."
+                value={roomDescriptionInput}
+                onChange={(e) => setRoomDescriptionInput(e.target.value)}
+                rows={3}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  fontSize: '16px',
+                  backgroundColor: '#3e3e3e',
+                  border: '1px solid #535353',
+                  borderRadius: '8px',
+                  color: 'white',
+                  outline: 'none',
+                  resize: 'vertical',
+                  fontFamily: 'inherit',
+                  transition: 'all 0.2s'
+                }}
+                onFocus={(e) => e.target.style.borderColor = '#1db954'}
+                onBlur={(e) => e.target.style.borderColor = '#535353'}
+              />
+            </div>
+
+            {/* Privacy Dropdown */}
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ 
+                display: 'block',
+                marginBottom: '8px',
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#b3b3b3'
+              }}>
+                Privacy
+              </label>
+              <select
+                value={mode}
+                onChange={(e) => setMode(e.target.value as "public" | "private")}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  fontSize: '16px',
+                  backgroundColor: '#3e3e3e',
+                  border: '1px solid #535353',
+                  borderRadius: '8px',
+                  color: 'white',
+                  cursor: 'pointer',
+                  outline: 'none',
+                  transition: 'all 0.2s',
+                  appearance: 'none',
+                  backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                  backgroundRepeat: 'no-repeat',
+                  backgroundPosition: 'right 12px center',
+                  backgroundSize: '20px',
+                  paddingRight: '40px'
+                }}
+                onFocus={(e) => e.target.style.borderColor = '#1db954'}
+                onBlur={(e) => e.target.style.borderColor = '#535353'}
+              >
+                <option value="public" style={{ backgroundColor: '#282828' }}>
+                  🌍 Public
+                </option>
+                <option value="private" style={{ backgroundColor: '#282828' }}>
+                  🔒 Private
+                </option>
+              </select>
+              <small style={{ 
+                display: 'block',
+                marginTop: '8px',
+                fontSize: '12px',
+                color: '#b3b3b3'
+              }}>
+                {mode === "public" 
+                  ? 'This room will appear in public room list' 
+                  : 'Only people with invite code can join'}
+              </small>
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{ 
+              display: 'flex', 
+              gap: '12px',
+              justifyContent: 'flex-end'
+            }}>
+              <button
+                onClick={() => {
+                  setShowCreateRoomModal(false);
+                  setRoomNameInput("");
+                  setRoomDescriptionInput("");
+                  setMode("public");
+                }}
+                style={{
+                  padding: '12px 24px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  border: '1px solid #535353',
+                  borderRadius: '24px',
+                  backgroundColor: 'transparent',
+                  color: 'white',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#3e3e3e';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateRoom}
+                disabled={!roomNameInput.trim()}
+                style={{
+                  padding: '12px 24px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  border: 'none',
+                  borderRadius: '24px',
+                  backgroundColor: roomNameInput.trim() ? '#1db954' : '#535353',
+                  color: 'white',
+                  cursor: roomNameInput.trim() ? 'pointer' : 'not-allowed',
+                  transition: 'all 0.2s',
+                  opacity: roomNameInput.trim() ? 1 : 0.5
+                }}
+                onMouseEnter={(e) => {
+                  if (roomNameInput.trim()) {
+                    e.currentTarget.style.backgroundColor = '#1ed760';
+                    e.currentTarget.style.transform = 'scale(1.05)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (roomNameInput.trim()) {
+                    e.currentTarget.style.backgroundColor = '#1db954';
+                    e.currentTarget.style.transform = 'scale(1)';
+                  }
+                }}
+              >
+                Create
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes slideIn {
+          from {
+            opacity: 0;
+            transform: translateY(-20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
     </div>
   );
 };
