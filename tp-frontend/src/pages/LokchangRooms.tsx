@@ -452,16 +452,20 @@ const LokchangRooms = () => {
                 handleJoinRoom, publicRooms, currentRoomName, currentInviteCode,
                 currentIsPublic, roomCount, roomId, handleLeaveRoom }}
         />
-        <ChatSection 
-          messages={messages}
-          message={message}
-          setMessage={setMessage}
-          handleSendMessage={handleSendMessage}
-          currentUserId={userId}
-        />
-        <QueueSection {...{ queue, nowPlaying, youtubeUrl, setYoutubeUrl,
-                            handleAdd, handleRemove, isMuted, handleToggleMute,
-                            socketRef, roomIdRef, handleSkip, handleReorder, isHost: userId === roomHostId, isProcessing }} />
+        {roomId && (
+        <>
+          <ChatSection 
+            messages={messages}
+            message={message}
+            setMessage={setMessage}
+            handleSendMessage={handleSendMessage}
+            currentUserId={userId}
+          />
+          <QueueSection {...{ queue, nowPlaying, youtubeUrl, setYoutubeUrl,
+                              handleAdd, handleRemove, isMuted, handleToggleMute,
+                              socketRef, roomIdRef, handleSkip, handleReorder, isHost: userId === roomHostId, isProcessing }} />
+          </>
+        )}
       </div>
     </div>
   );
