@@ -281,12 +281,10 @@ export default function Playlist() {
     }
   };
 
-  // ✅ เล่น playlist จากหน้า Grid
   const handlePlayPlaylistFromCard = async (e: React.MouseEvent, playlist: Playlist) => {
-    e.stopPropagation(); // ป้องกันไม่ให้เปิด playlist
+    e.stopPropagation();
     
     try {
-      // Load เพลงใน playlist
       const res = await fetch(`${API_URL}/playlists/${playlist.id}/songs`);
       const songs: PlaylistSong[] = await res.json();
       
@@ -496,7 +494,6 @@ export default function Playlist() {
                       </div>
                     )}
                     
-                    {/* ✅ ปุ่ม Play ตรง Cover */}
                     <button
                       onClick={(e) => handlePlayPlaylistFromCard(e, playlist)}
                       className={styles.playlistPlayButton}
@@ -723,26 +720,18 @@ export default function Playlist() {
               <label className={styles.formLabel}>
                 Privacy
               </label>
-              <div className={styles.privacyToggle}>
-                <button
-                  type="button"
-                  onClick={() => setNewPlaylistIsPublic(true)}
-                  className={`${styles.privacyButton} ${newPlaylistIsPublic ? styles.privacyButtonActive : styles.privacyButtonInactive}`}
-                >
-                  🌍 Public
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setNewPlaylistIsPublic(false)}
-                  className={`${styles.privacyButton} ${!newPlaylistIsPublic ? styles.privacyButtonActive : styles.privacyButtonInactive}`}
-                >
-                  🔒 Private
-                </button>
-              </div>
+              <select
+                value={newPlaylistIsPublic ? "public" : "private"}
+                onChange={(e) => setNewPlaylistIsPublic(e.target.value === "public")}
+                className={styles.formSelect}
+              >
+                <option value="public">🌍 Public</option>
+                <option value="private">🔒 Private</option>
+              </select>
               <small className={styles.privacyHint}>
                 {newPlaylistIsPublic 
-                  ? 'Anyone can see this playlist' 
-                  : 'Only you can see this playlist'}
+                  ? 'This playlist will appear in your profile and be accessible to others' 
+                  : 'Only you can access this playlist'}
               </small>
             </div>
 
