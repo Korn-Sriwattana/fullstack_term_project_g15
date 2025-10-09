@@ -298,6 +298,12 @@ app.post("/chat", async (req, res, next) => {
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
+  // เก็บ userId ใน socket เมื่อ connect
+  socket.on("set-user", (userId: string) => {
+    (socket as any).userId = userId;
+    console.log(`Socket ${socket.id} set userId: ${userId}`);
+  });
+
   // Join room
   socket.on("join-room", async (roomId) => {
     socket.join(roomId);
@@ -306,6 +312,17 @@ io.on("connection", (socket) => {
 
     io.emit("room-count-updated", { roomId, count: newCount });
 
+    const socketUserId = (socket as any).userId; // เก็บ userId ใน socket
+      if (socketUserId) {
+        const [user] = await dbClient.query.users.findMany({
+          where: eq(users.id, socketUserId),
+          limit: 1,
+        });
+        
+        if (user) {
+          await sendSystemMessage(io, roomId, `${user.name} joined the room`);
+        }
+      }
     // fetch queue และ now-playing ล่าสุด
     const fullQueue = await dbClient
       .select({
@@ -391,12 +408,63 @@ io.on("connection", (socket) => {
     });
   });
 
-  socket.on("queue-add", (payload) => addToQueue(io, payload));
+  socket.on("queue-add", async (payload) => {
+    await addToQueue(io, payload);
+    
+    // หาชื่อ user และชื่อเพลง
+    const [user] = await dbClient.query.users.findMany({
+      where: eq(users.id, payload.userId),
+      limit: 1,
+    });
+    
+    const [song] = await dbClient
+      .select()
+      .from(songs)
+      .where(eq(songs.id, payload.songId))
+      .limit(1);
+    
+    if (user && song) {
+      await sendSystemMessage(
+        io, 
+        payload.roomId, 
+        `${user.name} added "${song.title}" to queue`
+      );
+    }
+  });
+
   socket.on("play-song", (payload) => playSong(io, payload));
-  socket.on("queue-remove", (payload) => {
-  console.log("🔴 queue-remove event received from", socket.id, payload);
-  removeFromQueue(io, payload);
-});
+  socket.on("queue-remove", async (payload) => {
+    console.log("🔴 queue-remove event received from", socket.id, payload);
+    
+    // หาข้อมูลก่อนลบ
+    const [queueItem] = await dbClient
+      .select({
+        song: {
+          title: songs.title
+        }
+      })
+      .from(roomQueue)
+      .leftJoin(songs, eq(roomQueue.songId, songs.id))
+      .where(eq(roomQueue.id, payload.queueId))
+      .limit(1);
+    
+    const socketUserId = (socket as any).userId;
+    const [user] = await dbClient.query.users.findMany({
+      where: eq(users.id, socketUserId),
+      limit: 1,
+    });
+    
+    await removeFromQueue(io, payload);
+    
+    // ส่ง system message
+    if (user && queueItem?.song) {
+      await sendSystemMessage(
+        io,
+        payload.roomId,
+        `${user.name} removed "${queueItem.song.title}" from queue`
+      );
+    }
+  });
 
 socket.on("song-ended", (payload) => {
   console.log("⏹️ song-ended event received from", socket.id);
@@ -406,12 +474,46 @@ socket.on("song-ended", (payload) => {
   }
 });
 
-socket.on("skip-song", (payload) => {
-  console.log("⏭️ skip-song event received from", socket.id, payload);
-  if (payload.roomId) {
-    playNextSong(io, payload.roomId);
-  }
-});
+  socket.on("skip-song", async (payload) => {
+    console.log("⏭️ skip-song event received from", socket.id, payload);
+    
+    // 🆕 หาชื่อเพลงที่กำลังเล่น
+    const [listening] = await dbClient
+      .select({
+        currentSongId: listeningRooms.currentSongId
+      })
+      .from(listeningRooms)
+      .where(eq(listeningRooms.id, payload.roomId));
+    
+    let songTitle = "current song";
+    if (listening?.currentSongId) {
+      const [song] = await dbClient
+        .select()
+        .from(songs)
+        .where(eq(songs.id, listening.currentSongId))
+        .limit(1);
+      if (song) songTitle = `"${song.title}"`;
+    }
+    
+    const socketUserId = (socket as any).userId;
+    const [user] = await dbClient.query.users.findMany({
+      where: eq(users.id, socketUserId),
+      limit: 1,
+    });
+    
+    if (payload.roomId) {
+      await playNextSong(io, payload.roomId);
+      
+      // 🆕 ส่ง system message
+      if (user) {
+        await sendSystemMessage(
+          io,
+          payload.roomId,
+          `${user.name} skipped ${songTitle}`
+        );
+      }
+    }
+  });
 
   socket.on("queue-reorder", (payload) => reorderQueue(io, payload));
 
@@ -422,6 +524,12 @@ socket.on("skip-song", (payload) => {
       return;
     }
 
+    const [user] = await dbClient.query.users.findMany({
+      where: eq(users.id, userId),
+      limit: 1,
+    });
+
+
     socket.leave(roomId);
 
     // ลบจาก room_members
@@ -431,6 +539,9 @@ socket.on("skip-song", (payload) => {
     const newCount = io.sockets.adapter.rooms.get(roomId)?.size || 0;
 
     io.emit("room-count-updated", { roomId, count: newCount });
+    if (user) {
+      await sendSystemMessage(io, roomId, `${user.name} left the room`);
+    }
     console.log(`User ${userId} (${socket.id}) left room ${roomId} (${newCount} members)`);
   });
 
@@ -476,6 +587,31 @@ function sanitizeQueueItem(item: any) {
     queuedBy: item.queuedBy,
     song: sanitizeSong(item.song)
   };
+}
+
+// Helper function สำหรับส่ง system message
+async function sendSystemMessage(io: any, roomId: string, message: string) {
+  const systemMsg = {
+    userId: "system",
+    userName: "System",
+    message: message,
+    isSystem: true,
+    createdAt: new Date()
+  };
+  
+  // ส่งไปยัง client ทันที
+  io.to(roomId).emit("chat-message", systemMsg);
+  
+  // บันทึกลง database (optional)
+  try {
+    await dbClient.insert(roomMessages).values({
+      roomId,
+      userId: "system",
+      message: message
+    });
+  } catch (err) {
+    console.error("Failed to save system message:", err);
+  }
 }
 
 // ----------------- Error Middleware -----------------

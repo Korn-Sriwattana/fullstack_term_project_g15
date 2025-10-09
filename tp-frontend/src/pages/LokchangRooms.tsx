@@ -84,6 +84,9 @@ const LokchangRooms = () => {
 
     socket.on("connect", () => {
       console.log("Connected:", socket.id);
+       if (userId) {
+        socket.emit("set-user", userId);
+      }
       if (roomIdRef.current) socket.emit("join-room", roomIdRef.current);
     });
 
