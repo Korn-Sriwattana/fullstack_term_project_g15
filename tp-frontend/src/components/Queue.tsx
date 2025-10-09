@@ -1,5 +1,6 @@
 import React from "react";
 import YoutubePlayer from "./YoutubePlayer";
+import styles from "../assets/styles/lokchang-rooms.module.css";
 
 interface Props {
   queue: any[];
@@ -37,44 +38,62 @@ const QueueSection: React.FC<Props> = ({
   return (
     <section>
       <h3>🎶 Room Queue  {isProcessing && "⏳"}</h3>
-      <ul>
-        {queue.map((item: any, i: number) => (
-          <li key={item.id || i}>
-            {i + 1}.{" "}
-            <a
-              href={`https://www.youtube.com/watch?v=${item.song.youtubeVideoId}`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              {item.song.title}
-            </a>{" "}
-            - {item.song.artist || "Unknown"}
-            {isHost && (
-              <>
-                <button 
-                  onClick={() => handleReorder(item.id, 'up')}
-                  disabled={i === 0 || ((i === 0) && (isProcessing))}
-                  style={{ opacity: isProcessing ? 0.5 : 1 }}
+      <div className={styles.queue}>
+        {queue.length === 0 ? (
+          <div className={styles.queueEmpty}>No songs in queue 🎶</div>
+        ) : (
+          queue.map((item: any, i: number) => (
+            <div key={item.id || i} className={styles.queueItem}>
+              {item.song?.coverUrl && (
+                <img
+                  src={item.song.coverUrl}
+                  alt={item.song.title}
+                  className={styles.queueCover}
+                />
+              )}
+              <div className={styles.queueInfo}>
+                <a
+                  href={`https://www.youtube.com/watch?v=${item.song.youtubeVideoId}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={styles.queueTitle}
                 >
-                  ⬆️
-                </button>
-                <button 
-                  onClick={() => handleReorder(item.id, 'down')}
-                  disabled={i === queue.length - 1 || ((i === queue.length - 1) && (isProcessing))}
-                  style={{ opacity: isProcessing ? 0.5 : 1 }}
-                >
-                  ⬇️
-                </button>
-                <button 
-                onClick={() => handleRemove(item.id)}
-                disabled={isProcessing}
-                style={{ opacity: isProcessing ? 0.5 : 1 }}
-                >❌</button>
-              </>
-            )}
-          </li>
-        ))}
-      </ul>
+                  {i + 1}. {item.song?.title || "Unknown"}
+                </a>
+                <div className={styles.queueArtist}>
+                  {item.song?.artist || "Unknown Artist"}
+                </div>
+              </div>
+
+              {isHost && (
+                <div className={styles.queueButtons}>
+                  <button
+                    onClick={() => handleReorder(item.id, "up")}
+                    disabled={i === 0 || isProcessing}
+                    className={`${styles.queueBtn} ${styles.queueBtnUp}`}
+                  >
+                    ⬆️
+                  </button>
+                  <button
+                    onClick={() => handleReorder(item.id, "down")}
+                    disabled={i === queue.length - 1 || isProcessing}
+                    className={`${styles.queueBtn} ${styles.queueBtnDown}`}
+                  >
+                    ⬇️
+                  </button>
+                  <button
+                    onClick={() => handleRemove(item.id)}
+                    disabled={isProcessing}
+                    className={`${styles.queueBtn} ${styles.queueBtnRemove}`}
+                  >
+                    ❌
+                  </button>
+                </div>
+              )}
+            </div>
+          ))
+        )}
+      </div>
 
       <input
         type="text"
