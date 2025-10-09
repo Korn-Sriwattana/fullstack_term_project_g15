@@ -221,7 +221,6 @@ export async function removeFromQueue(io: any, { roomId, queueId }: any) {
 const processingRooms = new Map<string, boolean>();
 
 export async function playNextSong(io: any, roomId: string) {
-  // 🔒 ป้องกัน race condition
   if (processingRooms.get(roomId)) {
     console.log("⚠️ playNextSong already processing for room:", roomId);
     return;
@@ -257,12 +256,21 @@ export async function playNextSong(io: any, roomId: string) {
     if (nextQueueItem) {
       console.log("🎵 Playing next song:", nextQueueItem.song?.title);
 
-      // อัพเดท listening room
       await dbClient.update(listeningRooms)
         .set({ currentSongId: nextQueueItem.songId, currentStartedAt: now })
         .where(eq(listeningRooms.id, roomId));
 
-      // ลบเพลงที่เริ่มเล่นออกจาก queue
+      // ส่ง now-playing ก่อนลบ เพื่อให้ client มี queueId
+      io.to(roomId).emit("now-playing", {
+        roomId,
+        song: {
+          ...sanitizeSong(nextQueueItem.song),
+          queueId: nextQueueItem.id  // เพิ่ม queueId
+        },
+        startedAt: now,
+      });
+
+      // ลบเพลงออกจาก queue
       await dbClient.delete(roomQueue).where(eq(roomQueue.id, nextQueueItem.id));
 
       // Reindex เพลงที่เหลือ
@@ -283,11 +291,6 @@ export async function playNextSong(io: any, roomId: string) {
         }
       });
 
-      io.to(roomId).emit("now-playing", {
-        roomId,
-        song: sanitizeSong(nextQueueItem.song),
-        startedAt: now,
-      });
     } else {
       console.log("🛑 No more songs in queue");
 
@@ -321,10 +324,9 @@ export async function playNextSong(io: any, roomId: string) {
     io.to(roomId).emit("queue-sync", { queue: fullQueue.map(sanitizeQueueItem) });
 
   } finally {
-    // 🔓 ปลดล็อคหลังเสร็จ
     setTimeout(() => {
       processingRooms.delete(roomId);
-    }, 1000); // รอ 1 วินาที เผื่อ event ที่ซ้ำซ้อน
+    }, 1000);
   }
 }
 
