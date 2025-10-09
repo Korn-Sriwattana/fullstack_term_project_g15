@@ -90,7 +90,7 @@ export const roomMessages = pgTable("room_messages", {
   roomId: uuid("room_id").notNull().references(() => listeningRooms.id),
   userId: uuid("user_id").notNull().references(() => users.id),
   message: text("message").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => ({
   roomCreatedIdx: index("room_messages_room_created_idx").on(t.roomId, t.createdAt),
 }));

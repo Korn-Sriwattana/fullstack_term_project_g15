@@ -4,7 +4,15 @@ import { Pool } from "pg";
 import { eq } from "drizzle-orm";
 import { roomMessages } from "@db/schema.js";
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const pool = new Pool({ 
+  connectionString: process.env.DATABASE_URL
+});
+
+// ตั้งค่า timezone เป็น UTC สำหรับทุก connection
+pool.on('connect', (client) => {
+  client.query('SET timezone = "UTC"');
+});
+
 const db = drizzle(pool);
 
 // Get messages for a room
