@@ -1,19 +1,52 @@
 import React, { useRef, useEffect } from "react";
 
+// ปรับ interface ให้ตรงกับโครงสร้างของคุณ
+interface Message {
+  id: string;
+  roomId: string;
+  userId: string;
+  message: string;
+  createdAt: Date | string;
+  // Join กับ users table เพื่อได้ชื่อ
+  user?: {
+    id: string;
+    name: string;
+    profilePic?: string;
+  };
+  // สำหรับ system message
+  isSystem?: boolean;
+}
+
 interface Props {
-  messages: any[];
+  messages: Message[];
   message: string;
   setMessage: (val: string) => void;
   handleSendMessage: (e: React.FormEvent) => void;
+  currentUserId: string; // userId ของผู้ใช้ปัจจุบัน
 }
 
-const ChatSection: React.FC<Props> = ({ messages, message, setMessage, handleSendMessage }) => {
+const ChatSection: React.FC<Props> = ({ 
+  messages, 
+  message, 
+  setMessage, 
+  handleSendMessage,
+  currentUserId
+}) => {
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   // Auto scroll to bottom when new message arrives
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // ฟังก์ชันสำหรับจัดรูปแบบเวลา
+  const formatTime = (timestamp: Date | string) => {
+    const date = timestamp instanceof Date ? timestamp : new Date(timestamp);
+    return date.toLocaleTimeString('th-TH', { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+  };
 
   return (
     <section style={{ marginBottom: '1.5rem' }}>
@@ -30,35 +63,79 @@ const ChatSection: React.FC<Props> = ({ messages, message, setMessage, handleSen
         padding: '0.75rem',
         backgroundColor: '#1a1a1a'
       }}>
-        {messages.map((msg, i) => {
-          const isSystem = msg.isSystem || msg.userId === "system";
+        {messages.map((msg) => {
+          const isSystem = msg.isSystem;
+          const isOwnMessage = msg.userId === currentUserId && !isSystem;
+          const userName = msg.user?.name || 'Unknown User';
           
           return (
             <div 
-              key={i}
+              key={msg.id}
               style={{
-                marginBottom: '0.5rem',
-                padding: isSystem ? '0.5rem' : '0.25rem 0',
-                backgroundColor: isSystem ? 'rgba(29, 185, 84, 0.1)' : 'transparent',
-                borderRadius: isSystem ? '6px' : '0',
-                borderLeft: isSystem ? '3px solid #1db954' : 'none',
-                paddingLeft: isSystem ? '0.75rem' : '0',
-                fontSize: isSystem ? '13px' : '14px',
-                color: isSystem ? '#1db954' : '#fff',
-                fontStyle: isSystem ? 'italic' : 'normal'
+                marginBottom: '0.75rem',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: isSystem ? 'center' : (isOwnMessage ? 'flex-end' : 'flex-start')
               }}
             >
               {isSystem ? (
-                // System message
-                <span>{msg.message}</span>
+                // System message (กลาง)
+                <div style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: 'rgba(29, 185, 84, 0.1)',
+                  borderRadius: '6px',
+                  border: '1px solid rgba(29, 185, 84, 0.3)',
+                  fontSize: '13px',
+                  color: '#1db954',
+                  fontStyle: 'italic',
+                  maxWidth: '80%',
+                  textAlign: 'center'
+                }}>
+                  {msg.message}
+                </div>
               ) : (
-                // User message
-                <>
-                  <strong style={{ color: '#1db954' }}>
-                    {msg.userName || msg.userId}:
-                  </strong>{' '}
-                  <span style={{ color: '#b3b3b3' }}>{msg.message}</span>
-                </>
+                // User message (ซ้าย/ขวา)
+                <div style={{
+                  maxWidth: '70%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: isOwnMessage ? 'flex-end' : 'flex-start'
+                }}>
+                  {/* ชื่อผู้ส่ง */}
+                  <div style={{
+                    fontSize: '12px',
+                    color: '#888',
+                    marginBottom: '0.25rem',
+                    paddingLeft: isOwnMessage ? '0' : '0.5rem',
+                    paddingRight: isOwnMessage ? '0.5rem' : '0'
+                  }}>
+                    {userName}
+                  </div>
+                  
+                  {/* ข้อความ */}
+                  <div style={{
+                    padding: '0.75rem 1rem',
+                    backgroundColor: isOwnMessage ? '#1db954' : '#282828',
+                    color: isOwnMessage ? '#fff' : '#e0e0e0',
+                    borderRadius: '12px',
+                    fontSize: '14px',
+                    wordBreak: 'break-word',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.2)'
+                  }}>
+                    {msg.message}
+                  </div>
+                  
+                  {/* เวลา */}
+                  <div style={{
+                    fontSize: '11px',
+                    color: '#666',
+                    marginTop: '0.25rem',
+                    paddingLeft: isOwnMessage ? '0' : '0.5rem',
+                    paddingRight: isOwnMessage ? '0.5rem' : '0'
+                  }}>
+                    {formatTime(msg.createdAt)}
+                  </div>
+                </div>
               )}
             </div>
           );
@@ -69,7 +146,7 @@ const ChatSection: React.FC<Props> = ({ messages, message, setMessage, handleSen
       <form onSubmit={handleSendMessage} style={{ display: 'flex', gap: '0.5rem' }}>
         <input
           type="text"
-          placeholder="Type a message..."
+          placeholder="พิมพ์ข้อความ..."
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           style={{
@@ -102,7 +179,7 @@ const ChatSection: React.FC<Props> = ({ messages, message, setMessage, handleSen
           onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1ed760'}
           onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#1db954'}
         >
-          Send
+          ส่ง
         </button>
       </form>
     </section>

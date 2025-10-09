@@ -137,29 +137,49 @@ app.post("/rooms/join", joinRoom);
 app.get("/rooms/public", listPublicRooms);
 
 // Fetch chat messages
-app.get(  "/chat/:roomId", async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { roomId } = req.params;
+app.get("/chat/:roomId", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { roomId } = req.params;
 
-      const results = await dbClient
-        .select({
-          id: roomMessages.id,
-          message: roomMessages.message,
-          createdAt: roomMessages.createdAt,
-          userId: roomMessages.userId,
-          userName: users.name,
-        })
-        .from(roomMessages)
-        .leftJoin(users, eq(roomMessages.userId, users.id))
-        .where(eq(roomMessages.roomId, roomId))
-        .orderBy(asc(roomMessages.createdAt)); // เรียงจากเก่าสุดไปใหม่สุด
+    const results = await dbClient
+      .select({
+        id: roomMessages.id,
+        message: roomMessages.message,
+        createdAt: roomMessages.createdAt,
+        roomId: roomMessages.roomId,
+        userId: roomMessages.userId,
+        // แก้ไขส่วนนี้ให้เป็น object
+        user: {
+          id: users.id,
+          name: users.name,
+          profilePic: users.profilePic,
+        },
+      })
+      .from(roomMessages)
+      .leftJoin(users, eq(roomMessages.userId, users.id))
+      .where(eq(roomMessages.roomId, roomId))
+      .orderBy(asc(roomMessages.createdAt));
 
-      res.json(results);
-    } catch (err) {
-      next(err);
-    }
+    // แปลง results ให้ตรงกับ interface
+     const formatted = results.map(row => ({
+      id: row.id,
+      message: row.message,
+      createdAt: row.createdAt,
+      roomId: row.roomId,
+      userId: row.userId,
+      // เช็คว่า row.user และ row.user.id มีค่าหรือไม่
+      user: row.user && row.user.id ? {
+        id: row.user.id,
+        name: row.user.name || 'Unknown User',
+        profilePic: row.user.profilePic || undefined,
+      } : undefined,
+    }));
+
+    res.json(formatted);
+  } catch (err) {
+    next(err);
   }
-);
+});
 
 // Post chat message
 app.post("/chat", async (req, res, next) => {
@@ -395,16 +415,23 @@ io.on("connection", (socket) => {
       .values({ roomId, userId, message })
       .returning();
 
-    // ดึงชื่อ user
+    // ดึงข้อมูล user
     const [user] = await dbClient.query.users.findMany({
       where: eq(users.id, userId),
       limit: 1,
     });
 
     io.to(roomId).emit("chat-message", {
-      userId,
-      userName: user?.name || "Unknown",
+      id: msg.id,
+      roomId: msg.roomId,
+      userId: msg.userId,
       message: msg.message,
+      createdAt: msg.createdAt,
+      user: user ? {
+        id: user.id,
+        name: user.name,
+        profilePic: user.profilePic,
+      } : undefined,
     });
   });
 
