@@ -181,26 +181,34 @@ const MusicPlayer = ({ userId, onQueueUpdate, onCurrentIndexUpdate, className }:
     }
   }, [apiReady, volume, isLooping]);
 
-  // Handle loop
+  // Handle loop and auto-next
   useEffect(() => {
-    if (!playerRef.current || !isPlayerReady || !currentSong || !isLooping) return;
+    if (!playerRef.current || !isPlayerReady || !currentSong) return;
 
-    const checkLoop = setInterval(() => {
+    const checkPlayback = setInterval(() => {
       try {
         const current = playerRef.current.getCurrentTime();
         const total = playerRef.current.getDuration();
         
+        // Check if song is near end (within 1 second)
         if (total && current >= total - 1) {
-          console.log("🔁 Looping...");
-          playerRef.current.seekTo(0);
-          playerRef.current.playVideo();
+          if (isLooping) {
+            console.log("🔁 Looping...");
+            playerRef.current.seekTo(0);
+            playerRef.current.playVideo();
+          } else {
+            console.log("⏭️ Song ended, playing next...");
+            // Clear interval to prevent multiple calls
+            clearInterval(checkPlayback);
+            handleNext();
+          }
         }
       } catch (e) {
         // Silent fail
       }
     }, 500);
 
-    return () => clearInterval(checkLoop);
+    return () => clearInterval(checkPlayback);
   }, [isLooping, currentSong, isPlayerReady]);
 
   // Update progress
