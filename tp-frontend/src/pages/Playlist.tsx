@@ -348,7 +348,7 @@ export default function Playlist() {
     }
   };
 
-  // จัดการ sort โดยไม่ทำ client-side sorting
+  //  จัดการ sort โดยไม่ทำ client-side sorting
   const handleSortChange = (newSortBy: 'custom' | 'dateAdded' | 'title' | 'artist' | 'duration') => {
     if (sortBy === newSortBy && newSortBy !== 'custom') {
       // Toggle sort order
@@ -359,7 +359,7 @@ export default function Playlist() {
     }
   };
 
-  // Drag & Drop พร้อมบันทึก backend ทันที
+  //  Drag & Drop พร้อมบันทึก backend ทันที
   const handleDragStart = (index: number) => {
     if (sortBy !== 'custom') {
       alert('Please switch to "Custom Order" mode to reorder songs');
@@ -370,6 +370,16 @@ export default function Playlist() {
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+  };
+
+  // 🆕 เพิ่ม state สำหรับ toast notification
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+
+  const showNotification = (message: string) => {
+    setToastMessage(message);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
   };
 
   const handleDrop = async (dropIndex: number) => {
@@ -406,10 +416,13 @@ export default function Playlist() {
 
       // Reload เพื่อ sync กับ backend
       await loadPlaylistSongs(selectedPlaylist.id);
+
+      // แสดง notification
+      showNotification("Order saved. Changes will apply on next play.");
       
     } catch (err) {
       console.error("Reorder failed:", err);
-      alert("Failed to reorder songs");
+      showNotification("❌ Failed to reorder songs");
       // Revert optimistic update
       await loadPlaylistSongs(selectedPlaylist.id);
     }
@@ -690,10 +703,21 @@ export default function Playlist() {
                   color: sortBy === 'custom' ? '#1DB954' : '#666',
                   borderRadius: '16px',
                   cursor: 'pointer',
-                  fontWeight: sortBy === 'custom' ? '600' : '400'
+                  fontWeight: sortBy === 'custom' ? '600' : '400',
+                  position: 'relative'
                 }}
+                title="Drag songs to reorder. Changes apply on next play."
               >
                 🎯 Custom Order
+                {sortBy === 'custom' && (
+                  <span style={{
+                    marginLeft: '6px',
+                    fontSize: '11px',
+                    opacity: 0.7
+                  }}>
+                    (Drag to reorder)
+                  </span>
+                )}
               </button>
               <button
                 onClick={() => handleSortChange('dateAdded')}
@@ -957,6 +981,44 @@ export default function Playlist() {
           </div>
         </div>
       )}
+      {/* Toast Notification */}
+      {showToast && (
+        <div style={{
+          position: 'fixed',
+          bottom: '24px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: '#282828',
+          color: 'white',
+          padding: '12px 24px',
+          borderRadius: '8px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          animation: 'slideUp 0.3s ease-out',
+          fontSize: '14px',
+          fontWeight: '500'
+        }}>
+          <span>✓</span>
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* CSS Animation */}
+      <style>{`
+        @keyframes slideUp {
+          from {
+            opacity: 0;
+            transform: translateX(-50%) translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+          }
+        }
+      `}</style>
     </div>
   );
 }
