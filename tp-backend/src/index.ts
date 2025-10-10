@@ -16,7 +16,7 @@ import { playNext, playPrevious, playPlaylist, PersonalplaySong, getQueue, addTo
 import { createUser } from "./controllers/userControllers.js";
 import { createRoom, joinRoom, listPublicRooms } from "./controllers/roomControllers.js";
 import { addToQueue, removeFromQueue, playNextSong, playSong, reorderQueue, fetchYoutubeMetadata } from "./controllers/communityControllers.js";
-import { getUserPlaylists, createPlaylist, deletePlaylist, getPlaylistSongs, addSongToPlaylist, removeSongFromPlaylist, updatePlaylist } from "./controllers/playlistControllers.js";
+import { getUserPlaylists, createPlaylist, deletePlaylist, getPlaylistSongs, addSongToPlaylist, removeSongFromPlaylist, updatePlaylist, reorderPlaylistSongs } from "./controllers/playlistControllers.js";
 import { getLikedSongs, addLikedSong, removeLikedSong, checkLikedSong, playLikedSongs } from "./controllers/likedSongsControllers.js";
 import { upload, uploadPlaylistCover } from "./controllers/imageControllers.js";
 
@@ -139,6 +139,9 @@ app.get("/playlists/:playlistId/songs", getPlaylistSongs);
 
 // Add song to playlist
 app.post("/playlists/:playlistId/songs", addSongToPlaylist);
+
+// Reorder (Custom Order)
+app.patch("/playlists/:playlistId/reorder", reorderPlaylistSongs);
 
 // Remove song from playlist
 app.delete("/playlists/:playlistId/songs/:playlistSongId", removeSongFromPlaylist);

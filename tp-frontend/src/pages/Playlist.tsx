@@ -24,14 +24,10 @@ interface PlaylistSong {
   id: string;
   song: Song;
   addedAt: string;
+  customOrder?: number;
 }
 
-interface PlaylistProps {
-  queue?: QueueItem[];
-  currentIndex?: number;
-}
-
-export default function Playlist({ queue = [], currentIndex = 0 }: PlaylistProps) {
+export default function Playlist() {
   const { user } = useUser();
   const userId = user?.id;
 
@@ -53,17 +49,25 @@ export default function Playlist({ queue = [], currentIndex = 0 }: PlaylistProps
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Song[]>([]);
   
+  // Sort state
+  const [sortBy, setSortBy] = useState<'custom' | 'dateAdded' | 'title' | 'artist' | 'duration'>('custom');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  
+  // Drag & Drop state
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  
   useEffect(() => {
     if (userId) {
       loadPlaylists();
     }
   }, [userId]);
 
+  // Reload เมื่อ sortBy เปลี่ยน
   useEffect(() => {
     if (selectedPlaylist && viewMode === 'detail') {
       loadPlaylistSongs(selectedPlaylist.id);
     }
-  }, [selectedPlaylist, viewMode]);
+  }, [selectedPlaylist, viewMode, sortBy]);
 
   useEffect(() => {
     const searchSongs = async () => {
@@ -105,9 +109,10 @@ export default function Playlist({ queue = [], currentIndex = 0 }: PlaylistProps
     }
   };
 
+  // ส่ง sortBy ไป backend
   const loadPlaylistSongs = async (playlistId: string) => {
     try {
-      const res = await fetch(`${API_URL}/playlists/${playlistId}/songs`);
+      const res = await fetch(`${API_URL}/playlists/${playlistId}/songs?sortBy=${sortBy}`);
       const data = await res.json();
       setPlaylistSongs(data);
     } catch (err) {
@@ -259,6 +264,7 @@ export default function Playlist({ queue = [], currentIndex = 0 }: PlaylistProps
   const handleOpenPlaylist = (playlist: Playlist) => {
     setSelectedPlaylist(playlist);
     setViewMode('detail');
+    setSortBy('custom'); // Reset เป็น custom เมื่อเปิด playlist ใหม่
   };
 
   const handleBackToList = () => {
@@ -290,7 +296,7 @@ export default function Playlist({ queue = [], currentIndex = 0 }: PlaylistProps
     e.stopPropagation();
     
     try {
-      const res = await fetch(`${API_URL}/playlists/${playlist.id}/songs`);
+      const res = await fetch(`${API_URL}/playlists/${playlist.id}/songs?sortBy=custom`);
       const songs: PlaylistSong[] = await res.json();
       
       if (songs.length === 0) {
@@ -331,7 +337,7 @@ export default function Playlist({ queue = [], currentIndex = 0 }: PlaylistProps
         await (window as any).musicPlayer.addToQueue(song);
       }
       
-      alert(`Shuffling ${playlistSongs.length} songs from ${selectedPlaylist.name}`);
+      alert(`Shuffling ${shuffled.length} songs from ${selectedPlaylist.name}`);
     }
   };
 
@@ -340,6 +346,75 @@ export default function Playlist({ queue = [], currentIndex = 0 }: PlaylistProps
     if (selectedPlaylist && viewMode === 'detail') {
       await loadPlaylistSongs(selectedPlaylist.id);
     }
+  };
+
+  // จัดการ sort โดยไม่ทำ client-side sorting
+  const handleSortChange = (newSortBy: 'custom' | 'dateAdded' | 'title' | 'artist' | 'duration') => {
+    if (sortBy === newSortBy && newSortBy !== 'custom') {
+      // Toggle sort order
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(newSortBy);
+      setSortOrder('asc');
+    }
+  };
+
+  // Drag & Drop พร้อมบันทึก backend ทันที
+  const handleDragStart = (index: number) => {
+    if (sortBy !== 'custom') {
+      alert('Please switch to "Custom Order" mode to reorder songs');
+      return;
+    }
+    setDraggedIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = async (dropIndex: number) => {
+    if (draggedIndex === null || draggedIndex === dropIndex) {
+      setDraggedIndex(null);
+      return;
+    }
+
+    if (!selectedPlaylist) return;
+
+    try {
+      const draggedSong = playlistSongs[draggedIndex];
+      
+      // Optimistic update
+      const newSongs = [...playlistSongs];
+      const [draggedItem] = newSongs.splice(draggedIndex, 1);
+      newSongs.splice(dropIndex, 0, draggedItem);
+      setPlaylistSongs(newSongs);
+      
+      // บันทึกลง backend ทันที
+      const res = await fetch(
+        `${API_URL}/playlists/${selectedPlaylist.id}/reorder`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            songId: draggedSong.song.id,
+            newOrder: dropIndex,
+          }),
+        }
+      );
+
+      if (!res.ok) throw new Error("Failed to reorder");
+
+      // Reload เพื่อ sync กับ backend
+      await loadPlaylistSongs(selectedPlaylist.id);
+      
+    } catch (err) {
+      console.error("Reorder failed:", err);
+      alert("Failed to reorder songs");
+      // Revert optimistic update
+      await loadPlaylistSongs(selectedPlaylist.id);
+    }
+
+    setDraggedIndex(null);
   };
 
   const formatTime = (seconds: number) => {
@@ -594,10 +669,121 @@ export default function Playlist({ queue = [], currentIndex = 0 }: PlaylistProps
             </div>
           </div>
 
+          {/* Sort Controls */}
+          {playlistSongs.length > 0 && (
+            <div style={{
+              display: 'flex',
+              gap: '8px',
+              padding: '12px 0',
+              borderBottom: '1px solid #e5e5e5',
+              marginBottom: '12px',
+              flexWrap: 'wrap'
+            }}>
+              <span style={{ fontSize: '13px', color: '#666', marginRight: '8px', lineHeight: '28px' }}>Sort by:</span>
+              <button
+                onClick={() => handleSortChange('custom')}
+                style={{
+                  padding: '4px 12px',
+                  fontSize: '13px',
+                  border: sortBy === 'custom' ? '1px solid #1DB954' : '1px solid #ddd',
+                  background: sortBy === 'custom' ? '#f0fff4' : 'white',
+                  color: sortBy === 'custom' ? '#1DB954' : '#666',
+                  borderRadius: '16px',
+                  cursor: 'pointer',
+                  fontWeight: sortBy === 'custom' ? '600' : '400'
+                }}
+              >
+                🎯 Custom Order
+              </button>
+              <button
+                onClick={() => handleSortChange('dateAdded')}
+                style={{
+                  padding: '4px 12px',
+                  fontSize: '13px',
+                  border: sortBy === 'dateAdded' ? '1px solid #1DB954' : '1px solid #ddd',
+                  background: sortBy === 'dateAdded' ? '#f0fff4' : 'white',
+                  color: sortBy === 'dateAdded' ? '#1DB954' : '#666',
+                  borderRadius: '16px',
+                  cursor: 'pointer',
+                  fontWeight: sortBy === 'dateAdded' ? '600' : '400'
+                }}
+              >
+                Date Added {sortBy === 'dateAdded' && (sortOrder === 'asc' ? '↑' : '↓')}
+              </button>
+              <button
+                onClick={() => handleSortChange('title')}
+                style={{
+                  padding: '4px 12px',
+                  fontSize: '13px',
+                  border: sortBy === 'title' ? '1px solid #1DB954' : '1px solid #ddd',
+                  background: sortBy === 'title' ? '#f0fff4' : 'white',
+                  color: sortBy === 'title' ? '#1DB954' : '#666',
+                  borderRadius: '16px',
+                  cursor: 'pointer',
+                  fontWeight: sortBy === 'title' ? '600' : '400'
+                }}
+              >
+                Title {sortBy === 'title' && (sortOrder === 'asc' ? '↑' : '↓')}
+              </button>
+              <button
+                onClick={() => handleSortChange('artist')}
+                style={{
+                  padding: '4px 12px',
+                  fontSize: '13px',
+                  border: sortBy === 'artist' ? '1px solid #1DB954' : '1px solid #ddd',
+                  background: sortBy === 'artist' ? '#f0fff4' : 'white',
+                  color: sortBy === 'artist' ? '#1DB954' : '#666',
+                  borderRadius: '16px',
+                  cursor: 'pointer',
+                  fontWeight: sortBy === 'artist' ? '600' : '400'
+                }}
+              >
+                Artist {sortBy === 'artist' && (sortOrder === 'asc' ? '↑' : '↓')}
+              </button>
+              <button
+                onClick={() => handleSortChange('duration')}
+                style={{
+                  padding: '4px 12px',
+                  fontSize: '13px',
+                  border: sortBy === 'duration' ? '1px solid #1DB954' : '1px solid #ddd',
+                  background: sortBy === 'duration' ? '#f0fff4' : 'white',
+                  color: sortBy === 'duration' ? '#1DB954' : '#666',
+                  borderRadius: '16px',
+                  cursor: 'pointer',
+                  fontWeight: sortBy === 'duration' ? '600' : '400'
+                }}
+              >
+                Duration {sortBy === 'duration' && (sortOrder === 'asc' ? '↑' : '↓')}
+              </button>
+            </div>
+          )}
+
           <div className={styles.resultsList}>
             {playlistSongs.length > 0 ? (
               playlistSongs.map((item, index) => (
-                <div key={item.id} className={styles.resultItem}>
+                <div 
+                  key={item.id} 
+                  className={styles.resultItem}
+                  draggable={sortBy === 'custom'}
+                  onDragStart={() => handleDragStart(index)}
+                  onDragOver={handleDragOver}
+                  onDrop={() => handleDrop(index)}
+                  style={{
+                    cursor: sortBy === 'custom' ? 'grab' : 'default',
+                    opacity: draggedIndex === index ? 0.5 : 1,
+                    transition: 'opacity 0.2s'
+                  }}
+                >
+                  {sortBy === 'custom' && (
+                    <div style={{ 
+                      marginRight: '8px', 
+                      color: '#999',
+                      fontSize: '16px',
+                      cursor: 'grab'
+                    }}>
+                      ⋮⋮
+                    </div>
+                  )}
                   <div className={styles.resultIndex}>
                     {index + 1}
                   </div>
@@ -730,7 +916,7 @@ export default function Playlist({ queue = [], currentIndex = 0 }: PlaylistProps
                 onChange={(e) => setNewPlaylistIsPublic(e.target.value === "public")}
                 className={styles.formSelect}
               >
-                <option value="public">🌍 Public</option>
+                <option value="public">🌐 Public</option>
                 <option value="private">🔒 Private</option>
               </select>
               <small className={styles.privacyHint}>
