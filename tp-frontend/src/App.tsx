@@ -41,24 +41,8 @@ export default function App() {
               } 
             />  
             <Route path="/signin" element={<Signin />} />
-            <Route 
-              path="/likedsongs" 
-              element={
-                <LikedSongs 
-                  queue={globalQueue} 
-                  currentIndex={globalCurrentIndex} 
-                />
-              } 
-            />
-            <Route 
-              path="/playlist" 
-              element={
-                <Playlist 
-                  queue={globalQueue} 
-                  currentIndex={globalCurrentIndex} 
-                />
-              } 
-            />
+            <Route path="/likedsongs" element={<LikedSongs />} />
+            <Route path="/playlist" element={<Playlist />} />
             <Route path="/lokchangrooms" element={<LokchangRooms />} />
           </Routes>
         </main>
