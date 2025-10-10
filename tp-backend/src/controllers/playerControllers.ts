@@ -1,7 +1,7 @@
 import type { RequestHandler } from "express";
 import { dbClient } from "@db/client.js";
-import { personalQueue, playerState, songs, playlists, playlistSongs, playHistory } from "@db/schema.js";
-import { eq, and, asc, desc } from "drizzle-orm";
+import { personalQueue, playerState, songs, playlists, playlistSongs, playHistory, songStats } from "@db/schema.js";
+import { eq, and, asc, desc, sql } from "drizzle-orm";
 
 // ========== HELPER FUNCTIONS ==========
 
@@ -26,12 +26,30 @@ function shuffleArray<T>(array: T[]): T[] {
   return shuffled;
 }
 
-// Helper: บันทึกประวัติการเล่น
+// Helper: บันทึกประวัติการเล่น + อัปเดต song_stats
 async function recordPlayHistory(userId: string, songId: string) {
+  // บันทึกประวัติ
   await dbClient.insert(playHistory).values({
     userId,
     songId,
   });
+
+  // อัปเดต song_stats
+  const now = new Date();
+  await dbClient
+    .insert(songStats)
+    .values({
+      songId: songId,
+      playCount: 1,
+      lastPlayedAt: now,
+    })
+    .onConflictDoUpdate({
+      target: songStats.songId,
+      set: {
+        playCount: sql`${songStats.playCount} + 1`,
+        lastPlayedAt: now,
+      },
+    });
 }
 
 // ดึง Recently Played
@@ -114,7 +132,7 @@ export const PersonalplaySong: RequestHandler = async (req, res, next) => {
       return;
     }
 
-    // 4. อัพเดท player state
+    // 4. อัปเดท player state
     await dbClient
       .insert(playerState)
       .values({
@@ -135,6 +153,7 @@ export const PersonalplaySong: RequestHandler = async (req, res, next) => {
         },
       });
 
+    // 5. บันทึกประวัติ + อัปเดต stats
     await recordPlayHistory(userId, songId);
 
     res.json({
@@ -207,7 +226,7 @@ export const playPlaylist: RequestHandler = async (req, res, next) => {
       }
     });
 
-    // 5. อัพเดท player state
+    // 5. อัปเดท player state
     const firstSong = orderedSongs[0];
     await dbClient
       .insert(playerState)
@@ -232,6 +251,9 @@ export const playPlaylist: RequestHandler = async (req, res, next) => {
           updatedAt: new Date(),
         },
       });
+
+    // 6. บันทึกประวัติ + อัปเดต stats (เพลงแรกที่เริ่มเล่น)
+    await recordPlayHistory(userId, firstSong.songId);
 
     res.json({
       message: "Playing playlist",
@@ -308,7 +330,7 @@ export const playNext: RequestHandler = async (req, res, next) => {
       .where(eq(songs.id, nextQueueItem.songId))
       .limit(1);
 
-    // 5. อัพเดท player state
+    // 5. อัปเดท player state
     await dbClient
       .update(playerState)
       .set({
@@ -320,6 +342,7 @@ export const playNext: RequestHandler = async (req, res, next) => {
       })
       .where(eq(playerState.userId, userId));
 
+    // 6. บันทึกประวัติ + อัปเดต stats
     await recordPlayHistory(userId, song.id);
 
     res.json({
@@ -372,7 +395,7 @@ export const playPrevious: RequestHandler = async (req, res, next) => {
       .where(eq(songs.id, prevQueueItem.songId))
       .limit(1);
 
-    // 4. อัพเดท player state
+    // 4. อัปเดท player state
     await dbClient
       .update(playerState)
       .set({
@@ -384,6 +407,7 @@ export const playPrevious: RequestHandler = async (req, res, next) => {
       })
       .where(eq(playerState.userId, userId));
 
+    // 5. บันทึกประวัติ + อัปเดต stats
     await recordPlayHistory(userId, song.id);
 
     res.json({
@@ -431,7 +455,8 @@ export const addToPersonalQueue: RequestHandler = async (req, res, next) => {
       .where(eq(songs.id, songId))
       .limit(1);
 
-      if (newIndex === 0) {
+    // ถ้าเป็นเพลงแรกใน queue ให้เล่นทันที
+    if (newIndex === 0) {
       await recordPlayHistory(userId, songId);
       
       await dbClient
@@ -460,7 +485,7 @@ export const addToPersonalQueue: RequestHandler = async (req, res, next) => {
         message: "Added to queue and started playing",
         song: sanitizeSong(song),
         queueIndex: newIndex,
-        autoPlay: true, // บอก frontend ว่าควรเล่นทันที
+        autoPlay: true,
       });
       return;
     }

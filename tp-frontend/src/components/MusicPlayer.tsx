@@ -1,5 +1,20 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";  
 import type { Song } from "../types/song.ts";
+import { useUser } from "../components/userContext";
+import LikeButton from "./LikeButton";
+import AddToPlaylist from "./AddToPlaylist";
+// css
+import styles from "../assets/styles/MusicPlayer.module.css";
+// images
+import playPng from "../assets/images/playMusic/play-icon.png";
+import pausePng from "../assets/images/playMusic/pause-icon.png";
+import loopPng from "../assets/images/playMusic/loop-icon.png";
+import volMutePng from "../assets/images/playMusic/volume-mute.png";
+import volLowPng from "../assets/images/playMusic/volume-low.png";
+import volHighPng from "../assets/images/playMusic/volume-high.png";
+import prevPng from "../assets/images/playMusic/prev-icon.png";
+import nextPng from "../assets/images/playMusic/next-icon.png";
+
 const API_URL = "http://localhost:3000";
 
 interface PlayerProps {
@@ -13,6 +28,7 @@ const MusicPlayer = ({ userId, onQueueUpdate, onCurrentIndexUpdate, className }:
   const [currentSong, setCurrentSong] = useState<Song | null>(null);
   const [queue, setQueue] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const { user } = useUser();
   
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -266,17 +282,12 @@ const MusicPlayer = ({ userId, onQueueUpdate, onCurrentIndexUpdate, className }:
         }
         if (onCurrentIndexUpdate) onCurrentIndexUpdate(0);
 
-        // Load and play video
         if (playerRef.current && isPlayerReady) {
           console.log("🎬 Loading video:", data.song.youtubeVideoId);
-          
-          // Use cueVideoById first, then play (more reliable)
           playerRef.current.cueVideoById({
             videoId: data.song.youtubeVideoId,
             startSeconds: 0
           });
-          
-          // Small delay before playing
           setTimeout(() => {
             console.log("▶️ Starting playback");
             playerRef.current.playVideo();
@@ -303,7 +314,6 @@ const MusicPlayer = ({ userId, onQueueUpdate, onCurrentIndexUpdate, className }:
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
 
-            // ถ้าเป็นเพลงแรก -> เล่นทันที
             if (data.autoPlay) {
             setCurrentSong(data.song);
             setCurrentIndex(0);
@@ -332,7 +342,6 @@ const MusicPlayer = ({ userId, onQueueUpdate, onCurrentIndexUpdate, className }:
             }
             }
 
-            // โหลดคิวใหม่
             loadQueue();
         } catch (err) {
             console.error("❌ Add to queue failed:", err);
@@ -475,16 +484,7 @@ const MusicPlayer = ({ userId, onQueueUpdate, onCurrentIndexUpdate, className }:
       {/* Hidden YouTube Player */}
       <div 
         ref={playerDivRef}
-        style={{ 
-          position: 'fixed',
-          bottom: '-100px',
-          left: '-100px',
-          width: '1px',
-          height: '1px',
-          opacity: 0,
-          pointerEvents: 'none',
-          overflow: 'hidden'
-        }} 
+        className={styles.hiddenPlayer} 
       />
       
       {/* Debug Info */}
@@ -513,110 +513,108 @@ const MusicPlayer = ({ userId, onQueueUpdate, onCurrentIndexUpdate, className }:
       </div> */}
 
       {/* Music Player UI */}
-      {currentSong && (
-        <div className={className} style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          backgroundColor: '#fff',
-          borderTop: '1px solid #ddd',
-          padding: '16px',
-          zIndex: 1000,
-          boxShadow: '0 -2px 10px rgba(0,0,0,0.1)'
-        }}>
-          <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+       {currentSong && (
+        <div className={`${className ? className + " " : ""}${styles.player}`}>
+          <div className={styles.inner}>
+            <div className={styles.topRow}>
               {/* Song Info */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: '0 0 300px' }}>
+              <div className={styles.songInfo}>
                 {currentSong.coverUrl && (
                   <img 
                     src={currentSong.coverUrl} 
                     alt={currentSong.title}
-                    style={{ width: '56px', height: '56px', borderRadius: '4px', objectFit: 'cover' }}
+                    className={styles.cover}
                   />
                 )}
-                <div style={{ overflow: 'hidden' }}>
-                  <div style={{ fontWeight: 600, fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div className={styles.meta}>
+                  <div className={styles.title}>
                     {currentSong.title}
                   </div>
-                  <div style={{ fontSize: '12px', color: '#666', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <div className={styles.artist}>
                     {currentSong.artist}
                   </div>
                 </div>
               </div>
 
+              {user?.id && (
+              <>
+                <AddToPlaylist
+                  userId={user.id} 
+                  song={currentSong}
+                  iconOnly={false}
+                  buttonStyle={{ padding: '6px 12px', fontSize: '13px' }}
+                />
+                <LikeButton 
+                  userId={user.id} 
+                  songId={currentSong.id}
+                  onLikeChange={(isLiked) => {
+                    console.log(`Song ${currentSong.title} is now ${isLiked ? 'liked' : 'unliked'}`);
+                  }}
+                />
+              </>
+            )}
+
               {/* Controls */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div className={styles.controls}>
                 <button 
                   onClick={handlePrevious}
                   disabled={!isPlayerReady}
-                  style={{ background: 'none', border: 'none', fontSize: '24px', cursor: isPlayerReady ? 'pointer' : 'not-allowed', padding: '8px', opacity: isPlayerReady ? 1 : 0.5 }}
+                  className={styles.iconBtn}
                   title="Previous"
                 >
-                  ⮜
+                  <img src={prevPng} alt="Previous" width={28} height={22} draggable={false} />
                 </button>
 
                 <button 
                   onClick={togglePlayPause}
                   disabled={!isPlayerReady}
-                  style={{ 
-                    background: isPlayerReady ? '#1db954' : '#ccc', 
-                    border: 'none', 
-                    borderRadius: '50%', 
-                    width: '48px', 
-                    height: '48px', 
-                    fontSize: '20px', 
-                    cursor: isPlayerReady ? 'pointer' : 'not-allowed',
-                    color: '#fff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'transform 0.1s'
-                  }}
+                  className={styles.playButton}
                   onMouseDown={(e) => isPlayerReady && (e.currentTarget.style.transform = 'scale(0.95)')}
                   onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
                   onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                 >
-                  {isPlaying ? "⏸" : "▶"}
+                  <img
+                    src={isPlaying ? pausePng : playPng}
+                    alt={isPlaying ? "Pause" : "Play"}
+                    width={40}
+                    height={40}
+                    draggable={false}
+                  />
                 </button>
 
                 <button 
                   onClick={handleNext}
                   disabled={!isPlayerReady}
-                  style={{ background: 'none', border: 'none', fontSize: '24px', cursor: isPlayerReady ? 'pointer' : 'not-allowed', padding: '8px', opacity: isPlayerReady ? 1 : 0.5 }}
+                  className={styles.iconBtn}
                   title="Next"
                 >
-                  ⮞
+                  <img src={nextPng} alt="Next" width={28} height={22} draggable={false} />
                 </button>
 
                 <button 
                   onClick={toggleLoop}
                   disabled={!isPlayerReady}
-                  style={{ 
-                    background: isLooping ? 'rgba(29, 185, 84, 0.1)' : 'transparent',
-                    border: 'none', 
-                    fontSize: '20px', 
-                    cursor: isPlayerReady ? 'pointer' : 'not-allowed', 
-                    padding: '8px',
-                    color: isLooping ? '#1db954' : '#666',
-                    borderRadius: '4px',
-                    opacity: isPlayerReady ? 1 : 0.5
-                  }}
+                  className={`${styles.loopBtn} ${isLooping ? styles.loopActive : ""}`}
                   title={isLooping ? "Loop: On" : "Loop: Off"}
                 >
-                  🔁
+                  <img src={loopPng} alt="Loop" width={25} height={18} draggable={false} />
                 </button>
               </div>
 
               {/* Volume */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '0 0 150px' }}>
+              <div className={styles.volume}>
                 <button 
                   onClick={toggleMute}
                   disabled={!isPlayerReady}
-                  style={{ background: 'none', border: 'none', fontSize: '20px', cursor: isPlayerReady ? 'pointer' : 'not-allowed', opacity: isPlayerReady ? 1 : 0.5 }}
+                  className={styles.muteBtn}
                 >
-                  {isMuted || volume === 0 ? "🔇" : volume < 50 ? "🔉" : "🔊"}
+                  <img 
+                    src={isMuted || volume === 0 ? volMutePng : volume < 50 ? volLowPng : volHighPng}
+                    alt={isMuted || volume === 0 ? "Muted" : volume < 50 ? "Volume low" : "Volume high"}
+                    width={35}
+                    height={35}
+                    draggable={false}
+                  />
                 </button>
                 <input
                   type="range"
@@ -625,38 +623,26 @@ const MusicPlayer = ({ userId, onQueueUpdate, onCurrentIndexUpdate, className }:
                   value={isMuted ? 0 : volume}
                   onChange={handleVolumeChange}
                   disabled={!isPlayerReady}
-                  style={{ flex: 1, cursor: isPlayerReady ? 'pointer' : 'not-allowed', opacity: isPlayerReady ? 1 : 0.5 }}
+                  className={styles.volumeRange}
                 />
               </div>
             </div>
 
             {/* Progress Bar */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '12px', color: '#666', minWidth: '40px' }}>
+            <div className={styles.progressRow}>
+              <span className={styles.time}>
                 {formatTime(currentTime)}
               </span>
               <div 
                 onClick={handleSeek}
-                style={{ 
-                  flex: 1, 
-                  height: '6px', 
-                  backgroundColor: '#ddd', 
-                  borderRadius: '3px', 
-                  cursor: isPlayerReady ? 'pointer' : 'not-allowed',
-                  position: 'relative',
-                  overflow: 'hidden'
-                }}
+                className={styles.progressBar}
               >
                 <div 
-                  style={{ 
-                    height: '100%', 
-                    backgroundColor: '#1db954', 
-                    width: `${duration ? (currentTime / duration) * 100 : 0}%`,
-                    transition: 'width 0.1s'
-                  }}
+                  className={styles.progressFill}
+                  style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
                 />
               </div>
-              <span style={{ fontSize: '12px', color: '#666', minWidth: '40px', textAlign: 'right' }}>
+              <span className={styles.time}>
                 {formatTime(duration)}
               </span>
             </div>

@@ -55,6 +55,25 @@ function sanitizeQueueItem(item: any) {
   };
 }
 
+// Helper: อัปเดต song_stats
+async function updateSongStats(songId: string) {
+  const now = new Date();
+  await dbClient
+    .insert(songStats)
+    .values({
+      songId: songId,
+      playCount: 1,
+      lastPlayedAt: now,
+    })
+    .onConflictDoUpdate({
+      target: songStats.songId,
+      set: {
+        playCount: sql`${songStats.playCount} + 1`,
+        lastPlayedAt: now,
+      },
+    });
+}
+
 // ---------- SOCKET ----------
 export async function addToQueue(io: any, { roomId, songId, userId }: any) {
   const last = await dbClient.query.roomQueue.findFirst({
@@ -105,7 +124,7 @@ export async function addToQueue(io: any, { roomId, songId, userId }: any) {
 export async function removeFromQueue(io: any, { roomId, queueId }: any) {
   console.log("🗑️ removeFromQueue called:", { roomId, queueId });
 
-  // เช็คว่า queueId ยังมีอยู่จริงหรือไม่
+  // เช็ควา queueId ยังมีอยู่จริงหรือไม่
   const [queueItem] = await dbClient
     .select({ id: roomQueue.id, songId: roomQueue.songId })
     .from(roomQueue)
@@ -116,7 +135,7 @@ export async function removeFromQueue(io: any, { roomId, queueId }: any) {
     return;
   }
 
-  // เช็คว่าเพลงที่จะลบคือเพลงที่กำลังเล่นอยู่หรือไม่
+  // เช็ควเพลงที่จะลบคือเพลงที่กำลังเล่นอยู่หรือไม่
   const [listening] = await dbClient
     .select({ currentSongId: listeningRooms.currentSongId })
     .from(listeningRooms)
@@ -196,10 +215,13 @@ export async function removeFromQueue(io: any, { roomId, queueId }: any) {
     const now = new Date();
 
     if (nextQueueItem) {
-      // อัพเดท listening room ให้เล่นเพลงถัดไป
+      // อัปเดท listening room ให้เล่นเพลงถัดไป
       await dbClient.update(listeningRooms)
         .set({ currentSongId: nextQueueItem.songId, currentStartedAt: now })
         .where(eq(listeningRooms.id, roomId));
+
+      // อัปเดต song_stats
+      await updateSongStats(nextQueueItem.songId);
 
       io.to(roomId).emit("now-playing", {
         roomId,
@@ -221,7 +243,6 @@ export async function removeFromQueue(io: any, { roomId, queueId }: any) {
 const processingRooms = new Map<string, boolean>();
 
 export async function playNextSong(io: any, roomId: string) {
-  // 🔒 ป้องกัน race condition
   if (processingRooms.get(roomId)) {
     console.log("⚠️ playNextSong already processing for room:", roomId);
     return;
@@ -257,12 +278,24 @@ export async function playNextSong(io: any, roomId: string) {
     if (nextQueueItem) {
       console.log("🎵 Playing next song:", nextQueueItem.song?.title);
 
-      // อัพเดท listening room
       await dbClient.update(listeningRooms)
         .set({ currentSongId: nextQueueItem.songId, currentStartedAt: now })
         .where(eq(listeningRooms.id, roomId));
 
-      // ลบเพลงที่เริ่มเล่นออกจาก queue
+      // 🆕 อัปเดต song_stats เมื่อเริ่มเล่นเพลง
+      await updateSongStats(nextQueueItem.songId);
+
+      // ส่ง now-playing ก่อนลบ เพื่อให้ client มี queueId
+      io.to(roomId).emit("now-playing", {
+        roomId,
+        song: {
+          ...sanitizeSong(nextQueueItem.song),
+          queueId: nextQueueItem.id  // เพิ่ม queueId
+        },
+        startedAt: now,
+      });
+
+      // ลบเพลงออกจาก queue
       await dbClient.delete(roomQueue).where(eq(roomQueue.id, nextQueueItem.id));
 
       // Reindex เพลงที่เหลือ
@@ -283,11 +316,6 @@ export async function playNextSong(io: any, roomId: string) {
         }
       });
 
-      io.to(roomId).emit("now-playing", {
-        roomId,
-        song: sanitizeSong(nextQueueItem.song),
-        startedAt: now,
-      });
     } else {
       console.log("🛑 No more songs in queue");
 
@@ -321,10 +349,9 @@ export async function playNextSong(io: any, roomId: string) {
     io.to(roomId).emit("queue-sync", { queue: fullQueue.map(sanitizeQueueItem) });
 
   } finally {
-    // 🔓 ปลดล็อคหลังเสร็จ
     setTimeout(() => {
       processingRooms.delete(roomId);
-    }, 1000); // รอ 1 วินาที เผื่อ event ที่ซ้ำซ้อน
+    }, 1000);
   }
 }
 
@@ -333,6 +360,9 @@ export async function playSong(io: any, { roomId, song }: any) {
   await dbClient.update(listeningRooms)
     .set({ currentSongId: song.id, currentStartedAt: now })
     .where(eq(listeningRooms.id, roomId));
+
+  // อัปเดต song_stats
+  await updateSongStats(song.id);
 
   io.to(roomId).emit("now-playing", {
     roomId,

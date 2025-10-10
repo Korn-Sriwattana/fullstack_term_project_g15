@@ -16,3 +16,8 @@ File init.sh เปลี่ยนจาก CRLF เป็น LF
 - backend & frontend
 1. pnpm install 
 2. npm run dev 
+
+- testing
+1. pnpm install
+2. npx cypress install
+3. npm run test

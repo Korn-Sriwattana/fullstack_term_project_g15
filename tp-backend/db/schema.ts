@@ -29,7 +29,6 @@ export const playlists = pgTable("playlists", {
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description"),
   isPublic: boolean("is_public").default(true),
-  isFavorite: boolean("is_favorite").default(false),
   ownerId: uuid("owner_id").notNull().references(() => users.id),
   coverUrl: varchar("cover_url", { length: 255 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -50,8 +49,9 @@ export const songs = pgTable("songs", {
 
 /* PLAYLIST_SONGS (unique คู่ playlistId, songId) */
 export const playlistSongs = pgTable("playlist_songs", {
-  playlistId: uuid("playlist_id").notNull().references(() => playlists.id),
-  songId: uuid("song_id").notNull().references(() => songs.id),
+  id: uuid("id").primaryKey().defaultRandom(),
+  playlistId: uuid("playlist_id").notNull().references(() => playlists.id, { onDelete: "cascade" }),
+  songId: uuid("song_id").notNull().references(() => songs.id, { onDelete: "cascade" }),
   addedAt: timestamp("added_at").defaultNow().notNull(),
 }, (t) => ({
   plSongUk: uniqueIndex("playlist_songs_playlist_song_uk").on(t.playlistId, t.songId),
@@ -89,7 +89,7 @@ export const roomMessages = pgTable("room_messages", {
   roomId: uuid("room_id").notNull().references(() => listeningRooms.id),
   userId: uuid("user_id").notNull().references(() => users.id),
   message: text("message").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => ({
   roomCreatedIdx: index("room_messages_room_created_idx").on(t.roomId, t.createdAt),
 }));
@@ -170,4 +170,17 @@ export const playHistory = pgTable("play_history", {
   playedAt: timestamp("played_at").defaultNow().notNull(),
 }, (t) => ({
   userPlayedIdx: index("play_history_user_played_idx").on(t.userId, t.playedAt),
+}));
+
+/* LIKED_SONGS - เพลงที่ผู้ใช้กด like (unique คู่ userId, songId) */
+export const likedSongs = pgTable("liked_songs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id),
+  songId: uuid("song_id").notNull().references(() => songs.id),
+  likedAt: timestamp("liked_at").defaultNow().notNull(),
+}, (t) => ({
+  // unique constraint: ผู้ใช้แต่ละคนไม่สามารถ like เพลงเดียวกันซ้ำได้
+  userSongUk: uniqueIndex("liked_songs_user_song_uk").on(t.userId, t.songId),
+  // index สำหรับ query เร็ว
+  userLikedIdx: index("liked_songs_user_liked_idx").on(t.userId, t.likedAt),
 }));

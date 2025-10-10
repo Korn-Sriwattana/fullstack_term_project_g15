@@ -1,7 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useUser } from "../components/userContext";
-import styles from "../assets/styles/MusicStreaming.module.css";
+import styles from "../assets/styles/Home.module.css";
 import type { Song, QueueItem } from "../types/song.ts";
+import LikeButton from "../components/LikeButton";
+import AddToPlaylistButton from "../components/AddToPlaylist";
+import searchIcon from "../assets/images/search-icon.png";
 
 const API_URL = "http://localhost:3000";
 
@@ -19,6 +22,10 @@ const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
   const [searchResults, setSearchResults] = useState<Song[]>([]);
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [recentlyPlayed, setRecentlyPlayed] = useState<any[]>([]);
+  const [popularSongs, setPopularSongs] = useState<any[]>([]);
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [showAllPopular, setShowAllPopular] = useState(false);
+  const quickAddRef = useRef<HTMLDivElement>(null);
 
   // Real-time search with debounce
   useEffect(() => {
@@ -50,6 +57,11 @@ const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
       loadRecentlyPlayed();
     }
   }, [userId]);
+
+  // Load popular songs on mount
+  useEffect(() => {
+    loadPopularSongs();
+  }, []);
 
   const handleCreateUser = async () => {
     if (!userName.trim()) {
@@ -131,18 +143,6 @@ const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
     alert("Song added!");
   };
 
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
-
-    try {
-      const res = await fetch(`${API_URL}/songs/search?q=${encodeURIComponent(searchQuery)}`);
-      const data = await res.json();
-      setSearchResults(data);
-    } catch (err) {
-      console.error("Search failed:", err);
-    }
-  };
-
   const handlePlaySong = async (song: Song) => {
     if (!userId) {
       alert("Please create user first");
@@ -152,6 +152,7 @@ const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
     if ((window as any).musicPlayer) {
       await (window as any).musicPlayer.playSong(song);
       loadRecentlyPlayed();
+      loadPopularSongs(); // Refresh popular songs after play
     }
   };
 
@@ -180,6 +181,16 @@ const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
     }
   };
 
+  const loadPopularSongs = async () => {
+    try {
+      const res = await fetch(`${API_URL}/songs/popular?limit=20`);
+      const data = await res.json();
+      setPopularSongs(data);
+    } catch (err) {
+      console.error("Load popular songs failed:", err);
+    }
+  };
+
   const formatTime = (seconds: number) => {
     if (!seconds || isNaN(seconds)) return "0:00";
     const mins = Math.floor(seconds / 60);
@@ -187,8 +198,161 @@ const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
+  const formatPlayCount = (count: number) => {
+    if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
+    if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
+    return count.toString();
+  };
+
+  // Click-outside + Esc for quick add
+  useEffect(() => {
+    const handleDocMouseDown = (e: MouseEvent) => {
+      if (!showQuickAdd) return;
+      const el = quickAddRef.current;
+      if (el && !el.contains(e.target as Node)) {
+        setShowQuickAdd(false);
+      }
+    };
+
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setShowQuickAdd(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleDocMouseDown);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleDocMouseDown);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [showQuickAdd]);
+
   return (
     <div className={styles.container}>
+      {/* Search */}
+      <div>
+        <input
+          type="text"           
+          placeholder="Search"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className={styles.searchInput}
+          style={{
+            backgroundImage: `url(${searchIcon})`,
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: '16px center',
+            backgroundSize: '20px',
+            paddingLeft: 56,                  
+          }}
+        />
+
+        {/* Add songs */}
+        <div ref={quickAddRef}>
+          <div>
+            <button
+              type="button"
+              onClick={() => setShowQuickAdd((v) => !v)}
+              className={styles.buttonSecondary}
+            >
+              + Add song
+            </button>
+          </div>
+
+          {showQuickAdd && (
+            <div>
+              <input
+                type="text"
+                placeholder="Paste a YouTube link"
+                value={youtubeUrl}
+                onChange={(e) => setYoutubeUrl(e.target.value)}
+                className={styles.inputSmall}
+              />
+              <button
+                type="button"
+                onClick={handleAdd}
+                className={styles.buttonPrimary}
+              >
+                +
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Search results */}
+        {searchResults.length === 0 && searchQuery.trim() !== "" && (
+          <section className={styles.section}>
+            <h3>Search Results</h3>
+            <p className={styles.noResults}>No results found.</p>
+          </section>
+        )}
+
+        {searchResults.length > 0 && (
+          <section className={styles.section}>
+            <h3>Search Results</h3>
+            <div className={styles.resultsList}>
+              {searchResults.map((song) => (
+                <div
+                  key={song.id}
+                  className={styles.resultItem}
+                  style={{ display: 'flex', alignItems: 'center', gap: '10px' }}
+                >
+                  {song.coverUrl && (
+                    <img 
+                      src={song.coverUrl} 
+                      alt={song.title}
+                      className={styles.resultCover}
+                    />
+                  )}
+                  <div className={styles.resultInfo} style={{ flex: 1 }}>
+                    <div className={styles.resultTitle}>{song.title}</div>
+                    <div className={styles.resultArtist}>{song.artist}</div>
+                  </div>
+                  <div className={styles.resultDuration}>
+                    {formatTime(song.duration)}
+                  </div>
+                  <div style={{ display: 'flex', gap: '5px' }}>
+                    <button 
+                      onClick={() => handlePlaySong(song)}
+                      className={styles.buttonPrimary}
+                      style={{ padding: '6px 12px', fontSize: '13px' }}
+                    >
+                      Play
+                    </button>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); handleAddToQueue(song); }}
+                      className={styles.buttonSecondary}
+                      style={{ padding: '6px 12px', fontSize: '13px' }}
+                    >
+                      + Queue
+                    </button>
+                    {userId && (
+                      <>
+                        <AddToPlaylistButton 
+                          userId={userId} 
+                          song={song}
+                          iconOnly={false}
+                          buttonClassName={styles.buttonSecondary}
+                          buttonStyle={{ padding: '6px 12px', fontSize: '13px' }}
+                        />
+                        <LikeButton 
+                          userId={userId} 
+                          songId={song.id}
+                          onLikeChange={async (isLiked) => {
+                            console.log(`Song ${song.title} is now ${isLiked ? 'liked' : 'unliked'}`);
+                            loadRecentlyPlayed();
+                          }}
+                        />
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
+
       {/* Create User */}
       <section className={styles.section}>
         <h3>Create User (Test)</h3>
@@ -205,174 +369,195 @@ const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
         <p className={styles.userInfo}>Current User: {user?.name || "Not created"}</p>
       </section>
 
-      <section className={styles.section}>
-        <h3>Add Song</h3>
-        <input
-          type="text"
-          placeholder="Paste YouTube link"
-          value={youtubeUrl}
-          onChange={(e) => setYoutubeUrl(e.target.value)}
-        />
-        <button onClick={handleAdd} className={styles.buttonPrimary}>
-          Add
-        </button>
-      </section>
-
-      {/* Search  Recently Played */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px' }}>
-        {/* Left: Search */}
-        <div>
+      {/* Popular Songs */}
+        {popularSongs.length > 0 && searchQuery.trim() === "" && (
           <section className={styles.section}>
-            <h3>Search Songs</h3>
-            <div className={styles.searchForm}>
-              <input
-                type="text"
-                placeholder="Search by title or artist..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && handleSearch()}
-                className={styles.inputLarge}
-              />
-              <button onClick={handleSearch} className={styles.buttonSecondary}>
-                Search
-              </button>
-            </div>
-          </section>
-
-          {searchResults.length === 0 && searchQuery.trim() !== "" && (
-            <section className={styles.section}>
-              <h3>Search Results</h3>
-              <p className={styles.noResults}>No results found.</p>
-            </section>
-          )}
-
-          {searchResults.length > 0 && (
-            <section className={styles.section}>
-              <h3>Search Results</h3>
-              <div className={styles.resultsList}>
-                {searchResults.map((song) => (
-                  <div
-                    key={song.id}
-                    className={styles.resultItem}
-                    style={{ display: 'flex', alignItems: 'center', gap: '10px' }}
-                  >
-                    {song.coverUrl && (
-                      <img 
-                        src={song.coverUrl} 
-                        alt={song.title}
-                        className={styles.resultCover}
-                      />
-                    )}
-                    <div className={styles.resultInfo} style={{ flex: 1 }}>
-                      <div className={styles.resultTitle}>{song.title}</div>
-                      <div className={styles.resultArtist}>{song.artist}</div>
-                    </div>
-                    <div className={styles.resultDuration}>
-                      {formatTime(song.duration)}
-                    </div>
-                    <div style={{ display: 'flex', gap: '5px' }}>
-                      <button 
-                        onClick={() => handlePlaySong(song)}
-                        className={styles.buttonPrimary}
-                        style={{ padding: '6px 12px', fontSize: '13px' }}
-                      >
-                        Play
-                      </button>
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); handleAddToQueue(song); }}
-                        className={styles.buttonSecondary}
-                        style={{ padding: '6px 12px', fontSize: '13px' }}
-                      >
-                        + Queue
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-        </div>
-
-        {/* Right: Recently Played & Queue */}
-        <div>
-          <section className={styles.section}>
-            <h3>Recently Played</h3>
-            <div className={styles.recentlyPlayed}>
-              {recentlyPlayed.length > 0 ? (
-                recentlyPlayed.map((item) => (
-                  <div key={item.id} className={styles.recentlyPlayedItem}>
-                    {item.song?.coverUrl && (
-                      <img 
-                        src={item.song.coverUrl} 
-                        alt={item.song.title} 
-                        className={styles.recentlyPlayedCover} 
-                      />
-                    )}
-                    <div className={styles.recentlyPlayedInfo}>
-                      <div className={styles.recentlyPlayedTitle}>
-                        {item.song?.title || 'Unknown'}
-                      </div>
-                      <div className={styles.recentlyPlayedArtist}>
-                        {item.song?.artist || 'Unknown Artist'}
-                      </div>
-                    </div>
-                    <button 
-                      onClick={() => handlePlaySong(item.song)} 
-                      className={styles.recentlyPlayedButton}
-                    >
-                      Play
-                    </button>
-                  </div>
-                ))
-              ) : (
-                <div className={styles.recentlyPlayedEmpty}>
-                  No recently played songs
-                  <br />
-                  <small>Start playing to see history</small>
-                </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <h3>🔥 Popular Songs</h3>
+              {popularSongs.length > 5 && (
+                <button
+                  onClick={() => setShowAllPopular(!showAllPopular)}
+                  className={styles.buttonSecondary}
+                  style={{ padding: '4px 12px', fontSize: '13px' }}
+                >
+                  {showAllPopular ? 'Show Less' : `Show More (${popularSongs.length})`}
+                </button>
               )}
             </div>
-          </section>
-
-          <section className={styles.section}>
-            <h3>Queue ({queue.length} songs)</h3>
-            <div className={styles.queueContainer}>
-              {queue.length > 0 ? (
-                queue.map((item, index) => (
-                  <div
-                    key={item.id}
-                    className={index === currentIndex ? styles.queueItemActive : styles.queueItem}
-                  >
-                    <div className={styles.queueNumber}>
-                      {index + 1}
-                    </div>
-                    {item.song?.coverUrl && (
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', 
+              gap: '15px' 
+            }}>
+              {(showAllPopular ? popularSongs : popularSongs.slice(0, 5)).map((item) => (
+                <div
+                  key={item.song.id}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    padding: '12px',
+                    borderRadius: '8px',
+                    backgroundColor: '#f5f5f5',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    position: 'relative',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#e8e8e8';
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#f5f5f5';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }}
+                >
+                  {item.song.coverUrl && (
+                    <div style={{ position: 'relative', width: '100%', paddingBottom: '100%', marginBottom: '8px' }}>
                       <img 
                         src={item.song.coverUrl} 
                         alt={item.song.title}
-                        className={styles.queueCover}
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          borderRadius: '6px',
+                        }}
                       />
-                    )}
-                    <div className={styles.queueInfo}>
-                      <div className={styles.queueTitle}>
-                        {item.song?.title || 'Unknown'}
-                      </div>
-                      <div className={styles.queueArtist}>
-                        {item.song?.artist || 'Unknown Artist'}
-                      </div>
+                    </div>
+                  )}
+                  <div style={{ 
+                    textAlign: 'center', 
+                    width: '100%',
+                    marginBottom: '8px',
+                  }}>
+                    <div style={{ 
+                      fontWeight: '600',
+                      fontSize: '14px',
+                      marginBottom: '4px',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}>
+                      {item.song.title}
+                    </div>
+                    <div style={{ 
+                      fontSize: '12px',
+                      color: '#666',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}>
+                      {item.song.artist}
+                    </div>
+                    <div style={{ 
+                      fontSize: '11px',
+                      color: '#999',
+                      marginTop: '2px',
+                    }}>
+                      {formatPlayCount(item.playCount)} plays
                     </div>
                   </div>
-                ))
-              ) : (
-                <div className={styles.queueEmpty}>
-                  No songs in queue
-                  <br />
-                  <small>Play a song or add to queue</small>
+                  <button 
+                    onClick={() => handlePlaySong(item.song)}
+                    className={styles.buttonPrimary}
+                    style={{ 
+                      padding: '6px 16px', 
+                      fontSize: '13px',
+                      width: '100%',
+                      borderRadius: '20px',
+                    }}
+                  >
+                    ▶ Play
+                  </button>
                 </div>
-              )}
+              ))}
             </div>
           </section>
-        </div>
+        )}
+
+      {/* Right: Recently Played & Queue */}
+      <div>
+        <section className={styles.section}>
+          <h3>Recently Played</h3>
+          <div className={styles.recentlyPlayed}>
+            {recentlyPlayed.length > 0 ? (
+              recentlyPlayed.map((item) => (
+                <div key={item.id} className={styles.recentlyPlayedItem}>
+                  {item.song?.coverUrl && (
+                    <img 
+                      src={item.song.coverUrl} 
+                      alt={item.song.title} 
+                      className={styles.recentlyPlayedCover} 
+                    />
+                  )}
+                  <div className={styles.recentlyPlayedInfo}>
+                    <div className={styles.recentlyPlayedTitle}>
+                      {item.song?.title || 'Unknown'}
+                    </div>
+                    <div className={styles.recentlyPlayedArtist}>
+                      {item.song?.artist || 'Unknown Artist'}
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => handlePlaySong(item.song)} 
+                    className={styles.recentlyPlayedButton}
+                  >
+                    Play
+                  </button>
+                </div>
+              ))
+            ) : (
+              <div className={styles.recentlyPlayedEmpty}>
+                No recently played songs
+                <br />
+                <small>Start playing to see history</small>
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section className={styles.section}>
+          <h3>Queue ({queue.length} songs)</h3>
+          <div className={styles.queueContainer}>
+            {queue.length > 0 ? (
+              queue.map((item, index) => (
+                <div
+                  key={item.id}
+                  className={index === currentIndex ? styles.queueItemActive : styles.queueItem}
+                >
+                  <div className={styles.queueNumber}>
+                    {index + 1}
+                  </div>
+                  {item.song?.coverUrl && (
+                    <img 
+                      src={item.song.coverUrl} 
+                      alt={item.song.title}
+                      className={styles.queueCover}
+                    />
+                  )}
+                  <div className={styles.queueInfo}>
+                    <div className={styles.queueTitle}>
+                      {item.song?.title || 'Unknown'}
+                    </div>
+                    <div className={styles.queueArtist}>
+                      {item.song?.artist || 'Unknown Artist'}
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className={styles.queueEmpty}>
+                No songs in queue
+                <br />
+                <small>Play a song or add to queue</small>
+              </div>
+            )}
+          </div>
+        </section>
       </div>
     </div>
   );
