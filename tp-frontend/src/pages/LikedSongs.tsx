@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import { useUser } from "../components/userContext";
+
+//css
 import styles from "../assets/styles/LikedSongs.module.css"; 
+
 import emptyImg from "../assets/images/empty/empty-box.png";
 import type { Song } from "../types/song.ts";
 import LikeButton from "../components/LikeButton.tsx";
@@ -44,7 +47,6 @@ export default function LikedSongs() {
     }
   };
 
-  // ✅ Play All Liked Songs
   const handlePlayAll = async () => {
     if (!userId || likedSongs.length === 0) {
       alert("No songs to play");
@@ -64,7 +66,6 @@ export default function LikedSongs() {
     }
   };
 
-  // ✅ Shuffle Liked Songs
   const handleShuffle = async () => {
     if (!userId || likedSongs.length === 0) {
       alert("No songs to shuffle");
@@ -134,116 +135,48 @@ export default function LikedSongs() {
 
   return (
     <div className={styles.container}>
-      {/* Header Section */}
-      <div style={{ marginBottom: '30px' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '24px', marginBottom: '24px' }}>
-          {/* Cover Image */}
-          <div style={{ 
-            width: '232px', 
-            height: '232px', 
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            borderRadius: '8px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '80px',
-            boxShadow: '0 8px 24px rgba(102, 126, 234, 0.15)',
-            flexShrink: 0
-          }}>
+      <div className={styles.headerWrap}>
+        <div className={styles.headerRow}>
+          <div className={styles.coverBox}>
             💜
           </div>
-
-          {/* Info Section */}
-          <div style={{ flex: 1, paddingBottom: '8px' }}>
-            <div style={{ fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', marginBottom: '8px' }}>
+          <div className={styles.infoBox}>
+            <div className={styles.playlistLabel}>
               PLAYLIST
             </div>
-            <h1 style={{ fontSize: '96px', fontWeight: 'bold', margin: '0 0 24px 0', lineHeight: '96px', letterSpacing: '-0.04em' }}>
+            <h1 className={styles.title}>
               Liked Songs
             </h1>
-            <div style={{ fontSize: '14px', color: '#666', fontWeight: 600 }}>
+            <div className={styles.subInfo}>
               {user.name} • {likedSongs.length} songs
             </div>
           </div>
         </div>
 
-        {/* ✅ Play Controls - แสดงเฉพาะเมื่อมีเพลง */}
         {likedSongs.length > 0 && (
-          <div style={{ 
-            display: 'flex', 
-            gap: '16px', 
-            alignItems: 'center',
-            padding: '24px 0',
-            borderBottom: '1px solid #e5e5e5'
-          }}>
+          <div className={styles.controls}>
             <button 
               onClick={handlePlayAll}
-              style={{
-                padding: '12px 32px',
-                background: '#1DB954',
-                color: 'white',
-                border: 'none',
-                borderRadius: '500px',
-                fontSize: '16px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                transition: 'all 0.2s',
-                boxShadow: '0 4px 12px rgba(29, 185, 84, 0.3)'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'scale(1.04)';
-                e.currentTarget.style.background = '#1ed760';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'scale(1)';
-                e.currentTarget.style.background = '#1DB954';
-              }}
+              className={`${styles.playAllBtn}`}
             >
-              <span style={{ fontSize: '20px' }}>▶️</span>
+              <span className={styles.playIcon}>▶️</span>
               Play All
             </button>
 
             <button 
               onClick={handleShuffle}
-              style={{
-                padding: '12px 24px',
-                background: 'transparent',
-                color: '#666',
-                border: '1px solid #d1d1d1',
-                borderRadius: '500px',
-                fontSize: '16px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'scale(1.04)';
-                e.currentTarget.style.borderColor = '#000';
-                e.currentTarget.style.color = '#000';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'scale(1)';
-                e.currentTarget.style.borderColor = '#d1d1d1';
-                e.currentTarget.style.color = '#666';
-              }}
+              className={styles.shuffleBtn}
             >
-              <span style={{ fontSize: '18px' }}>🔀</span>
+              <span className={styles.shuffleIcon}>🔀</span>
               Shuffle
             </button>
           </div>
         )}
       </div>
 
-      {/* Songs List */}
       <section className={styles.section}>
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+          <div className={styles.loading}>
             Loading...
           </div>
         ) : likedSongs.length > 0 ? (
@@ -251,15 +184,9 @@ export default function LikedSongs() {
             {likedSongs.map((item, index) => (
               <div
                 key={item.id}
-                className={styles.resultItem}
-                style={{ display: 'flex', alignItems: 'center', gap: '10px' }}
+                className={`${styles.resultItem} ${styles.resultRow}`}
               >
-                <div style={{ 
-                  minWidth: '30px', 
-                  textAlign: 'center',
-                  color: '#666',
-                  fontSize: '14px'
-                }}>
+                <div className={styles.indexCol}>
                   {index + 1}
                 </div>
                 
@@ -271,12 +198,12 @@ export default function LikedSongs() {
                   />
                 )}
                 
-                <div className={styles.resultInfo} style={{ flex: 1 }}>
+                <div className={`${styles.resultInfo} ${styles.resultInfoGrow}`}>
                   <div className={styles.resultTitle}>{item.song.title}</div>
                   <div className={styles.resultArtist}>{item.song.artist}</div>
                 </div>
                 
-                <div style={{ fontSize: '12px', color: '#888', minWidth: '100px' }}>
+                <div className={styles.likedDate}>
                   {formatDate(item.likedAt)}
                 </div>
                 
@@ -284,18 +211,16 @@ export default function LikedSongs() {
                   {formatTime(item.song.duration)}
                 </div>
                 
-                <div style={{ display: 'flex', gap: '5px' }}>
+                <div className={styles.actionButtons}>
                   <button 
                     onClick={() => handlePlaySong(item.song)}
-                    className={styles.buttonPrimary}
-                    style={{ padding: '6px 12px', fontSize: '13px' }}
+                    className={`${styles.buttonPrimary} ${styles.btnSm}`}
                   >
                     Play
                   </button>
                   <button 
                     onClick={() => handleAddToQueue(item.song)}
-                    className={styles.buttonSecondary}
-                    style={{ padding: '6px 12px', fontSize: '13px' }}
+                    className={`${styles.buttonSecondary} ${styles.btnSm}`}
                   >
                     + Queue
                   </button>
@@ -303,8 +228,7 @@ export default function LikedSongs() {
                     userId={userId} 
                     song={item.song}
                     iconOnly={false}
-                    buttonClassName={styles.buttonSecondary}
-                    buttonStyle={{ padding: '6px 12px', fontSize: '13px' }}
+                    buttonClassName={`${styles.buttonSecondary} ${styles.btnSm}`}
                     onSuccess={async () => {
                       console.log('Song added to playlist');
                     }}
@@ -324,7 +248,6 @@ export default function LikedSongs() {
           </div>
         ) : ( 
           <section className={styles.emptyWrap}>
-            <img src={emptyImg} alt="empty liked songs" className={styles.emptyImg} />
             <h2 className={styles.emptyTitle}>You haven't liked any songs yet</h2>
             <p className={styles.emptyHint}>
               Tap the heart on tracks you love to keep them all in one place

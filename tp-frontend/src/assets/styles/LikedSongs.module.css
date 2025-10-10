@@ -1,130 +1,105 @@
-.layout {
-  width: 100%;
-  display: flex;
-  justify-content: center; 
+/* Layout */
+.layout { width: 100%; display: flex; justify-content: center; }
+.container,
+.container * {
+  font-family: "Inter Tight", Inter, system-ui, -apple-system, Segoe UI,
+    Roboto, Arial, "Helvetica Neue", sans-serif !important;
 }
-
 
 .content {
   width: 100%;
-  margin: 0 auto;               
-  padding: 32px 16px 0px;
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 24px 24px 0;
   box-sizing: border-box;
-
-  display: flex;                  
+  display: flex;
   flex-direction: column;
-  align-items: center;        
+  align-items: flex-start;
 }
 
+/* Title (บนซ้าย) */
 .title {
-  align-self: flex-start;    
-  font-size: 32px;
-  font-weight: 30px;
-  line-height: 1.2;
-  color: #111827;
-  text-align: left;       
-  font-family: "Inter Tight", sans-serif;
-  font-style: normal;      
+  font-size: clamp(28px, 4vw, 40px);
+  font-weight: 800;
+  line-height: 1.05;
+  color: #0f172a;
+  text-align: left;
+  margin: 0 0 8px;
 }
 
+/* load +error */
+.loading { color: #6b7280; font-size: 14px; align-self: flex-start; }
+.error   { color: #ef4444; font-size: 14px; align-self: flex-start; margin-top: -6px; }
 
-.loading {
-  color: #6b7280;
-  font-size: 14px;
-  align-self: flex-start;     
+/* Header block  */
+.headerWrap { width: 100%; margin-bottom: 8px; }
+.headerRow  { display: flex; align-items: center; gap: 24px; margin-bottom: 30px; margin-top: 35px; }
+
+.coverBox {
+  width: 180px; height: 180px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 72px;
+  flex-shrink: 0;
+  box-shadow: none;
 }
-.error {
-  color: #ef4444;
-  font-size: 14px;
-  align-self: flex-start;
-  margin-top: -10px;
-}
 
+.infoBox { flex: 1; padding-bottom: 4px; }
+.playlistLabel { font: 600 12px/1 Inter, system-ui, sans-serif; text-transform: uppercase; color: #6b7280; margin-bottom: 6px; }
+.subInfo { font-size: 14px; color: #6b7280; font-weight: 600; }
 
+/* เส้นคั่นหัวตาราง */
+.section { width: 100%; border-top: 1px solid #e5e7eb; padding-top: 12px; }
+
+/* Empty state */
 .emptyWrap {
   width: 100%;
-  min-height: 50vh;             
-  margin-top: 8px;
+  min-height: 30vh;
+  margin-top: 24px;
+  margin-right: 90px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+}
+.emptyImg   { width: 100px; height: auto; object-fit: contain; margin-bottom: 12px; }
+.emptyTitle { font-size: 16px; font-weight: 700; color: #1f2937; margin: 6px 0 6px; }
+.emptyHint  { font-size: 12px; color: #7c3aed; }
 
-  display: flex;
-  flex-direction: column;
-  align-items: center;           
-  justify-content: center;        
-  text-align: center;
-}
-
-.emptyImg {
-  width: 100px;
-  height: auto;
-  object-fit: contain;
-  margin-bottom: 18px;
-}
-.emptyTitle {
-  font-size: 14px;
-  font-weight: 600;
-  color: #374151;
-  margin: 6px 0 8px;
-}
-.emptyHint {
-  font-size: 12px;
-  color: #7c3aed;
-}
-
-/* Results */
-.resultsList {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
+/* list song + line */
+.resultsList { display: flex; flex-direction: column; gap: 0; }
 .resultItem {
-  padding: 1rem;
-  background: #fafafa;
-  border-radius: 4px;
+  padding: 12px 0;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid #f1f5f9;
+  border-radius: 0;
+  display: flex; align-items: center; gap: 12px;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  transition: background 0.2s;
-  border: 1px solid #eee;
 }
+.resultItem:hover { background: #f9fafb; }
+.resultItemActive { background: #f3f4f6; }
 
-.resultItem:hover {
-  background: #f5f5f5;
-}
+.resultCover  { width: 48px; height: 48px; border-radius: 4px; object-fit: cover; }
+.resultInfo   { flex: 1; }
+.resultTitle  { font-weight: 600; margin-bottom: 2px; color: #111827; }
+.resultArtist { font-size: 13px; color: #6b7280; }
+.resultDuration { font-size: 12px; color: #6b7280; }
 
-.resultItemActive {
-  composes: resultItem;
-  background: #f0f0f0;
-}
+/* คอลัมน์ช่วย (ถ้าใช้ในแถวรายการ) */
+.resultRow { display: flex; align-items: center; gap: 10px; }
+.indexCol  { min-width: 30px; text-align: center; color: #6b7280; font-size: 14px; }
+.resultInfoGrow { flex: 1; }
+.likedDate { font-size: 12px; color: #6b7280; min-width: 100px; text-align: right; }
+.actionButtons { display: flex; gap: 6px; }
+.btnSm { padding: 6px 12px; font-size: 13px; }
 
-.resultItemActive:hover {
-  background: #f0f0f0;
+/* bt */
+.controls { display: flex; gap: 12px; align-items: center; padding: 16px 0; border-bottom: 1px solid #e5e5e5; }
+.playAllBtn, .shuffleBtn {
+  padding: 10px 20px; border-radius: 999px; font-weight: 700; font-size: 15px;
+  display: flex; align-items: center; gap: 8px; cursor: pointer;
 }
+.playAllBtn { background: #1DB954; color: #fff; border: 0; }
+.shuffleBtn { background: transparent; color: #6b7280; border: 1px solid #d1d1d1; }
+.playIcon { font-size: 18px; }
+.shuffleIcon { font-size: 16px; }
 
-.resultCover {
-  width: 50px;
-  height: 50px;
-  border-radius: 4px;
-  object-fit: cover;
-}
-
-.resultInfo {
-  flex: 1;
-}
-
-.resultTitle {
-  font-weight: bold;
-  margin-bottom: 0.25rem;
-  color: #000;
-}
-
-.resultArtist {
-  font-size: 0.9rem;
-  color: #666;
-}
-
-.resultDuration {
-  color: #666;
-  font-size: 0.9rem;
-}
