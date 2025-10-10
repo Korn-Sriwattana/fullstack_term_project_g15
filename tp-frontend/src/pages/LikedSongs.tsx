@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useUser } from "../components/userContext";
 import styles from "../assets/styles/LikedSongs.module.css"; 
 import emptyImg from "../assets/images/empty/empty-box.png";
-import type { Song } from "../types/song.ts";
+import type { Song, QueueItem } from "../types/song.ts";
 import LikeButton from "../components/LikeButton.tsx";
 import { useLikedSongs } from "../components/LikedSongsContext.tsx";
 import AddToPlaylistButton from "../components/AddToPlaylist";
@@ -15,7 +15,13 @@ interface LikedSong {
   song: Song;
 }
 
-export default function LikedSongs() {
+interface LikedSongsProps {
+  queue?: QueueItem[];
+  currentIndex?: number;
+}
+
+
+export default function LikedSongs({ queue = [], currentIndex = 0 }: LikedSongsProps) {
   const { user } = useUser();
   const userId = user?.id;
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useUser } from "../components/userContext";
-import type { Song } from "../types/song.ts";
+import type { Song, QueueItem } from "../types/song.ts";
 import LikeButton from "../components/LikeButton";
 import AddToPlaylistButton from "../components/AddToPlaylist";
 
@@ -26,7 +26,12 @@ interface PlaylistSong {
   addedAt: string;
 }
 
-export default function Playlist() {
+interface PlaylistProps {
+  queue?: QueueItem[];
+  currentIndex?: number;
+}
+
+export default function Playlist({ queue = [], currentIndex = 0 }: PlaylistProps) {
   const { user } = useUser();
   const userId = user?.id;
 
