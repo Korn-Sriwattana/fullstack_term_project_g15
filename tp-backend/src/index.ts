@@ -83,6 +83,40 @@ app.post("/player/shuffle", toggleShuffle);
 app.post("/player/repeat", setRepeatMode);
 app.get("/player/recently-played/:userId", getRecentlyPlayed);
 
+// ดึงเพลงยอดนิยม (เรียงตาม playCount)
+// Get popular songs (by play count)
+app.get("/songs/popular", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const limit = parseInt(req.query.limit as string) || 20;
+
+    const popularSongs = await dbClient
+      .select({
+        playCount: songStats.playCount,
+        lastPlayedAt: songStats.lastPlayedAt,
+        song: {
+          id: songs.id,
+          youtubeVideoId: songs.youtubeVideoId,
+          title: songs.title,
+          artist: songs.artist,
+          coverUrl: songs.coverUrl,
+          duration: songs.duration,
+        },
+      })
+      .from(songStats)
+      .leftJoin(songs, eq(songStats.songId, songs.id))
+      .where(sql`${songStats.playCount} > 0`)
+      .orderBy(desc(songStats.playCount), desc(songStats.lastPlayedAt))
+      .limit(limit);
+
+    // Filter out songs that don't exist anymore
+    const validSongs = popularSongs.filter(item => item.song !== null);
+
+    res.json(validSongs);
+  } catch (err) {
+    next(err);
+  }
+});
+
 // ----------------- Image Upload API -----------------
 app.post("/upload/playlist-cover", upload.single("cover"), uploadPlaylistCover);
 
