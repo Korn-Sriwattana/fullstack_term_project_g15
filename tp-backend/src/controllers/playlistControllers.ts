@@ -1,7 +1,7 @@
 import type { RequestHandler } from "express";
 import { dbClient } from "@db/client.js";
 import { playlists, playlistSongs, songs } from "@db/schema.js";
-import { eq, and, asc, sql } from "drizzle-orm";
+import { eq, and, asc, sql, desc } from "drizzle-orm";
 
 // ========== GET USER PLAYLISTS ==========
 export const getUserPlaylists: RequestHandler = async (req, res, next) => {
@@ -99,22 +99,47 @@ export const deletePlaylist: RequestHandler = async (req, res, next) => {
   }
 };
 
-// ========== GET PLAYLIST SONGS ==========
+// ========== GET PLAYLIST SONGS (รองรับ sortBy และ sortOrder) ==========
 export const getPlaylistSongs: RequestHandler = async (req, res, next) => {
   try {
     const { playlistId } = req.params;
+    const { sortBy = 'custom', sortOrder = 'asc' } = req.query;
 
     if (!playlistId) {
       res.status(400).json({ error: "Missing playlistId" });
       return;
     }
 
+    let orderByClause;
+    const order = sortOrder === 'desc' ? desc : asc;
+    
+    switch (sortBy) {
+      case 'custom':
+        orderByClause = asc(playlistSongs.customOrder);
+        break;
+      case 'dateAdded':
+        orderByClause = order(playlistSongs.addedAt);
+        break;
+      case 'title':
+        orderByClause = order(songs.title);
+        break;
+      case 'artist':
+        orderByClause = order(songs.artist);
+        break;
+      case 'duration':
+        orderByClause = order(songs.duration);
+        break;
+      default:
+        orderByClause = asc(playlistSongs.customOrder);
+    }
+
     const playlistSongsData = await dbClient
       .select({
-        id: playlistSongs.id, // ใช้ id ของ playlistSongs (UUID)
+        id: playlistSongs.id,
         playlistId: playlistSongs.playlistId,
         songId: playlistSongs.songId,
         addedAt: playlistSongs.addedAt,
+        customOrder: playlistSongs.customOrder,
         song: {
           id: songs.id,
           youtubeVideoId: songs.youtubeVideoId,
@@ -127,16 +152,16 @@ export const getPlaylistSongs: RequestHandler = async (req, res, next) => {
       .from(playlistSongs)
       .leftJoin(songs, eq(playlistSongs.songId, songs.id))
       .where(eq(playlistSongs.playlistId, playlistId))
-      .orderBy(asc(playlistSongs.addedAt));
+      .orderBy(orderByClause);
 
-    // ส่ง id ที่แท้จริงของ playlistSongs
     const formattedData = playlistSongsData
       .filter((item): item is typeof item & { song: NonNullable<typeof item.song> } => 
         item.song !== null
       )
       .map((item) => ({
-        id: item.id, // ใช้ id จริงจาก database
+        id: item.id,
         addedAt: item.addedAt,
+        customOrder: item.customOrder,
         song: item.song,
       }));
 
@@ -177,17 +202,92 @@ export const addSongToPlaylist: RequestHandler = async (req, res, next) => {
       return;
     }
 
-    // เพิ่มเพลงเข้า playlist
+    // หา customOrder สูงสุดใน playlist นี้
+    const [maxOrder] = await dbClient
+      .select({ maxOrder: sql<number>`COALESCE(MAX(${playlistSongs.customOrder}), -1)` })
+      .from(playlistSongs)
+      .where(eq(playlistSongs.playlistId, playlistId));
+
+    const nextOrder = (maxOrder?.maxOrder ?? -1) + 1;
+
+    // เพิ่มเพลงเข้า playlist พร้อม customOrder
     await dbClient
       .insert(playlistSongs)
       .values({
         playlistId,
         songId,
+        customOrder: nextOrder,
       });
 
     res.status(201).json({ 
       success: true, 
       message: "Song added to playlist" 
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ========== REORDER PLAYLIST SONGS ==========
+export const reorderPlaylistSongs: RequestHandler = async (req, res, next) => {
+  try {
+    const { playlistId } = req.params;
+    const { songId, newOrder } = req.body;
+
+    if (!playlistId || !songId || newOrder === undefined) {
+      res.status(400).json({ error: "Missing required fields" });
+      return;
+    }
+
+    // ดึงรายการเพลงทั้งหมดใน playlist
+    const allSongs = await dbClient
+      .select()
+      .from(playlistSongs)
+      .where(eq(playlistSongs.playlistId, playlistId))
+      .orderBy(asc(playlistSongs.customOrder));
+
+    if (allSongs.length === 0) {
+      res.status(404).json({ error: "Playlist is empty" });
+      return;
+    }
+
+    // หาเพลงที่ต้องการย้าย
+    const songIndex = allSongs.findIndex(s => s.songId === songId);
+    if (songIndex === -1) {
+      res.status(404).json({ error: "Song not found in playlist" });
+      return;
+    }
+
+    // ตรวจสอบว่า newOrder อยู่ในช่วงที่ถูกต้อง
+    if (newOrder < 0 || newOrder >= allSongs.length) {
+      res.status(400).json({ error: "Invalid new order" });
+      return;
+    }
+
+    // ถ้าตำแหน่งเดิมและใหม่เหมือนกัน ไม่ต้องทำอะไร
+    if (songIndex === newOrder) {
+      res.json({ success: true, message: "No change needed" });
+      return;
+    }
+
+    // จัดเรียงใหม่
+    const reordered = [...allSongs];
+    const [movedSong] = reordered.splice(songIndex, 1);
+    reordered.splice(newOrder, 0, movedSong);
+
+    // อัพเดท customOrder ในฐานข้อมูล
+    await dbClient.transaction(async (tx) => {
+      for (let i = 0; i < reordered.length; i++) {
+        await tx
+          .update(playlistSongs)
+          .set({ customOrder: i })
+          .where(eq(playlistSongs.id, reordered[i].id));
+      }
+    });
+
+    res.json({ 
+      success: true, 
+      message: "Playlist reordered successfully" 
     });
   } catch (err) {
     next(err);
@@ -204,7 +304,7 @@ export const removeSongFromPlaylist: RequestHandler = async (req, res, next) => 
       return;
     }
 
-    // ใช้ id ของ playlistSongs โดยตรง
+    // ลบเพลง
     const result = await dbClient
       .delete(playlistSongs)
       .where(eq(playlistSongs.id, playlistSongId))
@@ -214,6 +314,22 @@ export const removeSongFromPlaylist: RequestHandler = async (req, res, next) => 
       res.status(404).json({ error: "Song not found in playlist" });
       return;
     }
+
+    // จัดเรียง customOrder ใหม่
+    const remainingSongs = await dbClient
+      .select()
+      .from(playlistSongs)
+      .where(eq(playlistSongs.playlistId, playlistId))
+      .orderBy(asc(playlistSongs.customOrder));
+
+    await dbClient.transaction(async (tx) => {
+      for (let i = 0; i < remainingSongs.length; i++) {
+        await tx
+          .update(playlistSongs)
+          .set({ customOrder: i })
+          .where(eq(playlistSongs.id, remainingSongs[i].id));
+      }
+    });
 
     res.json({ 
       success: true, 

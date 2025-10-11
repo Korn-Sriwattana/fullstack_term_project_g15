@@ -14,6 +14,8 @@ import volLowPng from "../assets/images/playMusic/volume-low.png";
 import volHighPng from "../assets/images/playMusic/volume-high.png";
 import prevPng from "../assets/images/playMusic/prev-icon.png";
 import nextPng from "../assets/images/playMusic/next-icon.png";
+import addIcon from "../assets/images/playMusic/add-icon.png";
+
 
 const API_URL = "http://localhost:3000";
 
@@ -43,6 +45,9 @@ const MusicPlayer = ({ userId, onQueueUpdate, onCurrentIndexUpdate, className }:
   const playerDivRef = useRef<HTMLDivElement>(null);
   const [isPlayerReady, setIsPlayerReady] = useState(false);
   const initAttemptedRef = useRef(false);
+  
+  const [showAddModal, setShowAddModal] = useState(false);
+
 
   // Step 1: Load YouTube IFrame API
   useEffect(() => {
@@ -181,26 +186,34 @@ const MusicPlayer = ({ userId, onQueueUpdate, onCurrentIndexUpdate, className }:
     }
   }, [apiReady, volume, isLooping]);
 
-  // Handle loop
+  // Handle loop and auto-next
   useEffect(() => {
-    if (!playerRef.current || !isPlayerReady || !currentSong || !isLooping) return;
+    if (!playerRef.current || !isPlayerReady || !currentSong) return;
 
-    const checkLoop = setInterval(() => {
+    const checkPlayback = setInterval(() => {
       try {
         const current = playerRef.current.getCurrentTime();
         const total = playerRef.current.getDuration();
         
+        // Check if song is near end (within 1 second)
         if (total && current >= total - 1) {
-          console.log("🔁 Looping...");
-          playerRef.current.seekTo(0);
-          playerRef.current.playVideo();
+          if (isLooping) {
+            console.log("🔁 Looping...");
+            playerRef.current.seekTo(0);
+            playerRef.current.playVideo();
+          } else {
+            console.log("⏭️ Song ended, playing next...");
+            // Clear interval to prevent multiple calls
+            clearInterval(checkPlayback);
+            handleNext();
+          }
         }
       } catch (e) {
         // Silent fail
       }
     }, 500);
 
-    return () => clearInterval(checkLoop);
+    return () => clearInterval(checkPlayback);
   }, [isLooping, currentSong, isPlayerReady]);
 
   // Update progress
@@ -537,22 +550,21 @@ const MusicPlayer = ({ userId, onQueueUpdate, onCurrentIndexUpdate, className }:
               </div>
 
               {user?.id && (
-              <>
-                <AddToPlaylist
-                  userId={user.id} 
-                  song={currentSong}
-                  iconOnly={false}
-                  buttonStyle={{ padding: '6px 12px', fontSize: '13px' }}
-                />
-                <LikeButton 
-                  userId={user.id} 
-                  songId={currentSong.id}
-                  onLikeChange={(isLiked) => {
-                    console.log(`Song ${currentSong.title} is now ${isLiked ? 'liked' : 'unliked'}`);
-                  }}
-                />
-              </>
-            )}
+                <div className={styles.actions}>
+                  <div className={styles.iconAdd}>
+                    <AddToPlaylist userId={user.id} song={currentSong} />
+                  </div>
+                  <div className={styles.iconLike}>
+                    <LikeButton
+                      userId={user.id}
+                      songId={currentSong.id}
+                      onLikeChange={(isLiked) => {
+                        console.log(`Song ${currentSong.title} is now ${isLiked ? "liked" : "unliked"}`);
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Controls */}
               <div className={styles.controls}>

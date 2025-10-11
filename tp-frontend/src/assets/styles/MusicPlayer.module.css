@@ -16,22 +16,22 @@
   right: 0;
   background: #ffffff;
   border-top: 1px solid #e5e7eb;
-  padding: 18px 20px; 
+  padding: 18px 20px;
   z-index: 1000;
   box-shadow: 0 -2px 12px rgba(0,0,0,0.08);
 }
 
 .inner {
-  max-width: 1050px; 
+  max-width: 1050px;
   margin: 0 auto;
 }
 
 .topRow {
-  display: grid;
-  grid-template-columns: 1fr auto 180px;
-  align-items: center;
-  column-gap: 32px; 
-  margin-bottom: 10px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  gap: 16px;
 }
 
 .songInfo {
@@ -39,16 +39,31 @@
   align-items: center;
   gap: 14px;
   min-width: 0;
+  flex: 1;
 }
 
 .cover {
-  width: 64px;  
+  width: 64px;
   height: 64px;
   border-radius: 4px;
   object-fit: cover;
 }
 
-.meta { overflow: hidden; }
+.meta {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  flex: 1;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
 
 .title {
   font-weight: 800;
@@ -57,6 +72,8 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 .artist {
@@ -67,18 +84,37 @@
   text-overflow: ellipsis;
 }
 
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.iconAdd,
+.iconLike {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.iconAdd button,
+.iconLike button {
+  transform: scale(0.75);
+}
+
 .controls {
   display: flex;
   align-items: center;
-  gap: 18px; 
+  gap: -10px !important;
+  flex-shrink: 0;
 }
-
 
 .iconBtn {
   background: none !important;
   border: none !important;
-  font-size: 22px; 
-  padding: 8px;   
+  font-size: 22px;
+  padding: 8px;
   cursor: pointer;
   color: #111827;
   box-shadow: none !important;
@@ -109,7 +145,6 @@
   border-color: transparent !important;
 }
 
-
 .player *:focus {
   outline: none !important;
   box-shadow: none !important;
@@ -127,53 +162,72 @@
 .player *::-moz-focus-inner { border: 0 !important; }
 .player *:-moz-focusring { outline: 0 !important; }
 
-
 .loopBtn {
   background: transparent;
   border: none;
-  font-size: 20px; 
-  padding: 8px;    
+  margin-left: 15px;
+  font-size: 20px;
+  padding: 8px;
   color: #6b7280;
   border-radius: 6px;
   cursor: pointer;
-  outline: none !important;
-  box-shadow: none !important;
-  border-color: transparent !important;
+  transition: background-color .15s ease, color .15s ease, transform .08s ease, box-shadow .15s ease;
 }
 
-.loopBtn:disabled { cursor: not-allowed; opacity: .45; }
-.loopActive { background: rgba(0,0,0,0.06); color: #111827; }
+.loopBtn:hover { background: rgba(0,0,0,.04); }
+.loopBtn:active { transform: scale(.96); }
 
+.loopBtn.loopActive {
+  background: #8E2D97;
+  color: #8E2D97;
+  transform: scale(1.05);
+}
+
+.loopBtn.loopActive img {
+  filter: brightness(0) saturate(100%) invert(21%) sepia(81%) saturate(1870%) hue-rotate(282deg) brightness(87%) contrast(97%) !important;
+}
 
 .volume {
   display: flex;
   align-items: center;
-  gap: 10px; 
+  gap: 5px !important;
   justify-content: flex-end;
+  width: 150px;
+  margin-top: 20px;
+}
+
+.volumeRange::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 15px !important;
+  height: 15px !important;
+  border-radius: 50%;
+  background: #8E2D97;
+  border: 1px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.15);
+  cursor: pointer;
+  margin-top: -4px !important;
 }
 
 .muteBtn {
   background: none;
   border: none;
-  font-size: 20px; 
+  font-size: 20px;
   cursor: pointer;
   color: #111827;
   outline: none !important;
   box-shadow: none !important;
   border-color: transparent !important;
-
   margin-top: -20px;
-
 }
 
 .muteBtn:disabled { cursor: not-allowed; opacity: .45; }
-
 
 .progressRow {
   display: grid;
   grid-template-columns: 50px 1fr 50px;
   align-items: center;
-  column-gap: 14px; 
+  column-gap: 14px;
 }
 
 .time {
@@ -184,13 +238,12 @@
 .progressBar {
   position: relative;
   flex: 1;
-  height: 8px !important; 
+  height: 8px !important;
   background: #e5e7eb;
   border-radius: 999px;
   cursor: pointer;
   overflow: hidden;
 }
-
 
 .progressFill {
   height: 100%;
@@ -205,12 +258,20 @@
   position: absolute;
   right: 0;
   top: 50%;
-  width: 10px;  
-  height: 10px; 
-  background: #22c55e;
+  width: 10px;
+  height: 10px;
+  background: #8E2D97;
   border-radius: 50%;
   transform: translate(50%, -50%);
   box-shadow: 0 0 0 2px #ffffff;
 }
 
 
+.iconLike button {
+  transform: scale(1.75);       
+  transition: transform 0.15s ease;
+}
+
+.iconLike button:hover {
+  transform: scale(1.85);      
+}
