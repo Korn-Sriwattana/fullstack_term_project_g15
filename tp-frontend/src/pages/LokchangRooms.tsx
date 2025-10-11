@@ -6,10 +6,11 @@ import ChatSection from "../components/Chat";
 import QueueSection from "../components/Queue";
 import { useUser } from "../components/userContext";
 
+//css
 import styles from "../assets/styles/lokchang-rooms.module.css";
 
 //images
-import coverImg from "../assets/images/cover_chatroom.jpg";
+import coverImg from "../assets/images/cover.png";
 
 const API_URL = "http://localhost:3000";
 
@@ -48,7 +49,6 @@ const LokchangRooms = () => {
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [isMuted, setIsMuted] = useState(true);
 
-  // 🔒 เพิ่ม: ป้องกันการกดซ้ำ
   const [isProcessing, setIsProcessing] = useState(false);
   const processingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -76,8 +76,8 @@ const LokchangRooms = () => {
   fetch(`${API_URL}/chat/${roomId}`)
     .then((res) => res.json())
     .then((data) => {
-      console.log("📩 Chat messages loaded:", data); // เพิ่มบรรทัดนี้
-      console.log("First message:", data[0]); // ดูข้อความแรก
+      console.log("📩 Chat messages loaded:", data);
+      console.log("First message:", data[0]);
       setMessages(data);
     })
     .catch(console.error);
@@ -439,7 +439,7 @@ const LokchangRooms = () => {
 
   return (
     <div className={styles["lok-page"]}>
-      <div style={{ padding: "1rem", fontFamily: "sans-serif" }}>
+      <div>
         <h1 className={styles["lok-title"]}>Look Chang Room</h1>
 
         <div className={styles["lok-banner"]}>
