@@ -14,6 +14,8 @@ import volLowPng from "../assets/images/playMusic/volume-low.png";
 import volHighPng from "../assets/images/playMusic/volume-high.png";
 import prevPng from "../assets/images/playMusic/prev-icon.png";
 import nextPng from "../assets/images/playMusic/next-icon.png";
+import addIcon from "../assets/images/playMusic/add-icon.png";
+
 
 const API_URL = "http://localhost:3000";
 
@@ -43,6 +45,9 @@ const MusicPlayer = ({ userId, onQueueUpdate, onCurrentIndexUpdate, className }:
   const playerDivRef = useRef<HTMLDivElement>(null);
   const [isPlayerReady, setIsPlayerReady] = useState(false);
   const initAttemptedRef = useRef(false);
+  
+  const [showAddModal, setShowAddModal] = useState(false);
+
 
   // Step 1: Load YouTube IFrame API
   useEffect(() => {
@@ -545,22 +550,21 @@ const MusicPlayer = ({ userId, onQueueUpdate, onCurrentIndexUpdate, className }:
               </div>
 
               {user?.id && (
-              <>
-                <AddToPlaylist
-                  userId={user.id} 
-                  song={currentSong}
-                  iconOnly={false}
-                  buttonStyle={{ padding: '6px 12px', fontSize: '13px' }}
-                />
-                <LikeButton 
-                  userId={user.id} 
-                  songId={currentSong.id}
-                  onLikeChange={(isLiked) => {
-                    console.log(`Song ${currentSong.title} is now ${isLiked ? 'liked' : 'unliked'}`);
-                  }}
-                />
-              </>
-            )}
+                <div className={styles.actions}>
+                  <div className={styles.iconAdd}>
+                    <AddToPlaylist userId={user.id} song={currentSong} />
+                  </div>
+                  <div className={styles.iconLike}>
+                    <LikeButton
+                      userId={user.id}
+                      songId={currentSong.id}
+                      onLikeChange={(isLiked) => {
+                        console.log(`Song ${currentSong.title} is now ${isLiked ? "liked" : "unliked"}`);
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Controls */}
               <div className={styles.controls}>
