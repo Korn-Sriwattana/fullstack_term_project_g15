@@ -1,4 +1,3 @@
-/* === Overlay === */
 .modalOverlay {
   position: fixed;
   inset: 0;
@@ -13,7 +12,7 @@
 /* === Modal Box === */
 .modalContent {
   width: 100%;
-  max-width: 420px;                        
+  max-width: 450px;                        
   background: #ffffff;
   border-radius: 14px;
   padding: 20px 22px;
@@ -22,18 +21,6 @@
   box-sizing: border-box;
   animation: fadeInUp 0.25s ease-out;
 }
-
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 .modalTitle {
   margin: 0 0 14px;
   font-size: 20px;
@@ -41,11 +28,11 @@
   color: #111827;
 }
 
-/* === Cover Upload === */
 .coverUploadSection {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  margin-left: 150px !important;
   margin: 8px 0 16px;
 }
 
@@ -84,6 +71,7 @@
 .coverUploadHint {
   font-size: 12px;
   color: #6b7280;
+  margin-left: -45px;
 }
 
 
@@ -165,7 +153,7 @@
 }
 
 .buttonPrimary {
-  background: #7c3aed;   /* 🔹 สีม่วงหลัก */
+  background: #7c3aed;
   color: #ffffff;
 }
 
