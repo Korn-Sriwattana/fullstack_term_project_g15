@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1759517519345,
-      "tag": "0000_rapid_argent",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1759857720081,
-      "tag": "0001_gifted_scarecrow",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1760108166954,
-      "tag": "0002_crazy_the_leader",
+      "when": 1760214163164,
+      "tag": "0000_grey_silver_fox",
       "breakpoints": true
     }
   ]

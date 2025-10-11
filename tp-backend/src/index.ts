@@ -1,10 +1,23 @@
 import "dotenv/config";
 import { dbClient } from "@db/client.js";
-import { roomMessages, users, roomMembers, roomQueue, listeningRooms, songs, songStats} from "@db/schema.js";
+import {
+  roomMessages,
+  users,
+  roomMembers,
+  roomQueue,
+  listeningRooms,
+  songs,
+  songStats,
+} from "@db/schema.js";
 import cors from "cors";
 import Debug from "debug";
 import { eq, asc, and, desc, or, ilike, sql } from "drizzle-orm";
-import type { ErrorRequestHandler, Request, Response, NextFunction } from "express";
+import type {
+  ErrorRequestHandler,
+  Request,
+  Response,
+  NextFunction,
+} from "express";
 import express from "express";
 import helmet from "helmet";
 import morgan from "morgan";
@@ -12,28 +25,57 @@ import http from "http";
 import { Server } from "socket.io";
 
 // Controllers
-import { playNext, playPrevious, playPlaylist, PersonalplaySong, getQueue, addToPersonalQueue, getPlayerState, toggleShuffle, setRepeatMode, getRecentlyPlayed } from "./controllers/playerControllers.js";
+import {
+  playNext,
+  playPrevious,
+  playPlaylist,
+  PersonalplaySong,
+  getQueue,
+  addToPersonalQueue,
+  getPlayerState,
+  toggleShuffle,
+  setRepeatMode,
+  getRecentlyPlayed,
+} from "./controllers/playerControllers.js";
 import { createUser } from "./controllers/userControllers.js";
-import { createRoom, joinRoom, listPublicRooms } from "./controllers/roomControllers.js";
-import { addToQueue, removeFromQueue, playNextSong, playSong, reorderQueue, fetchYoutubeMetadata } from "./controllers/communityControllers.js";
-import { getUserPlaylists, createPlaylist, deletePlaylist, getPlaylistSongs, addSongToPlaylist, removeSongFromPlaylist, updatePlaylist, reorderPlaylistSongs } from "./controllers/playlistControllers.js";
-import { getLikedSongs, addLikedSong, removeLikedSong, checkLikedSong, playLikedSongs } from "./controllers/likedSongsControllers.js";
+import {
+  createRoom,
+  joinRoom,
+  listPublicRooms,
+} from "./controllers/roomControllers.js";
+import {
+  addToQueue,
+  removeFromQueue,
+  playNextSong,
+  playSong,
+  reorderQueue,
+  fetchYoutubeMetadata,
+} from "./controllers/communityControllers.js";
+import {
+  getUserPlaylists,
+  createPlaylist,
+  deletePlaylist,
+  getPlaylistSongs,
+  addSongToPlaylist,
+  removeSongFromPlaylist,
+  updatePlaylist,
+  reorderPlaylistSongs,
+} from "./controllers/playlistControllers.js";
+import {
+  getLikedSongs,
+  addLikedSong,
+  removeLikedSong,
+  checkLikedSong,
+  playLikedSongs,
+} from "./controllers/likedSongsControllers.js";
 import { upload, uploadPlaylistCover } from "./controllers/imageControllers.js";
+import { toNodeHandler, fromNodeHeaders } from "better-auth/node";
+import { auth } from "./lib/auth.ts";
 
 const debug = Debug("pf-backend");
 
 // Initializing the express app
 const app = express();
-
-// Middleware
-app.use(morgan("dev"));
-app.use(
-  helmet({
-    crossOriginResourcePolicy: { policy: "cross-origin" },
-  })
-);
-app.use(express.json());
-app.use("/uploads", express.static("uploads"));
 
 // Enable CORS for HTTP requests
 app.use(
@@ -44,6 +86,19 @@ app.use(
     credentials: true,
   })
 );
+
+// Middleware
+app.use(morgan("dev"));
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  })
+);
+
+app.all("/api/auth/*splat", toNodeHandler(auth));
+
+app.use(express.json());
+app.use("/uploads", express.static("uploads"));
 
 // WebSocket Server
 const server = http.createServer(app);
@@ -85,37 +140,40 @@ app.get("/player/recently-played/:userId", getRecentlyPlayed);
 
 // ดึงเพลงยอดนิยม (เรียงตาม playCount)
 // Get popular songs (by play count)
-app.get("/songs/popular", async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const limit = parseInt(req.query.limit as string) || 20;
+app.get(
+  "/songs/popular",
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 20;
 
-    const popularSongs = await dbClient
-      .select({
-        playCount: songStats.playCount,
-        lastPlayedAt: songStats.lastPlayedAt,
-        song: {
-          id: songs.id,
-          youtubeVideoId: songs.youtubeVideoId,
-          title: songs.title,
-          artist: songs.artist,
-          coverUrl: songs.coverUrl,
-          duration: songs.duration,
-        },
-      })
-      .from(songStats)
-      .leftJoin(songs, eq(songStats.songId, songs.id))
-      .where(sql`${songStats.playCount} > 0`)
-      .orderBy(desc(songStats.playCount), desc(songStats.lastPlayedAt))
-      .limit(limit);
+      const popularSongs = await dbClient
+        .select({
+          playCount: songStats.playCount,
+          lastPlayedAt: songStats.lastPlayedAt,
+          song: {
+            id: songs.id,
+            youtubeVideoId: songs.youtubeVideoId,
+            title: songs.title,
+            artist: songs.artist,
+            coverUrl: songs.coverUrl,
+            duration: songs.duration,
+          },
+        })
+        .from(songStats)
+        .leftJoin(songs, eq(songStats.songId, songs.id))
+        .where(sql`${songStats.playCount} > 0`)
+        .orderBy(desc(songStats.playCount), desc(songStats.lastPlayedAt))
+        .limit(limit);
 
-    // Filter out songs that don't exist anymore
-    const validSongs = popularSongs.filter(item => item.song !== null);
+      // Filter out songs that don't exist anymore
+      const validSongs = popularSongs.filter((item) => item.song !== null);
 
-    res.json(validSongs);
-  } catch (err) {
-    next(err);
+      res.json(validSongs);
+    } catch (err) {
+      next(err);
+    }
   }
-});
+);
 
 // ----------------- Image Upload API -----------------
 app.post("/upload/playlist-cover", upload.single("cover"), uploadPlaylistCover);
@@ -144,7 +202,10 @@ app.post("/playlists/:playlistId/songs", addSongToPlaylist);
 app.patch("/playlists/:playlistId/reorder", reorderPlaylistSongs);
 
 // Remove song from playlist
-app.delete("/playlists/:playlistId/songs/:playlistSongId", removeSongFromPlaylist);
+app.delete(
+  "/playlists/:playlistId/songs/:playlistSongId",
+  removeSongFromPlaylist
+);
 
 // ----------------- Liked Songs API -----------------
 
@@ -174,58 +235,65 @@ app.post("/rooms/join", joinRoom);
 app.get("/rooms/public", listPublicRooms);
 
 // Fetch chat messages
-app.get("/chat/:roomId", async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { roomId } = req.params;
+app.get(
+  "/chat/:roomId",
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { roomId } = req.params;
 
-    const results = await dbClient
-      .select({
-        id: roomMessages.id,
-        message: roomMessages.message,
-        createdAt: roomMessages.createdAt,
-        roomId: roomMessages.roomId,
-        userId: roomMessages.userId,
-        // แก้ไขส่วนนี้ให้เป็น object
-        user: {
-          id: users.id,
-          name: users.name,
-          profilePic: users.profilePic,
-        },
-      })
-      .from(roomMessages)
-      .leftJoin(users, eq(roomMessages.userId, users.id))
-      .where(eq(roomMessages.roomId, roomId))
-      .orderBy(asc(roomMessages.createdAt));
+      const results = await dbClient
+        .select({
+          id: roomMessages.id,
+          message: roomMessages.message,
+          createdAt: roomMessages.createdAt,
+          roomId: roomMessages.roomId,
+          userId: roomMessages.userId,
+          // แก้ไขส่วนนี้ให้เป็น object
+          user: {
+            id: users.id,
+            name: users.name,
+            profilePic: users.profilePic,
+          },
+        })
+        .from(roomMessages)
+        .leftJoin(users, eq(roomMessages.userId, users.id))
+        .where(eq(roomMessages.roomId, roomId))
+        .orderBy(asc(roomMessages.createdAt));
 
-    // แปลง results ให้ตรงกับ interface
-     const formatted = results.map(row => ({
-      id: row.id,
-      message: row.message,
-      createdAt: row.createdAt,
-      roomId: row.roomId,
-      userId: row.userId,
-      // เช็คว่า row.user และ row.user.id มีค่าหรือไม่
-      user: row.user && row.user.id ? {
-        id: row.user.id,
-        name: row.user.name || 'Unknown User',
-        profilePic: row.user.profilePic || undefined,
-      } : undefined,
-    }));
+      // แปลง results ให้ตรงกับ interface
+      const formatted = results.map((row) => ({
+        id: row.id,
+        message: row.message,
+        createdAt: row.createdAt,
+        roomId: row.roomId,
+        userId: row.userId,
+        // เช็คว่า row.user และ row.user.id มีค่าหรือไม่
+        user:
+          row.user && row.user.id
+            ? {
+                id: row.user.id,
+                name: row.user.name || "Unknown User",
+                profilePic: row.user.profilePic || undefined,
+              }
+            : undefined,
+      }));
 
-    res.json(formatted);
-  } catch (err) {
-    next(err);
+      res.json(formatted);
+    } catch (err) {
+      next(err);
+    }
   }
-});
+);
 
 // Post chat message
 app.post("/chat", async (req, res, next) => {
   try {
     const { roomId, userId, message } = req.body;
 
-    if (!message || !roomId || !userId) throw new Error("Missing required fields");
+    if (!message || !roomId || !userId)
+      throw new Error("Missing required fields");
 
-    // roomId, userId ต้องเป็น UUID เช่น "7a7e8d34-..." 
+    // roomId, userId ต้องเป็น UUID เช่น "7a7e8d34-..."
     const result = await dbClient
       .insert(roomMessages)
       .values({ roomId, userId, message })
@@ -237,10 +305,12 @@ app.post("/chat", async (req, res, next) => {
   }
 });
 
-  // ----------------- Songs API -----------------
+// ----------------- Songs API -----------------
 
-  // ค้นหาเพลง (title หรือ artist)
-  app.get("/songs/search", async (req: Request, res: Response, next: NextFunction) => {
+// ค้นหาเพลง (title หรือ artist)
+app.get(
+  "/songs/search",
+  async (req: Request, res: Response, next: NextFunction) => {
     try {
       const q = req.query.q as string;
       if (!q) {
@@ -251,22 +321,20 @@ app.post("/chat", async (req, res, next) => {
       const results = await dbClient
         .select()
         .from(songs)
-        .where(
-          or(
-            ilike(songs.title, `%${q}%`),
-            ilike(songs.artist, `%${q}%`)
-          )
-        )
+        .where(or(ilike(songs.title, `%${q}%`), ilike(songs.artist, `%${q}%`)))
         .limit(20);
 
       res.json(results);
     } catch (err) {
       next(err);
     }
-  });
+  }
+);
 
-  // เพิ่มเพลงใหม่ (จาก YouTube link)
-  app.post("/songs/add", async (req: Request, res: Response, next: NextFunction) => {
+// เพิ่มเพลงใหม่ (จาก YouTube link)
+app.post(
+  "/songs/add",
+  async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { youtubeVideoId } = req.body;
 
@@ -276,7 +344,9 @@ app.post("/chat", async (req, res, next) => {
       }
 
       // ดึง metadata จาก YouTube API
-      const { title, artist, duration, coverUrl } = await fetchYoutubeMetadata(youtubeVideoId);
+      const { title, artist, duration, coverUrl } = await fetchYoutubeMetadata(
+        youtubeVideoId
+      );
 
       // insert หรือหาเพลงที่มีอยู่แล้ว
       const [inserted] = await dbClient
@@ -290,7 +360,6 @@ app.post("/chat", async (req, res, next) => {
         })
         .onConflictDoNothing({ target: songs.youtubeVideoId })
         .returning();
-
 
       let song = inserted;
       if (!song) {
@@ -316,40 +385,41 @@ app.post("/chat", async (req, res, next) => {
             playCount: sql`${songStats.playCount} + 1`,
             lastPlayedAt: now,
           },
-            });
+        });
 
       res.json(song);
     } catch (err) {
       next(err);
     }
-  });
+  }
+);
 
-  app.get("/rooms/:roomId/queue", async (req, res, next) => {
-    try {
-      const { roomId } = req.params;
-      const results = await dbClient
-        .select({
-          id: roomQueue.id,
-          queueIndex: roomQueue.queueIndex,
-          queuedBy: roomQueue.queuedBy,
-          song: {
-            id: songs.id,
-            youtubeVideoId: songs.youtubeVideoId,
-            title: songs.title,
-            artist: songs.artist,
-            coverUrl: songs.coverUrl,
-          },
-        })
-        .from(roomQueue)
-        .leftJoin(songs, eq(roomQueue.songId, songs.id))
-        .where(eq(roomQueue.roomId, roomId))
-        .orderBy(asc(roomQueue.queueIndex));
+app.get("/rooms/:roomId/queue", async (req, res, next) => {
+  try {
+    const { roomId } = req.params;
+    const results = await dbClient
+      .select({
+        id: roomQueue.id,
+        queueIndex: roomQueue.queueIndex,
+        queuedBy: roomQueue.queuedBy,
+        song: {
+          id: songs.id,
+          youtubeVideoId: songs.youtubeVideoId,
+          title: songs.title,
+          artist: songs.artist,
+          coverUrl: songs.coverUrl,
+        },
+      })
+      .from(roomQueue)
+      .leftJoin(songs, eq(roomQueue.songId, songs.id))
+      .where(eq(roomQueue.roomId, roomId))
+      .orderBy(asc(roomQueue.queueIndex));
 
-      res.json(results);
-    } catch (err) {
-      next(err);
-    }
-  });
+    res.json(results);
+  } catch (err) {
+    next(err);
+  }
+});
 
 // ----------------- WebSocket -----------------
 io.on("connection", (socket) => {
@@ -370,16 +440,16 @@ io.on("connection", (socket) => {
     io.emit("room-count-updated", { roomId, count: newCount });
 
     const socketUserId = (socket as any).userId; // เก็บ userId ใน socket
-      if (socketUserId) {
-        const [user] = await dbClient.query.users.findMany({
-          where: eq(users.id, socketUserId),
-          limit: 1,
-        });
-        
-        if (user) {
-          await sendSystemMessage(io, roomId, `${user.name} joined the room`);
-        }
+    if (socketUserId) {
+      const [user] = await dbClient.query.users.findMany({
+        where: eq(users.id, socketUserId),
+        limit: 1,
+      });
+
+      if (user) {
+        await sendSystemMessage(io, roomId, `${user.name} joined the room`);
       }
+    }
     // fetch queue และ now-playing ล่าสุด
     const fullQueue = await dbClient
       .select({
@@ -404,7 +474,7 @@ io.on("connection", (socket) => {
       .select({
         currentSongId: listeningRooms.currentSongId,
         currentStartedAt: listeningRooms.currentStartedAt,
-        hostId: listeningRooms.hostId
+        hostId: listeningRooms.hostId,
       })
       .from(listeningRooms)
       .where(eq(listeningRooms.id, roomId));
@@ -427,22 +497,24 @@ io.on("connection", (socket) => {
 
     // ส่ง queue และ now-playing ให้ client
     socket.emit("queue-sync", { queue: fullQueue.map(sanitizeQueueItem) });
-      if (currentSong && listening?.currentStartedAt) {
-        socket.emit("now-playing", { 
-          roomId, 
-          song: sanitizeSong(currentSong),
-          startedAt: listening.currentStartedAt,
-          hostId: listening.hostId
-        });
-      } else {
-        socket.emit("now-playing", { 
-          roomId, 
-          song: null,
-          startedAt: null,
-          hostId: listening?.hostId
-        });
-      }
-    console.log(`User ${socket.id} joined room ${roomId} (${newCount} members)`);
+    if (currentSong && listening?.currentStartedAt) {
+      socket.emit("now-playing", {
+        roomId,
+        song: sanitizeSong(currentSong),
+        startedAt: listening.currentStartedAt,
+        hostId: listening.hostId,
+      });
+    } else {
+      socket.emit("now-playing", {
+        roomId,
+        song: null,
+        startedAt: null,
+        hostId: listening?.hostId,
+      });
+    }
+    console.log(
+      `User ${socket.id} joined room ${roomId} (${newCount} members)`
+    );
   });
 
   // Chat
@@ -464,33 +536,35 @@ io.on("connection", (socket) => {
       userId: msg.userId,
       message: msg.message,
       createdAt: msg.createdAt,
-      user: user ? {
-        id: user.id,
-        name: user.name,
-        profilePic: user.profilePic,
-      } : undefined,
+      user: user
+        ? {
+            id: user.id,
+            name: user.name,
+            profilePic: user.profilePic,
+          }
+        : undefined,
     });
   });
 
   socket.on("queue-add", async (payload) => {
     await addToQueue(io, payload);
-    
+
     // หาชื่อ user และชื่อเพลง
     const [user] = await dbClient.query.users.findMany({
       where: eq(users.id, payload.userId),
       limit: 1,
     });
-    
+
     const [song] = await dbClient
       .select()
       .from(songs)
       .where(eq(songs.id, payload.songId))
       .limit(1);
-    
+
     if (user && song) {
       await sendSystemMessage(
-        io, 
-        payload.roomId, 
+        io,
+        payload.roomId,
         `${user.name} added "${song.title}" to queue`
       );
     }
@@ -499,27 +573,27 @@ io.on("connection", (socket) => {
   socket.on("play-song", (payload) => playSong(io, payload));
   socket.on("queue-remove", async (payload) => {
     console.log("🔴 queue-remove event received from", socket.id, payload);
-    
+
     // หาข้อมูลก่อนลบ
     const [queueItem] = await dbClient
       .select({
         song: {
-          title: songs.title
-        }
+          title: songs.title,
+        },
       })
       .from(roomQueue)
       .leftJoin(songs, eq(roomQueue.songId, songs.id))
       .where(eq(roomQueue.id, payload.queueId))
       .limit(1);
-    
+
     const socketUserId = (socket as any).userId;
     const [user] = await dbClient.query.users.findMany({
       where: eq(users.id, socketUserId),
       limit: 1,
     });
-    
+
     await removeFromQueue(io, payload);
-    
+
     // ส่ง system message
     if (user && queueItem?.song) {
       await sendSystemMessage(
@@ -530,25 +604,25 @@ io.on("connection", (socket) => {
     }
   });
 
-socket.on("song-ended", (payload) => {
-  console.log("⏹️ song-ended event received from", socket.id);
-  const roomId = typeof payload === 'string' ? payload : payload?.roomId;
-  if (roomId) {
-    playNextSong(io, roomId);
-  }
-});
+  socket.on("song-ended", (payload) => {
+    console.log("⏹️ song-ended event received from", socket.id);
+    const roomId = typeof payload === "string" ? payload : payload?.roomId;
+    if (roomId) {
+      playNextSong(io, roomId);
+    }
+  });
 
   socket.on("skip-song", async (payload) => {
     console.log("⏭️ skip-song event received from", socket.id, payload);
-    
+
     // 🆕 หาชื่อเพลงที่กำลังเล่น
     const [listening] = await dbClient
       .select({
-        currentSongId: listeningRooms.currentSongId
+        currentSongId: listeningRooms.currentSongId,
       })
       .from(listeningRooms)
       .where(eq(listeningRooms.id, payload.roomId));
-    
+
     let songTitle = "current song";
     if (listening?.currentSongId) {
       const [song] = await dbClient
@@ -558,16 +632,16 @@ socket.on("song-ended", (payload) => {
         .limit(1);
       if (song) songTitle = `"${song.title}"`;
     }
-    
+
     const socketUserId = (socket as any).userId;
     const [user] = await dbClient.query.users.findMany({
       where: eq(users.id, socketUserId),
       limit: 1,
     });
-    
+
     if (payload.roomId) {
       await playNextSong(io, payload.roomId);
-      
+
       // 🆕 ส่ง system message
       if (user) {
         await sendSystemMessage(
@@ -593,12 +667,14 @@ socket.on("song-ended", (payload) => {
       limit: 1,
     });
 
-
     socket.leave(roomId);
 
     // ลบจาก room_members
-    await dbClient.delete(roomMembers)
-      .where(and(eq(roomMembers.roomId, roomId), eq(roomMembers.userId, userId)));
+    await dbClient
+      .delete(roomMembers)
+      .where(
+        and(eq(roomMembers.roomId, roomId), eq(roomMembers.userId, userId))
+      );
 
     const newCount = io.sockets.adapter.rooms.get(roomId)?.size || 0;
 
@@ -606,23 +682,27 @@ socket.on("song-ended", (payload) => {
     if (user) {
       await sendSystemMessage(io, roomId, `${user.name} left the room`);
     }
-    console.log(`User ${userId} (${socket.id}) left room ${roomId} (${newCount} members)`);
+    console.log(
+      `User ${userId} (${socket.id}) left room ${roomId} (${newCount} members)`
+    );
   });
-
 
   // Leave room (ตอน disconnect)
   socket.on("disconnecting", async () => {
     for (const roomId of socket.rooms) {
       if (roomId !== socket.id) {
         // ลบออกจาก DB ด้วย
-        await dbClient.delete(roomMembers)
+        await dbClient
+          .delete(roomMembers)
           .where(eq(roomMembers.roomId, roomId));
 
         const room = io.sockets.adapter.rooms.get(roomId);
         const newCount = room ? room.size - 1 : 0;
 
         io.emit("room-count-updated", { roomId, count: newCount });
-        console.log(`User ${socket.id} disconnected from room ${roomId} (${newCount} members)`);
+        console.log(
+          `User ${socket.id} disconnected from room ${roomId} (${newCount} members)`
+        );
       }
     }
   });
@@ -640,7 +720,7 @@ function sanitizeSong(song: any) {
     title: song.title,
     artist: song.artist,
     coverUrl: song.coverUrl,
-    duration: song.duration
+    duration: song.duration,
   };
 }
 
@@ -649,7 +729,7 @@ function sanitizeQueueItem(item: any) {
     id: item.id,
     queueIndex: item.queueIndex,
     queuedBy: item.queuedBy,
-    song: sanitizeSong(item.song)
+    song: sanitizeSong(item.song),
   };
 }
 
@@ -660,18 +740,18 @@ async function sendSystemMessage(io: any, roomId: string, message: string) {
     userName: "System",
     message: message,
     isSystem: true,
-    createdAt: new Date()
+    createdAt: new Date(),
   };
-  
+
   // ส่งไปยัง client ทันที
   io.to(roomId).emit("chat-message", systemMsg);
-  
+
   // บันทึกลง database (optional)
   try {
     await dbClient.insert(roomMessages).values({
       roomId,
       userId: "system",
-      message: message
+      message: message,
     });
   } catch (err) {
     console.error("Failed to save system message:", err);
@@ -697,6 +777,12 @@ app.use(jsonErrorHandler);
 
 // ----------------- Start Server -----------------
 const PORT = process.env.PORT || 3000;
+
+app.get("/", (req, res) => {
+  res.send("Hello, this is Lukchang vibe backend server!");
+});
+
 server.listen(PORT, () => {
   debug(`Listening on port ${PORT}: http://localhost:${PORT}`);
+  console.log(`Listening on port ${PORT}: http://localhost:${PORT}`);
 });
