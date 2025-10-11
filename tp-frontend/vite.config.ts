@@ -9,10 +9,12 @@ export default defineConfig({
     proxy: {
       "/api": {
         target: "http://localhost:3000",
+
         changeOrigin: true,
         secure: false,
         ws: true,
-        rewrite: (path) => path.replace(/^\/api/, ""),
+        rewrite: (path) => path,
+        // .replace(/^\/api/, ""),
         configure: (proxy, _options) => {
           proxy.on("error", (err, _req, _res) => {
             console.log("proxy error", err);

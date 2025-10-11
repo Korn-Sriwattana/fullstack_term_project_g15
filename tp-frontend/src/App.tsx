@@ -1,6 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 import { useState } from "react";
-import Home from "./pages/Home";  
+import Home from "./pages/Home";
 import LokchangRooms from "./pages/LokchangRooms";
 import LikedSongs from "./pages/LikedSongs";
 import Playlist from "./pages/Playlist";
@@ -10,10 +10,11 @@ import Topbar from "./components/Topbar";
 import "./assets/styles/App.css";
 import { useUser } from "./components/userContext";
 import MusicPlayer from "./components/MusicPlayer";
+import Profile from "./pages/Profile";
 
 export default function App() {
   const { user } = useUser();
-  
+
   // Global queue state
   const [globalQueue, setGlobalQueue] = useState<any[]>([]);
   const [globalCurrentIndex, setGlobalCurrentIndex] = useState(0);
@@ -31,27 +32,24 @@ export default function App() {
         {/* main */}
         <main className="app-main">
           <Routes>
-            <Route 
-              path="/" 
+            <Route
+              path="/"
               element={
-                <Home 
-                  queue={globalQueue} 
-                  currentIndex={globalCurrentIndex} 
-                />
-              } 
-            />  
+                <Home queue={globalQueue} currentIndex={globalCurrentIndex} />
+              }
+            />
             <Route path="/signin" element={<Signin />} />
             <Route path="/likedsongs" element={<LikedSongs />} />
             <Route path="/playlist" element={<Playlist />} />
             <Route path="/lokchangrooms" element={<LokchangRooms />} />
+            <Route path="/profile" element={<Profile />} />
           </Routes>
         </main>
-
       </div>
-      
+
       {/* Global Music Player */}
       {user?.id && (
-        <MusicPlayer 
+        <MusicPlayer
           userId={user.id}
           onQueueUpdate={setGlobalQueue}
           onCurrentIndexUpdate={setGlobalCurrentIndex}
