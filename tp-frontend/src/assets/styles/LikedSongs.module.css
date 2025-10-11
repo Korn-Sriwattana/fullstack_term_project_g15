@@ -1,4 +1,3 @@
-/* Layout */
 .layout { width: 100%; display: flex; justify-content: center; }
 .container,
 .container * {
@@ -17,7 +16,7 @@
   align-items: flex-start;
 }
 
-/* Title (บนซ้าย) */
+/* Title  */
 .title {
   font-size: clamp(28px, 4vw, 40px);
   font-weight: 800;
@@ -45,7 +44,7 @@
   box-shadow: none;
 }
 
-.infoBox { flex: 1; padding-bottom: 4px; }
+.infoBox { flex: 1; padding-bottom: 4px; margin-bottom: 45px;}
 .playlistLabel { font: 600 12px/1 Inter, system-ui, sans-serif; text-transform: uppercase; color: #6b7280; margin-bottom: 6px; }
 .subInfo { font-size: 14px; color: #6b7280; font-weight: 600; }
 
@@ -93,13 +92,69 @@
 .btnSm { padding: 6px 12px; font-size: 13px; }
 
 /* bt */
-.controls { display: flex; gap: 12px; align-items: center; padding: 16px 0; border-bottom: 1px solid #e5e5e5; }
-.playAllBtn, .shuffleBtn {
-  padding: 10px 20px; border-radius: 999px; font-weight: 700; font-size: 15px;
-  display: flex; align-items: center; gap: 8px; cursor: pointer;
+
+.controls {
+  display: flex;
+  gap: 16px;                  
+  margin-top: -78px;
+  margin-left: 200px !important;
+  margin-bottom: 30px;      
+  padding: 0;                  
 }
-.playAllBtn { background: #1DB954; color: #fff; border: 0; }
-.shuffleBtn { background: transparent; color: #6b7280; border: 1px solid #d1d1d1; }
+
+.playAllBtn,
+.shuffleBtn {
+  font-weight: 600;
+  font-size: 14px;
+  padding: 10px 28px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.playAllBtn {
+  background-color: #EDEEF0;   
+  color: #8E2D97;
+}
+
+.playAllBtn:hover {
+  background-color: #dfe1e2;
+}
+
+.shuffleBtn {
+  background-color: #f3f3f3;
+  color: #8E2D97;
+}
+
+.shuffleBtn:hover {
+  background-color: #e5e5e5;
+}
+
 .playIcon { font-size: 18px; }
 .shuffleIcon { font-size: 16px; }
 
+/* icon play */
+.playIcon {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  background: url("/src/assets/images/play.png") no-repeat center center;
+  background-size: contain;
+  font-size: 0;
+  vertical-align: middle;
+  padding-right: 30px;
+
+}
+
+/* icon shuffle */
+.shuffleIcon {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  background: url("/src/assets/images/shuffle.png") no-repeat center center;
+  background-size: contain;
+  font-size: 0; 
+  vertical-align: middle;
+  padding-right: 40px;
+}

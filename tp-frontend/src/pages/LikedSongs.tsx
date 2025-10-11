@@ -159,7 +159,7 @@ export default function LikedSongs() {
               onClick={handlePlayAll}
               className={`${styles.playAllBtn}`}
             >
-              <span className={styles.playIcon}>▶️</span>
+              <span className={styles.playIcon}>▶️  </span>
               Play All
             </button>
 
@@ -167,7 +167,7 @@ export default function LikedSongs() {
               onClick={handleShuffle}
               className={styles.shuffleBtn}
             >
-              <span className={styles.shuffleIcon}>🔀</span>
+              <span className={styles.shuffleIcon}>🔀  </span>
               Shuffle
             </button>
           </div>
