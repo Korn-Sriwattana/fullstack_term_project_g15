@@ -1,10 +1,6 @@
 import { useState, useEffect } from "react";
 import { useUser } from "../components/userContext";
-
-//css
 import styles from "../assets/styles/LikedSongs.module.css"; 
-
-import emptyImg from "../assets/images/empty/empty-box.png";
 import type { Song } from "../types/song.ts";
 import LikeButton from "../components/LikeButton.tsx";
 import { useLikedSongs } from "../components/LikedSongsContext.tsx";
@@ -25,6 +21,9 @@ export default function LikedSongs() {
   const [likedSongs, setLikedSongs] = useState<LikedSong[]>([]);
   const [loading, setLoading] = useState(true);
   const { likedSongIds, refreshLikedSongs } = useLikedSongs();
+
+  const [sortBy, setSortBy] = useState<'dateAdded' | 'title' | 'artist' | 'duration'>('dateAdded');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   useEffect(() => {
     if (userId) {
@@ -54,7 +53,8 @@ export default function LikedSongs() {
     }
 
     if ((window as any).musicPlayer) {
-      const [firstSong, ...restSongs] = likedSongs.map(item => item.song);
+      const songsToPlay = sortedLikedSongs;
+      const [firstSong, ...restSongs] = songsToPlay.map(item => item.song);
       
       await (window as any).musicPlayer.playSong(firstSong);
       
@@ -62,7 +62,7 @@ export default function LikedSongs() {
         await (window as any).musicPlayer.addToQueue(song);
       }
       
-      alert(`Playing ${likedSongs.length} liked songs`);
+      alert(`Playing ${songsToPlay.length} liked songs`);
     }
   };
 
@@ -73,7 +73,8 @@ export default function LikedSongs() {
     }
 
     if ((window as any).musicPlayer) {
-      const shuffled = [...likedSongs].sort(() => Math.random() - 0.5);
+      const songsToShuffle = sortedLikedSongs;
+      const shuffled = [...songsToShuffle].sort(() => Math.random() - 0.5);
       const [firstSong, ...restSongs] = shuffled.map(item => item.song);
       
       await (window as any).musicPlayer.playSong(firstSong);
@@ -82,7 +83,7 @@ export default function LikedSongs() {
         await (window as any).musicPlayer.addToQueue(song);
       }
       
-      alert(`Shuffling ${likedSongs.length} liked songs`);
+      alert(`Shuffling ${shuffled.length} liked songs`);
     }
   };
 
@@ -125,6 +126,37 @@ export default function LikedSongs() {
     });
   };
 
+  const sortedLikedSongs = [...likedSongs].sort((a, b) => {
+    let comparison = 0;
+    
+    switch (sortBy) {
+      case 'title':
+        comparison = (a.song.title || '').localeCompare(b.song.title || '');
+        break;
+      case 'artist':
+        comparison = (a.song.artist || '').localeCompare(b.song.artist || '');
+        break;
+      case 'duration':
+        comparison = (a.song.duration || 0) - (b.song.duration || 0);
+        break;
+      case 'dateAdded':
+      default:
+        comparison = new Date(a.likedAt).getTime() - new Date(b.likedAt).getTime();
+        break;
+    }
+    
+    return sortOrder === 'asc' ? comparison : -comparison;
+  });
+
+  const handleSortChange = (newSortBy: 'dateAdded' | 'title' | 'artist' | 'duration') => {
+    if (sortBy === newSortBy) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(newSortBy);
+      setSortOrder('asc');
+    }
+  };
+
   if (!userId) {
     return (
       <div className={styles.container}>
@@ -137,17 +169,15 @@ export default function LikedSongs() {
     <div className={styles.container}>
       <div className={styles.headerWrap}>
         <div className={styles.headerRow}>
-          <div className={styles.coverBox}>
-            💜
-          </div>
-          <div className={styles.infoBox}>
+          <div className={styles.cover}>💜</div>
+          <div className={styles.info}>
             <div className={styles.playlistLabel}>
               PLAYLIST
             </div>
-            <h1 className={styles.title}>
+            <h1 className={styles.titleHeading}>
               Liked Songs
             </h1>
-            <div className={styles.subInfo}>
+            <div className={styles.subtitle}>
               {user.name} • {likedSongs.length} songs
             </div>
           </div>
@@ -157,17 +187,35 @@ export default function LikedSongs() {
           <div className={styles.controls}>
             <button 
               onClick={handlePlayAll}
-              className={`${styles.playAllBtn}`}
+              className={styles.playAllBtn}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.04)';
+                e.currentTarget.style.background = '#1ed760';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.background = '#1DB954';
+              }}
             >
-              <span className={styles.playIcon}>▶️  </span>
+              <span className={styles.playIcon}>▶️</span>
               Play All
             </button>
 
             <button 
               onClick={handleShuffle}
               className={styles.shuffleBtn}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.04)';
+                e.currentTarget.style.borderColor = '#000';
+                e.currentTarget.style.color = '#000';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.borderColor = '#d1d1d1';
+                e.currentTarget.style.color = '#666';
+              }}
             >
-              <span className={styles.shuffleIcon}>🔀  </span>
+              <span className={styles.shuffleIcon}>🔀</span>
               Shuffle
             </button>
           </div>
@@ -176,76 +224,109 @@ export default function LikedSongs() {
 
       <section className={styles.section}>
         {loading ? (
-          <div className={styles.loading}>
+          <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
             Loading...
           </div>
         ) : likedSongs.length > 0 ? (
-          <div className={styles.resultsList}>
-            {likedSongs.map((item, index) => (
-              <div
-                key={item.id}
-                className={`${styles.resultItem} ${styles.resultRow}`}
+          <>
+            <div className={styles.sortBar}>
+              <span className={styles.sortLabel}>Sort by:</span>
+              <button
+                onClick={() => handleSortChange('dateAdded')}
+                className={`${styles.sortBtn} ${sortBy === 'dateAdded' ? styles.sortBtnActive : ''}`}
               >
-                <div className={styles.indexCol}>
-                  {index + 1}
+                Date Added {sortBy === 'dateAdded' && (sortOrder === 'asc' ? '↑' : '↓')}
+              </button>
+              <button
+                onClick={() => handleSortChange('title')}
+                className={`${styles.sortBtn} ${sortBy === 'title' ? styles.sortBtnActive : ''}`}
+              >
+                Title {sortBy === 'title' && (sortOrder === 'asc' ? '↑' : '↓')}
+              </button>
+              <button
+                onClick={() => handleSortChange('artist')}
+                className={`${styles.sortBtn} ${sortBy === 'artist' ? styles.sortBtnActive : ''}`}
+              >
+                Artist {sortBy === 'artist' && (sortOrder === 'asc' ? '↑' : '↓')}
+              </button>
+              <button
+                onClick={() => handleSortChange('duration')}
+                className={`${styles.sortBtn} ${sortBy === 'duration' ? styles.sortBtnActive : ''}`}
+              >
+                Duration {sortBy === 'duration' && (sortOrder === 'asc' ? '↑' : '↓')}
+              </button>
+            </div>
+
+            <div className={styles.resultsList}>
+              {sortedLikedSongs.map((item, index) => (
+                <div
+                  key={item.id}
+                  className={styles.resultItem}
+                >
+                  <div className={styles.indexNum}>
+                    {index + 1}
+                  </div>
+                  
+                  {item.song.coverUrl && (
+                    <img 
+                      src={item.song.coverUrl} 
+                      alt={item.song.title}
+                      className={styles.resultCover}
+                    />
+                  )}
+                  
+                  <div className={styles.resultInfo} style={{ flex: 1 }}>
+                    <div className={styles.resultTitle}>{item.song.title}</div>
+                    <div className={styles.resultArtist}>{item.song.artist}</div>
+                  </div>
+                  
+                  <div className={styles.dateText}>
+                    {formatDate(item.likedAt)}
+                  </div>
+                  
+                  <div className={styles.resultDuration}>
+                    {formatTime(item.song.duration)}
+                  </div>
+                  
+                  <div style={{ display: 'flex', gap: '5px' }}>
+                    <button 
+                      onClick={() => handlePlaySong(item.song)}
+                      className={styles.buttonPrimary}
+                      style={{ padding: '6px 12px', fontSize: '13px' }}
+                    >
+                      Play
+                    </button>
+                    <button 
+                      onClick={() => handleAddToQueue(item.song)}
+                      className={styles.buttonSecondary}
+                      style={{ padding: '6px 12px', fontSize: '13px' }}
+                    >
+                      + Queue
+                    </button>
+                    <AddToPlaylistButton 
+                      userId={userId} 
+                      song={item.song}
+                      iconOnly={false}
+                      buttonClassName={styles.buttonSecondary}
+                      buttonStyle={{ padding: '6px 12px', fontSize: '13px' }}
+                      onSuccess={async () => {
+                        console.log('Song added to playlist');
+                      }}
+                    />
+                    <LikeButton 
+                      userId={userId!} 
+                      songId={item.song.id}
+                      onLikeChange={(isLiked) => {
+                        if (!isLiked) {
+                          refreshLikedSongs(userId!);
+                        }
+                      }}
+                    />
+                  </div>
                 </div>
-                
-                {item.song.coverUrl && (
-                  <img 
-                    src={item.song.coverUrl} 
-                    alt={item.song.title}
-                    className={styles.resultCover}
-                  />
-                )}
-                
-                <div className={`${styles.resultInfo} ${styles.resultInfoGrow}`}>
-                  <div className={styles.resultTitle}>{item.song.title}</div>
-                  <div className={styles.resultArtist}>{item.song.artist}</div>
-                </div>
-                
-                <div className={styles.likedDate}>
-                  {formatDate(item.likedAt)}
-                </div>
-                
-                <div className={styles.resultDuration}>
-                  {formatTime(item.song.duration)}
-                </div>
-                
-                <div className={styles.actionButtons}>
-                  <button 
-                    onClick={() => handlePlaySong(item.song)}
-                    className={`${styles.buttonPrimary} ${styles.btnSm}`}
-                  >
-                    Play
-                  </button>
-                  <button 
-                    onClick={() => handleAddToQueue(item.song)}
-                    className={`${styles.buttonSecondary} ${styles.btnSm}`}
-                  >
-                    + Queue
-                  </button>
-                  <AddToPlaylistButton 
-                    userId={userId} 
-                    song={item.song}
-                    iconOnly={false}
-                    buttonClassName={`${styles.buttonSecondary} ${styles.btnSm}`}
-                    onSuccess={async () => {
-                      console.log('Song added to playlist');
-                    }}
-                  />
-                  <LikeButton 
-                    userId={userId!} 
-                    songId={item.song.id}
-                    onLikeChange={(isLiked) => {
-                      if (!isLiked) {
-                        refreshLikedSongs(userId!);
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          </>
         ) : ( 
           <section className={styles.emptyWrap}>
             <h2 className={styles.emptyTitle}>You haven't liked any songs yet</h2>

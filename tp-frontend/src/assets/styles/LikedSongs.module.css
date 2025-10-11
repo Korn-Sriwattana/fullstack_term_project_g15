@@ -1,98 +1,156 @@
-.layout { width: 100%; display: flex; justify-content: center; }
-.container,
-.container * {
-  font-family: "Inter Tight", Inter, system-ui, -apple-system, Segoe UI,
-    Roboto, Arial, "Helvetica Neue", sans-serif !important;
-}
-
-.content {
+.container {
   width: 100%;
-  max-width: 980px;
-  margin: 0 auto;
-  padding: 24px 24px 0;
-  box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
 }
 
-/* Title  */
-.title {
-  font-size: clamp(28px, 4vw, 40px);
-  font-weight: 800;
-  line-height: 1.05;
+.container {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 45px 20px 0px !important; 
+  display: flex;
+  flex-direction: column;
+}
+
+.resultsList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.resultItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f3f3f3;
+}
+
+.resultCover {
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.resultInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.resultTitle {
+  font-size: 14px;
+  font-weight: 600;
   color: #0f172a;
-  text-align: left;
-  margin: 0 0 8px;
 }
 
-/* load +error */
-.loading { color: #6b7280; font-size: 14px; align-self: flex-start; }
-.error   { color: #ef4444; font-size: 14px; align-self: flex-start; margin-top: -6px; }
+.resultArtist {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.resultDuration {
+  font-size: 12px;
+  color: #888;
+  min-width: 50px;
+  text-align: right;
+}
+
+.buttonPrimary {
+  padding: 10px 16px;
+  background: #111827;
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.buttonSecondary {
+  padding: 10px 16px;
+  background: #fff;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.emptyWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  color: #1f2937;
+}
+
+.emptyTitle {
+  margin-top: 100px;
+  margin-left: 350px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: -5px;
+}
+
+.emptyHint {
+  font-size: 14px;
+  margin-left: 300px;
+  color: #8E2D97;
+  line-height: 1.5;
+}
 
 /* Header block  */
 .headerWrap { width: 100%; margin-bottom: 8px; }
-.headerRow  { display: flex; align-items: center; gap: 24px; margin-bottom: 30px; margin-top: 35px; }
+.headerRow  { display: flex; align-items: center; gap: 24px; margin-bottom: 30px; margin-top: 10px; }
 
-.coverBox {
-  width: 180px; height: 180px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+.cover {
+  width: 180px;
+  height: 180px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border-radius: 8px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 80px;
   flex-shrink: 0;
-  box-shadow: none;
 }
 
-.infoBox { flex: 1; padding-bottom: 4px; margin-bottom: 45px;}
-.playlistLabel { font: 600 12px/1 Inter, system-ui, sans-serif; text-transform: uppercase; color: #6b7280; margin-bottom: 6px; }
-.subInfo { font-size: 14px; color: #6b7280; font-weight: 600; }
-
-/* เส้นคั่นหัวตาราง */
-.section { width: 100%; border-top: 1px solid #e5e7eb; padding-top: 12px; }
-
-/* Empty state */
-.emptyWrap {
-  width: 100%;
-  min-height: 30vh;
-  margin-top: 24px;
-  margin-right: 90px;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+.info {
+  flex: 1;
+  padding-bottom: 8px;
 }
-.emptyImg   { width: 100px; height: auto; object-fit: contain; margin-bottom: 12px; }
-.emptyTitle { font-size: 16px; font-weight: 700; color: #1f2937; margin: 6px 0 6px; }
-.emptyHint  { font-size: 12px; color: #7c3aed; }
 
-/* list song + line */
-.resultsList { display: flex; flex-direction: column; gap: 0; }
-.resultItem {
-  padding: 12px 0;
-  background: transparent;
-  border: 0;
-  border-bottom: 1px solid #f1f5f9;
-  border-radius: 0;
-  display: flex; align-items: center; gap: 12px;
-  cursor: pointer;
+.playlistLabel {
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-bottom: 5px !important;
+  margin-top: -65px;
+  letter-spacing: .06em;
+  color: #111;
 }
-.resultItem:hover { background: #f9fafb; }
-.resultItemActive { background: #f3f4f6; }
 
-.resultCover  { width: 48px; height: 48px; border-radius: 4px; object-fit: cover; }
-.resultInfo   { flex: 1; }
-.resultTitle  { font-weight: 600; margin-bottom: 2px; color: #111827; }
-.resultArtist { font-size: 13px; color: #6b7280; }
-.resultDuration { font-size: 12px; color: #6b7280; }
+.titleHeading {
+  font-size: 45px;
+  font-weight: 80px;
+  color: #0f172a;
+}
 
-/* คอลัมน์ช่วย (ถ้าใช้ในแถวรายการ) */
-.resultRow { display: flex; align-items: center; gap: 10px; }
-.indexCol  { min-width: 30px; text-align: center; color: #6b7280; font-size: 14px; }
-.resultInfoGrow { flex: 1; }
-.likedDate { font-size: 12px; color: #6b7280; min-width: 100px; text-align: right; }
-.actionButtons { display: flex; gap: 6px; }
-.btnSm { padding: 6px 12px; font-size: 13px; }
+.subtitle {
+  font-size: 14px;
+  color: #666;
+  font-weight: 500px;
+  margin-top: -15px !important;
+  margin-bottom: 10px;
+}
 
-/* bt */
 
+/*bt*/
 .controls {
   display: flex;
   gap: 16px;                  
@@ -114,8 +172,8 @@
 }
 
 .playAllBtn {
-  background-color: #EDEEF0;   
-  color: #8E2D97;
+  background-color: #EDEEF0 !important;   
+  color: #8E2D97 !important;
 }
 
 .playAllBtn:hover {
@@ -123,8 +181,8 @@
 }
 
 .shuffleBtn {
-  background-color: #f3f3f3;
-  color: #8E2D97;
+  background-color: #EDEEF0;
+  color: #8E2D97 !important;
 }
 
 .shuffleBtn:hover {
@@ -157,4 +215,46 @@
   font-size: 0; 
   vertical-align: middle;
   padding-right: 40px;
+}
+
+
+/*sort*/
+.sortBar {
+  display: flex;
+  gap: 8px;
+  padding: 12px 0;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.sortLabel {
+  font-size: 13px;
+  color: #666;
+  margin-right: 8px;
+  line-height: 28px;
+}
+
+.sortBtn {
+  padding: 4px 12px;
+  font-size: 13px;
+  background: #fff;
+  color: #666;
+  border-radius: 16px;
+  cursor: pointer;
+  font-weight: 400;
+}
+
+.indexNum {
+  min-width: 30px;
+  text-align: center;
+  color: #666;
+  font-size: 14px;
+}
+
+.dateText {
+  font-size: 12px;
+  color: #888;
+  min-width: 100px;
+  text-align: left;
 }
