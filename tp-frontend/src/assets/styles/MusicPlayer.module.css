@@ -137,14 +137,32 @@
   color: #6b7280;
   border-radius: 6px;
   cursor: pointer;
-  outline: none !important;
-  box-shadow: none !important;
-  border-color: transparent !important;
+
+  transition: background-color .15s ease, color .15s ease, transform .08s ease, box-shadow .15s ease;
+
 }
 
-.loopBtn:disabled { cursor: not-allowed; opacity: .45; }
-.loopActive { background: rgba(0,0,0,0.06); color: #111827; }
+.loopBtn:hover{
+  background: rgba(0,0,0,.04);
+}
 
+.loopBtn:active{
+  transform: scale(.96);
+}
+
+
+.loopBtn.loopActive {
+  background: #8E2D97(142, 45, 151, 0.08); 
+  color: #8E2D97; 
+  transform: scale(1.05);
+}
+
+.loopBtn.loopActive img {
+  filter: brightness(0) saturate(100%) invert(21%) sepia(81%) saturate(1870%) hue-rotate(282deg) brightness(87%) contrast(97%) !important;
+}
+
+
+/*volume*/
 .volume {
   display: flex;
   align-items: center;
