@@ -5,6 +5,9 @@ import LikeButton from "../components/LikeButton";
 import AddToPlaylistButton from "../components/AddToPlaylist";
 
 import styles from "../assets/styles/Playlist.module.css";
+import modalStyles from "../assets/styles/CreatePlaylistModal.module.css";
+
+
 import searchIcon from "../assets/images/search-icon.png";
 import emptyImg from "../assets/images/empty/empty-box.png";
 
@@ -872,11 +875,11 @@ export default function Playlist() {
 
       {/* Create Playlist Modal */}
       {showCreateModal && (
-        <div className={styles.modalOverlay} onClick={() => setShowCreateModal(false)}>
-          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-            <h2 className={styles.modalTitle}>Create New Playlist</h2>
+        <div className={modalStyles.modalOverlay} onClick={() => setShowCreateModal(false)}>
+          <div className={modalStyles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <h2 className={modalStyles.modalTitle}>Create New Playlist</h2>
             
-            <div className={styles.coverUploadSection}>
+            <div className={modalStyles.coverUploadSection}>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -885,11 +888,11 @@ export default function Playlist() {
                 style={{ display: 'none' }}
               />
               
-              <div className={styles.coverUploadBox} onClick={() => fileInputRef.current?.click()}>
+              <div className={modalStyles.coverUploadBox} onClick={() => fileInputRef.current?.click()}>
                 {coverPreview ? (
-                  <img src={coverPreview} alt="Preview" className={styles.coverPreview} />
+                  <img src={coverPreview} alt="Preview" className={modalStyles.coverPreview} />
                 ) : (
-                  <div className={styles.coverUploadPlaceholder}>
+                  <div className={modalStyles.coverUploadPlaceholder}>
                     <div>
                       <div style={{ fontSize: '32px' }}>📷</div>
                       <div style={{ fontSize: '12px', marginTop: '4px' }}>
@@ -899,13 +902,13 @@ export default function Playlist() {
                   </div>
                 )}
               </div>
-              <small className={styles.coverUploadHint}>
+              <small className={modalStyles.coverUploadHint}>
                 Click to upload cover image (Max 5MB)
               </small>
             </div>
 
-            <div className={styles.formGroup}>
-              <label className={styles.formLabel}>
+            <div className={modalStyles.formGroup}>
+              <label className={modalStyles.formLabel}>
                 Playlist Name *
               </label>
               <input
@@ -913,13 +916,13 @@ export default function Playlist() {
                 placeholder="My Awesome Playlist"
                 value={newPlaylistName}
                 onChange={(e) => setNewPlaylistName(e.target.value)}
-                className={styles.formInput}
+                className={modalStyles.formInput}
                 autoFocus
               />
             </div>
 
-            <div className={styles.formGroup}>
-              <label className={styles.formLabel}>
+            <div className={modalStyles.formGroup}>
+              <label className={modalStyles.formLabel}>
                 Description (optional)
               </label>
               <textarea
@@ -927,30 +930,30 @@ export default function Playlist() {
                 value={newPlaylistDesc}
                 onChange={(e) => setNewPlaylistDesc(e.target.value)}
                 rows={3}
-                className={styles.formTextarea}
+                className={modalStyles.formTextarea}
               />
             </div>
 
-            <div className={styles.formGroup}>
-              <label className={styles.formLabel}>
+            <div className={modalStyles.formGroup}>
+              <label className={modalStyles.formLabel}>
                 Privacy
               </label>
               <select
                 value={newPlaylistIsPublic ? "public" : "private"}
                 onChange={(e) => setNewPlaylistIsPublic(e.target.value === "public")}
-                className={styles.formSelect}
+                className={modalStyles.formSelect}
               >
                 <option value="public">🌐 Public</option>
                 <option value="private">🔒 Private</option>
               </select>
-              <small className={styles.privacyHint}>
+              <small className={modalStyles.privacyHint}>
                 {newPlaylistIsPublic 
                   ? 'This playlist will appear in your profile and be accessible to others' 
                   : 'Only you can access this playlist'}
               </small>
             </div>
 
-            <div className={styles.modalActions}>
+            <div className={modalStyles.modalActions}>
               <button
                 onClick={() => {
                   setShowCreateModal(false);
@@ -960,7 +963,7 @@ export default function Playlist() {
                   setNewPlaylistCoverUrl("");
                   setCoverPreview(null);
                 }}
-                className={styles.buttonSecondary}
+                className={modalStyles.buttonSecondary}
                 style={{ padding: '10px 20px' }}
               >
                 Cancel
@@ -968,7 +971,7 @@ export default function Playlist() {
               <button
                 onClick={handleCreatePlaylist}
                 disabled={uploadingCover}
-                className={styles.buttonPrimary}
+                className={modalStyles.buttonPrimary}
                 style={{ 
                   padding: '10px 20px',
                   opacity: uploadingCover ? 0.5 : 1,
@@ -981,6 +984,8 @@ export default function Playlist() {
           </div>
         </div>
       )}
+
+
       {/* Toast Notification */}
       {showToast && (
         <div style={{
