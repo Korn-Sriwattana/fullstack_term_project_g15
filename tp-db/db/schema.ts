@@ -53,11 +53,12 @@ export const playlistSongs = pgTable("playlist_songs", {
   playlistId: uuid("playlist_id").notNull().references(() => playlists.id, { onDelete: "cascade" }),
   songId: uuid("song_id").notNull().references(() => songs.id, { onDelete: "cascade" }),
   addedAt: timestamp("added_at").defaultNow().notNull(),
+  customOrder: integer("custom_order"),
 }, (t) => ({
   plSongUk: uniqueIndex("playlist_songs_playlist_song_uk").on(t.playlistId, t.songId),
   plAddedIdx: index("playlist_songs_pl_added_idx").on(t.playlistId, t.addedAt),
+  plCustomOrderIdx: index("playlist_songs_custom_order_idx").on(t.playlistId, t.customOrder),
 }));
-
 
 /* LISTENING_ROOMS */
 export const listeningRooms = pgTable("listening_rooms", {
