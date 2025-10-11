@@ -123,16 +123,16 @@
 
 /*show public room*/
 .publicBox {
-  background-color: #282828;
-  border-radius: 12px;
+  background-color: #5C2D7A;
+  border-radius: 0px;
   padding: 24px;
 }
 
 .publicTitle {
   margin: 0 0 16px 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: white;
+  font-size: 30px;
+  font-weight: 700;
+  color: #ffffff;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -144,7 +144,7 @@
 }
 
 .publicItem {
-  background-color: #3e3e3e;
+  background-color: #F5F5F5;
   border-radius: 8px;
   padding: 16px;
   display: flex;
@@ -154,27 +154,24 @@
   transition: all 0.2s;
   cursor: pointer;
 }
-.publicItem:hover {
-  background-color: #4a4a4a;
-}
 
 .publicInfo {
   flex: 1;
 }
 .publicName {
-  font-size: 16px;
+  font-size: 25px;
   font-weight: 600;
-  color: white;
+  color: #000000;
   margin-bottom: 4px;
 }
 .publicDesc {
   font-size: 13px;
-  color: #b3b3b3;
+  color: #4b4949;
   margin-bottom: 8px;
 }
 .publicCount {
   font-size: 12px;
-  color: #1db954;
+  color: #000000;
   font-weight: 500;
 }
 
@@ -184,14 +181,13 @@
   font-weight: 600;
   border: none;
   border-radius: 20px;
-  background-color: #1db954;
+  background-color: #863C9B;
   color: white;
   cursor: pointer;
   transition: all 0.2s;
   white-space: nowrap;
 }
 .publicJoinBtn:hover {
-  background-color: #1ed760;
   transform: scale(1.05);
 }
 
@@ -213,12 +209,13 @@
   font-size: 14px;
 }
 
+/* Current Room Section */
 .currentBox {
-  background-color: #282828;
-  border-radius: 12px;
+  background-color: #f8f8f8;
+  border-radius: 10px;
   padding: 20px;
   margin-bottom: 24px;
-  border: 2px solid #1db954;
+  margin-top: 20px;
 }
 
 .currentRow {
@@ -236,8 +233,8 @@
 
 .currentLabel {
   font-size: 12px;
-  color: #1db954;
-  font-weight: 600;
+  color: #8E2D97;
+  font-weight: 700;
   margin-bottom: 4px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -246,13 +243,13 @@
 .currentName {
   font-size: 20px;
   font-weight: 700;
-  color: white;
+  color: #000000;
   margin-bottom: 8px;
 }
 
 .currentMeta {
   font-size: 14px;
-  color: #b3b3b3;
+  color: #202020;
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
@@ -260,29 +257,32 @@
 
 .inviteCode {
   font-family: monospace;
-  background-color: #3e3e3e;
+  background-color: #E7E7E9;
   padding: 2px 8px;
   border-radius: 4px;
   font-size: 13px;
+  color: #202020;
 }
 
 .leaveBtn {
   padding: 10px 20px;
   font-size: 14px;
   font-weight: 600;
-  border: 1px solid #535353;
+  border: none !important;
   border-radius: 20px;
-  background-color: transparent;
-  color: white;
+  background-color: #E7E7E9;
+  color: #4d4747;
   cursor: pointer;
   transition: all 0.2s;
   white-space: nowrap;
 }
 .leaveBtn:hover {
   background-color: #ff4444;
-  border-color: #ff4444;
+  color: #ffffff;
 }
 
+
+/*popup create room*/
 .modalBackdrop {
   position: fixed;
   top: 0;
@@ -298,12 +298,11 @@
 }
 
 .modalCard {
-  background-color: #282828;
+  background-color: #ffffff;
   border-radius: 16px;
   padding: 32px;
   width: 90%;
   max-width: 500px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   animation: slideIn 0.3s ease-out;
 }
 
@@ -311,60 +310,64 @@
   margin: 0 0 24px 0;
   font-size: 24px;
   font-weight: 700;
-  color: white;
+  color: #000000;
 }
 
 .field {
   margin-bottom: 20px;
+  border-color: none !important;
 }
 .label {
   display: block;
   margin-bottom: 8px;
   font-size: 14px;
   font-weight: 600;
-  color: #b3b3b3;
+  color: #4b3f3f;
 }
 
 .input {
   width: 100%;
   padding: 12px 16px;
   font-size: 16px;
-  background-color: #3e3e3e;
-  border: 1px solid #535353;
+  background-color: #EFEFF1;
   border-radius: 8px;
-  color: white;
+  color: rgb(49, 42, 42);
   outline: none;
   transition: all 0.2s;
 }
 .input:focus {
-  border-color: #1db954;
+  border-color: none !important;
+}
+input:hover {
+  border-color: none !important;
 }
 
 .textarea {
   width: 100%;
   padding: 12px 16px;
   font-size: 16px;
-  background-color: #3e3e3e;
-  border: 1px solid #535353;
+  background-color: #EFEFF1;
+  padding: 10px;
+  position: 20px !important;
+  height: 20px;
   border-radius: 8px;
-  color: white;
+  color: #4b3f3f;
   outline: none;
   resize: vertical;
   font-family: inherit;
   transition: all 0.2s;
 }
 .textarea:focus {
-  border-color: #1db954;
+  border-color: none !important;
 }
 
 .select {
   width: 100%;
   padding: 12px 16px;
   font-size: 16px;
-  background-color: #3e3e3e;
-  border: 1px solid #535353;
+  background-color: #EFEFF1;
   border-radius: 8px;
-  color: white;
+  color: rgb(68, 65, 65);
   cursor: pointer;
   outline: none;
   transition: all 0.2s;
@@ -374,15 +377,13 @@
   background-size: 20px;
   padding-right: 40px;
 }
-.select:focus {
-  border-color: #1db954;
-}
+
 
 .help {
   display: block;
-  margin-top: 8px;
-  font-size: 12px;
-  color: #b3b3b3;
+  margin-top: -8px;
+  font-size: 15px;
+  color: #4b3f3f;
 }
 
 .actionRow {
@@ -397,7 +398,7 @@
   font-weight: 600;
   border: 1px solid #535353;
   border-radius: 24px;
-  background-color: transparent;
+  background-color: #333;
   color: white;
   cursor: pointer;
   transition: all 0.2s;
@@ -427,7 +428,4 @@
   transform: scale(1.05);
 }
 
-@keyframes slideIn {
-  from { opacity: 0; transform: translateY(-20px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
+

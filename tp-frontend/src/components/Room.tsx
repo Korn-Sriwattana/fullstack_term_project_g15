@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+
 import styles from "../assets/styles/community/room.module.css";
 
 interface Props {
@@ -86,7 +87,7 @@ const RoomSection: React.FC<Props> = (props) => {
           {/* Public Rooms Section */}
           <div className={styles.publicBox}>
             <h3 className={styles.publicTitle}>
-              🌍 Public Rooms ({publicRooms.length})
+              Public Rooms ({publicRooms.length})
             </h3>
 
             {publicRooms.length > 0 ? (
@@ -129,7 +130,7 @@ const RoomSection: React.FC<Props> = (props) => {
         </>
       )}
 
-      {/* Current Room Info - แสดงเมื่ออยู่ในห้อง */}
+      {/* Current Room Info - เมื่ออยู่ในห้อง */}
       {roomId && (
         <div className={styles.currentBox}>
           <div className={styles.currentRow}>
@@ -210,13 +211,13 @@ const RoomSection: React.FC<Props> = (props) => {
                 onChange={(e) => setMode(e.target.value as "public" | "private")}
                 className={styles.select}
                 style={{
-                  backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                  backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
                 }}
               >
-                <option value="public" style={{ backgroundColor: "#282828" }}>
+                <option value="public" style={{ backgroundColor: "#ffffffff" }}>
                   🌍 Public
                 </option>
-                <option value="private" style={{ backgroundColor: "#282828" }}>
+                <option value="private" style={{ backgroundColor: "#ffffffff" }}>
                   🔒 Private
                 </option>
               </select>
