@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import styles from "../assets/styles/community/room.module.css";
 
 interface Props {
   roomNameInput: string;
@@ -49,206 +50,64 @@ const RoomSection: React.FC<Props> = (props) => {
   };
 
   return (
-    <section>
+    <section className={styles.section}>
       {/* แสดงเฉพาะตอนยังไม่ได้เข้าห้อง */}
       {!roomId && (
         <>
-          {/* Header with Create Button */}
-          <div style={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center',
-            marginBottom: '1.5rem',
-            padding: '0 0.5rem'
-          }}>
-            <h2 style={{ margin: 0, fontSize: '1.5rem', color: 'white' }}>Join or Create Room</h2>
-            <button 
+          {/*  create + Join */}
+          <div className={styles.actionRow}>
+            <div className={styles.joinRow}>
+              <input
+                type="text"
+                placeholder="Enter Id Room"
+                value={inviteCodeInput}
+                onChange={(e) => setInviteCodeInput(e.target.value)}
+                className={styles.inviteInput}
+              />
+              <button
+                onClick={() => handleJoinRoom()}
+                disabled={!inviteCodeInput.trim()}
+                className={styles.joinBtn}
+              >
+                join
+              </button>
+            </div>
+
+            <button
               onClick={() => setShowCreateRoomModal(true)}
-              style={{
-                padding: '10px 24px',
-                fontSize: '14px',
-                fontWeight: '600',
-                color: 'white',
-                backgroundColor: '#1db954',
-                border: 'none',
-                borderRadius: '24px',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#1ed760';
-                e.currentTarget.style.transform = 'scale(1.05)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#1db954';
-                e.currentTarget.style.transform = 'scale(1)';
-              }}
+              className={styles.createBtn}
             >
-              Create Room
+              Create
             </button>
           </div>
 
-          {/* Join Room Section */}
-          <div style={{ 
-            backgroundColor: '#282828',
-            borderRadius: '12px',
-            padding: '24px',
-            marginBottom: '24px'
-          }}>
-            <h3 style={{ 
-              margin: '0 0 16px 0',
-              fontSize: '18px',
-              fontWeight: '600',
-              color: 'white',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}>
-              🔑 Join Room with Invite Code
-            </h3>
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <input
-                type="text"
-                placeholder="Enter invite code..."
-                value={inviteCodeInput}
-                onChange={(e) => setInviteCodeInput(e.target.value)}
-                style={{
-                  flex: 1,
-                  padding: '12px 16px',
-                  fontSize: '16px',
-                  backgroundColor: '#3e3e3e',
-                  border: '1px solid #535353',
-                  borderRadius: '8px',
-                  color: 'white',
-                  outline: 'none',
-                  transition: 'all 0.2s'
-                }}
-                onFocus={(e) => e.target.style.borderColor = '#1db954'}
-                onBlur={(e) => e.target.style.borderColor = '#535353'}
-              />
-              <button 
-                onClick={() => handleJoinRoom()}
-                disabled={!inviteCodeInput.trim()}
-                style={{
-                  padding: '12px 24px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  border: 'none',
-                  borderRadius: '8px',
-                  backgroundColor: inviteCodeInput.trim() ? '#1db954' : '#535353',
-                  color: 'white',
-                  cursor: inviteCodeInput.trim() ? 'pointer' : 'not-allowed',
-                  transition: 'all 0.2s',
-                  opacity: inviteCodeInput.trim() ? 1 : 0.5,
-                  whiteSpace: 'nowrap'
-                }}
-                onMouseEnter={(e) => {
-                  if (inviteCodeInput.trim()) {
-                    e.currentTarget.style.backgroundColor = '#1ed760';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (inviteCodeInput.trim()) {
-                    e.currentTarget.style.backgroundColor = '#1db954';
-                  }
-                }}
-              >
-                Join
-              </button>
-            </div>
-          </div>
 
+          
           {/* Public Rooms Section */}
-          <div style={{ 
-            backgroundColor: '#282828',
-            borderRadius: '12px',
-            padding: '24px'
-          }}>
-            <h3 style={{ 
-              margin: '0 0 16px 0',
-              fontSize: '18px',
-              fontWeight: '600',
-              color: 'white',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}>
+          <div className={styles.publicBox}>
+            <h3 className={styles.publicTitle}>
               🌍 Public Rooms ({publicRooms.length})
             </h3>
-            
+
             {publicRooms.length > 0 ? (
-              <div style={{ 
-                display: 'grid',
-                gap: '12px'
-              }}>
+              <div className={styles.publicGrid}>
                 {publicRooms.map((room) => (
-                  <div 
+                  <div
                     key={room.roomId}
-                    style={{
-                      backgroundColor: '#3e3e3e',
-                      borderRadius: '8px',
-                      padding: '16px',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      gap: '16px',
-                      transition: 'all 0.2s',
-                      cursor: 'pointer'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = '#4a4a4a';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = '#3e3e3e';
-                    }}
+                    className={styles.publicItem}
                   >
-                    <div style={{ flex: 1 }}>
-                      <div style={{ 
-                        fontSize: '16px',
-                        fontWeight: '600',
-                        color: 'white',
-                        marginBottom: '4px'
-                      }}>
-                        {room.roomName}
-                      </div>
-                      <div style={{ 
-                        fontSize: '13px',
-                        color: '#b3b3b3',
-                        marginBottom: '8px'
-                      }}>
+                    <div className={styles.publicInfo}>
+                      <div className={styles.publicName}>{room.roomName}</div>
+                      <div className={styles.publicDesc}>
                         {room.description || "No description"}
                       </div>
-                      <div style={{ 
-                        fontSize: '12px',
-                        color: '#1db954',
-                        fontWeight: '500'
-                      }}>
+                      <div className={styles.publicCount}>
                         👥 {room.count}/{room.maxMembers || 5} Members
                       </div>
                     </div>
-                    <button 
+                    <button
                       onClick={() => handleJoinRoom(room.inviteCode)}
-                      style={{
-                        padding: '10px 20px',
-                        fontSize: '14px',
-                        fontWeight: '600',
-                        border: 'none',
-                        borderRadius: '20px',
-                        backgroundColor: '#1db954',
-                        color: 'white',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
-                        whiteSpace: 'nowrap'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = '#1ed760';
-                        e.currentTarget.style.transform = 'scale(1.05)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = '#1db954';
-                        e.currentTarget.style.transform = 'scale(1)';
-                      }}
+                      className={styles.publicJoinBtn}
                     >
                       Join Room
                     </button>
@@ -256,16 +115,12 @@ const RoomSection: React.FC<Props> = (props) => {
                 ))}
               </div>
             ) : (
-              <div style={{
-                textAlign: 'center',
-                padding: '32px',
-                color: '#b3b3b3'
-              }}>
-                <div style={{ fontSize: '48px', marginBottom: '16px' }}>🏠</div>
-                <div style={{ fontSize: '16px', fontWeight: '500', marginBottom: '8px' }}>
+              <div className={styles.publicEmpty}>
+                <div className={styles.publicEmptyEmoji}>🏠</div>
+                <div className={styles.publicEmptyTitle}>
                   No public rooms available
                 </div>
-                <div style={{ fontSize: '14px' }}>
+                <div className={styles.publicEmptyNote}>
                   Create your own room to get started!
                 </div>
               </div>
@@ -276,87 +131,28 @@ const RoomSection: React.FC<Props> = (props) => {
 
       {/* Current Room Info - แสดงเมื่ออยู่ในห้อง */}
       {roomId && (
-        <div style={{ 
-          backgroundColor: '#282828',
-          borderRadius: '12px',
-          padding: '20px',
-          marginBottom: '24px',
-          border: '2px solid #1db954'
-        }}>
-          <div style={{ 
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: '16px',
-            flexWrap: 'wrap'
-          }}>
-            <div style={{ flex: 1, minWidth: '200px' }}>
-              <div style={{ 
-                fontSize: '12px',
-                color: '#1db954',
-                fontWeight: '600',
-                marginBottom: '4px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px'
-              }}>
-                Current Room
-              </div>
-              <div style={{ 
-                fontSize: '20px',
-                fontWeight: '700',
-                color: 'white',
-                marginBottom: '8px'
-              }}>
-                {currentRoomName}
-              </div>
-              <div style={{ 
-                fontSize: '14px',
-                color: '#b3b3b3',
-                display: 'flex',
-                gap: '12px',
-                flexWrap: 'wrap'
-              }}>
+        <div className={styles.currentBox}>
+          <div className={styles.currentRow}>
+            <div className={styles.currentLeft}>
+              <div className={styles.currentLabel}>Current Room</div>
+              <div className={styles.currentName}>{currentRoomName}</div>
+              <div className={styles.currentMeta}>
                 <span>👥 {roomCount}/5 Members</span>
                 <span>•</span>
-                <span>{currentIsPublic ? '🌍 Public' : '🔒 Private'}</span>
+                <span>{currentIsPublic ? "🌍 Public" : "🔒 Private"}</span>
                 {currentInviteCode && (
                   <>
                     <span>•</span>
-                    <span style={{ 
-                      fontFamily: 'monospace',
-                      backgroundColor: '#3e3e3e',
-                      padding: '2px 8px',
-                      borderRadius: '4px',
-                      fontSize: '13px'
-                    }}>
+                    <span className={styles.inviteCode}>
                       Code: {currentInviteCode}
                     </span>
                   </>
                 )}
               </div>
             </div>
-            <button 
+            <button
               onClick={handleLeaveRoom}
-              style={{
-                padding: '10px 20px',
-                fontSize: '14px',
-                fontWeight: '600',
-                border: '1px solid #535353',
-                borderRadius: '20px',
-                backgroundColor: 'transparent',
-                color: 'white',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                whiteSpace: 'nowrap'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#ff4444';
-                e.currentTarget.style.borderColor = '#ff4444';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.borderColor = '#535353';
-              }}
+              className={styles.leaveBtn}
             >
               Leave Room
             </button>
@@ -366,20 +162,8 @@ const RoomSection: React.FC<Props> = (props) => {
 
       {/* Create Room Modal */}
       {showCreateRoomModal && (
-        <div 
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            backdropFilter: 'blur(4px)'
-          }}
+        <div
+          className={styles.modalBackdrop}
           onClick={() => {
             setShowCreateRoomModal(false);
             setRoomNameInput("");
@@ -387,154 +171,64 @@ const RoomSection: React.FC<Props> = (props) => {
             setMode("public");
           }}
         >
-          <div 
-            style={{
-              backgroundColor: '#282828',
-              borderRadius: '16px',
-              padding: '32px',
-              width: '90%',
-              maxWidth: '500px',
-              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
-              animation: 'slideIn 0.3s ease-out'
-            }}
+          <div
+            className={styles.modalCard}
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 style={{ 
-              margin: '0 0 24px 0', 
-              fontSize: '24px',
-              fontWeight: '700',
-              color: 'white'
-            }}>
-              Create New Room
-            </h2>
+            <h2 className={styles.modalTitle}>Create New Room</h2>
 
             {/* Room Name */}
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ 
-                display: 'block',
-                marginBottom: '8px',
-                fontSize: '14px',
-                fontWeight: '600',
-                color: '#b3b3b3'
-              }}>
-                Room Name *
-              </label>
+            <div className={styles.field}>
+              <label className={styles.label}>Room Name *</label>
               <input
                 type="text"
                 placeholder="My Awesome Room"
                 value={roomNameInput}
                 onChange={(e) => setRoomNameInput(e.target.value)}
                 autoFocus
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  fontSize: '16px',
-                  backgroundColor: '#3e3e3e',
-                  border: '1px solid #535353',
-                  borderRadius: '8px',
-                  color: 'white',
-                  outline: 'none',
-                  transition: 'all 0.2s'
-                }}
-                onFocus={(e) => e.target.style.borderColor = '#1db954'}
-                onBlur={(e) => e.target.style.borderColor = '#535353'}
+                className={styles.input}
               />
             </div>
 
             {/* Description */}
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ 
-                display: 'block',
-                marginBottom: '8px',
-                fontSize: '14px',
-                fontWeight: '600',
-                color: '#b3b3b3'
-              }}>
-                Description (optional)
-              </label>
+            <div className={styles.field}>
+              <label className={styles.label}>Description (optional)</label>
               <textarea
                 placeholder="Describe your room..."
                 value={roomDescriptionInput}
                 onChange={(e) => setRoomDescriptionInput(e.target.value)}
                 rows={3}
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  fontSize: '16px',
-                  backgroundColor: '#3e3e3e',
-                  border: '1px solid #535353',
-                  borderRadius: '8px',
-                  color: 'white',
-                  outline: 'none',
-                  resize: 'vertical',
-                  fontFamily: 'inherit',
-                  transition: 'all 0.2s'
-                }}
-                onFocus={(e) => e.target.style.borderColor = '#1db954'}
-                onBlur={(e) => e.target.style.borderColor = '#535353'}
+                className={styles.textarea}
               />
             </div>
 
             {/* Privacy Dropdown */}
-            <div style={{ marginBottom: '24px' }}>
-              <label style={{ 
-                display: 'block',
-                marginBottom: '8px',
-                fontSize: '14px',
-                fontWeight: '600',
-                color: '#b3b3b3'
-              }}>
-                Privacy
-              </label>
+            <div className={styles.field}>
+              <label className={styles.label}>Privacy</label>
               <select
                 value={mode}
                 onChange={(e) => setMode(e.target.value as "public" | "private")}
+                className={styles.select}
                 style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  fontSize: '16px',
-                  backgroundColor: '#3e3e3e',
-                  border: '1px solid #535353',
-                  borderRadius: '8px',
-                  color: 'white',
-                  cursor: 'pointer',
-                  outline: 'none',
-                  transition: 'all 0.2s',
-                  appearance: 'none',
                   backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
-                  backgroundRepeat: 'no-repeat',
-                  backgroundPosition: 'right 12px center',
-                  backgroundSize: '20px',
-                  paddingRight: '40px'
                 }}
-                onFocus={(e) => e.target.style.borderColor = '#1db954'}
-                onBlur={(e) => e.target.style.borderColor = '#535353'}
               >
-                <option value="public" style={{ backgroundColor: '#282828' }}>
+                <option value="public" style={{ backgroundColor: "#282828" }}>
                   🌍 Public
                 </option>
-                <option value="private" style={{ backgroundColor: '#282828' }}>
+                <option value="private" style={{ backgroundColor: "#282828" }}>
                   🔒 Private
                 </option>
               </select>
-              <small style={{ 
-                display: 'block',
-                marginTop: '8px',
-                fontSize: '12px',
-                color: '#b3b3b3'
-              }}>
-                {mode === "public" 
-                  ? 'This room will appear in public room list' 
-                  : 'Only people with invite code can join'}
+              <small className={styles.help}>
+                {mode === "public"
+                  ? "This room will appear in public room list"
+                  : "Only people with invite code can join"}
               </small>
             </div>
 
             {/* Action Buttons */}
-            <div style={{ 
-              display: 'flex', 
-              gap: '12px',
-              justifyContent: 'flex-end'
-            }}>
+            <div className={styles.actionRow}>
               <button
                 onClick={() => {
                   setShowCreateRoomModal(false);
@@ -542,53 +236,14 @@ const RoomSection: React.FC<Props> = (props) => {
                   setRoomDescriptionInput("");
                   setMode("public");
                 }}
-                style={{
-                  padding: '12px 24px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  border: '1px solid #535353',
-                  borderRadius: '24px',
-                  backgroundColor: 'transparent',
-                  color: 'white',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#3e3e3e';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                }}
+                className={styles.cancelBtn}
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreateAndClose}
                 disabled={!roomNameInput.trim()}
-                style={{
-                  padding: '12px 24px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  border: 'none',
-                  borderRadius: '24px',
-                  backgroundColor: roomNameInput.trim() ? '#1db954' : '#535353',
-                  color: 'white',
-                  cursor: roomNameInput.trim() ? 'pointer' : 'not-allowed',
-                  transition: 'all 0.2s',
-                  opacity: roomNameInput.trim() ? 1 : 0.5
-                }}
-                onMouseEnter={(e) => {
-                  if (roomNameInput.trim()) {
-                    e.currentTarget.style.backgroundColor = '#1ed760';
-                    e.currentTarget.style.transform = 'scale(1.05)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (roomNameInput.trim()) {
-                    e.currentTarget.style.backgroundColor = '#1db954';
-                    e.currentTarget.style.transform = 'scale(1)';
-                  }
-                }}
+                className={styles.createModalBtn}
               >
                 Create
               </button>
@@ -596,19 +251,6 @@ const RoomSection: React.FC<Props> = (props) => {
           </div>
         </div>
       )}
-
-      <style>{`
-        @keyframes slideIn {
-          from {
-            opacity: 0;
-            transform: translateY(-20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-      `}</style>
     </section>
   );
 };
