@@ -5,6 +5,11 @@ import styles from "../assets/styles/Home.module.css";
 import type { Song, QueueItem } from "../types/song.ts";
 import LikeButton from "../components/LikeButton";
 import AddToPlaylistButton from "../components/AddToPlaylist";
+
+import styles from "../assets/styles/Playlist.module.css";
+import modalStyles from "../assets/styles/CreatePlaylistModal.module.css";
+
+
 import searchIcon from "../assets/images/search-icon.png";
 import { authClient } from "../lib/auth-client.ts";
 import { useNavigate } from "react-router-dom";
@@ -568,107 +573,157 @@ const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
           </div>
         </section>
 
-        <section className={styles.section}>
-          <h3>Queue ({queue.length} songs)</h3>
-          <div className={styles.queueContainer}>
-            {queue.length > 0 ? (
-              queue.map((item, index) => (
-                <div
-                  key={item.id}
-                  className={
-                    index === currentIndex
-                      ? styles.queueItemActive
-                      : styles.queueItem
-                  }
-                >
-                  <div className={styles.queueNumber}>{index + 1}</div>
-                  {item.song?.coverUrl && (
-                    <img
-                      src={item.song.coverUrl}
-                      alt={item.song.title}
-                      className={styles.queueCover}
-                    />
-                  )}
-                  <div className={styles.queueInfo}>
-                    <div className={styles.queueTitle}>
-                      {item.song?.title || "Unknown"}
-                    </div>
-                    <div className={styles.queueArtist}>
-                      {item.song?.artist || "Unknown Artist"}
+      {/* Create Playlist Modal */}
+      {showCreateModal && (
+        <div className={modalStyles.modalOverlay} onClick={() => setShowCreateModal(false)}>
+          <div className={modalStyles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <h2 className={modalStyles.modalTitle}>Create New Playlist</h2>
+            
+            <div className={modalStyles.coverUploadSection}>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleCoverSelect}
+                style={{ display: 'none' }}
+              />
+              
+              <div className={modalStyles.coverUploadBox} onClick={() => fileInputRef.current?.click()}>
+                {coverPreview ? (
+                  <img src={coverPreview} alt="Preview" className={modalStyles.coverPreview} />
+                ) : (
+                  <div className={modalStyles.coverUploadPlaceholder}>
+                    <div>
+                      <div style={{ fontSize: '32px' }}>📷</div>
+                      <div style={{ fontSize: '12px', marginTop: '4px' }}>
+                        {uploadingCover ? 'Uploading...' : 'Add Cover'}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))
-            ) : (
-              <div className={styles.queueEmpty}>
-                No songs in queue
-                <br />
-                <small>Play a song or add to queue</small>
+                )}
               </div>
-            )}
-          </div>
-        </section>
-      </div>
+              <small className={modalStyles.coverUploadHint}>
+                Click to upload cover image (Max 5MB)
+              </small>
+            </div>
 
-      {/* Popup Modal */}
-      {showPopup && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            background: "rgba(0, 0, 0, 0.4)",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            zIndex: 1000,
-          }}
-        >
-          <div
-            style={{
-              background: "#fff",
-              borderRadius: "12px",
-              padding: "2rem 2.5rem",
-              boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
-              textAlign: "center",
-              maxWidth: "400px",
-              width: "90%",
-            }}
-          >
-            {/* ✅ โลโก้แทนหัวข้อ */}
-            <img
-              src={"src/assets/images/logo.png"}
-              alt="Lukchang Vibe Logo"
-              style={{
-                width: "120px",
-                height: "auto",
-                marginBottom: "1.5rem",
-              }}
-            />
+            <div className={modalStyles.formGroup}>
+              <label className={modalStyles.formLabel}>
+                Playlist Name *
+              </label>
+              <input
+                type="text"
+                placeholder="My Awesome Playlist"
+                value={newPlaylistName}
+                onChange={(e) => setNewPlaylistName(e.target.value)}
+                className={modalStyles.formInput}
+                autoFocus
+              />
+            </div>
 
-            <p style={{ color: "#444", marginBottom: "2rem" }}>
-              Create an account to enjoy <b>Lukchang vibe!</b>
-            </p>
-            <button
-              onClick={() => navigate("/signin")}
-              style={{
-                backgroundColor: "#a855f7",
-                color: "#fff",
-                border: "none",
-                borderRadius: "8px",
-                padding: "10px 25px",
-                cursor: "pointer",
-                fontSize: "16px",
-                transition: "0.2s",
-              }}
-            >
-              Create an account!
-            </button>
+            <div className={modalStyles.formGroup}>
+              <label className={modalStyles.formLabel}>
+                Description (optional)
+              </label>
+              <textarea
+                placeholder="Describe your playlist..."
+                value={newPlaylistDesc}
+                onChange={(e) => setNewPlaylistDesc(e.target.value)}
+                rows={3}
+                className={modalStyles.formTextarea}
+              />
+            </div>
+
+            <div className={modalStyles.formGroup}>
+              <label className={modalStyles.formLabel}>
+                Privacy
+              </label>
+              <select
+                value={newPlaylistIsPublic ? "public" : "private"}
+                onChange={(e) => setNewPlaylistIsPublic(e.target.value === "public")}
+                className={modalStyles.formSelect}
+              >
+                <option value="public">🌐 Public</option>
+                <option value="private">🔒 Private</option>
+              </select>
+              <small className={modalStyles.privacyHint}>
+                {newPlaylistIsPublic 
+                  ? 'This playlist will appear in your profile and be accessible to others' 
+                  : 'Only you can access this playlist'}
+              </small>
+            </div>
+
+            <div className={modalStyles.modalActions}>
+              <button
+                onClick={() => {
+                  setShowCreateModal(false);
+                  setNewPlaylistName("");
+                  setNewPlaylistDesc("");
+                  setNewPlaylistIsPublic(true);
+                  setNewPlaylistCoverUrl("");
+                  setCoverPreview(null);
+                }}
+                className={modalStyles.buttonSecondary}
+                style={{ padding: '10px 20px' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreatePlaylist}
+                disabled={uploadingCover}
+                className={modalStyles.buttonPrimary}
+                style={{ 
+                  padding: '10px 20px',
+                  opacity: uploadingCover ? 0.5 : 1,
+                  cursor: uploadingCover ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {uploadingCover ? 'Uploading...' : 'Create'}
+              </button>
+            </div>
           </div>
         </div>
       )}
+
+
+      {/* Toast Notification */}
+      {showToast && (
+        <div style={{
+          position: 'fixed',
+          bottom: '24px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: '#282828',
+          color: 'white',
+          padding: '12px 24px',
+          borderRadius: '8px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          animation: 'slideUp 0.3s ease-out',
+          fontSize: '14px',
+          fontWeight: '500'
+        }}>
+          <span>✓</span>
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* CSS Animation */}
+      <style>{`
+        @keyframes slideUp {
+          from {
+            opacity: 0;
+            transform: translateX(-50%) translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+          }
+        }
+      `}</style>
     </div>
   );
 };
