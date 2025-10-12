@@ -54,7 +54,7 @@ export default function Sidebar({ collapsed, mode = "inline", open = false, onCl
 
         <div className={styles.section}>
           <div className={styles.sectionTitle}>Community</div>
-          {link("/lokchangrooms", "LuckChangRooms", roomIcon)}
+          {link("/lokchangrooms", "LookChang Rooms", roomIcon)}
         </div>
       </div>
     </>
