@@ -39,7 +39,6 @@ const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
     checkSession();
   }, [setUser]);
 
-  const [userName, setUserName] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Song[]>([]);
   const [youtubeUrl, setYoutubeUrl] = useState("");
