@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import Home from "./pages/Home";
 import LokchangRooms from "./pages/LokchangRooms";
@@ -16,18 +16,19 @@ import { authClient } from "./lib/auth-client";
 export default function App() {
   const { user, setUser } = useUser();
   const [loading, setLoading] = useState(true);
+  const [collapsed, setCollapsed] = useState(false);
 
-  // Global queue state
   const [globalQueue, setGlobalQueue] = useState<any[]>([]);
   const [globalCurrentIndex, setGlobalCurrentIndex] = useState(0);
 
-  // ✅ ตรวจ session ทันทีเมื่อเปิดเว็บ
+  const location = useLocation();
+  const isSignin = location.pathname === "/signin";
+
   useEffect(() => {
     const checkSession = async () => {
       try {
         const result = await authClient.getSession();
 
-        // ✅ ดึงข้อมูลจาก result.data
         const session = result?.data;
 
         if (session?.user) {
@@ -46,34 +47,13 @@ export default function App() {
     checkSession();
   }, [setUser]);
 
-  if (loading) {
-    return (
-      <div
-        style={{
-          height: "100vh",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          fontSize: "1.2rem",
-          color: "#A855F7",
-        }}
-      >
-        Loading Lukchang Vibe...
-      </div>
-    );
-  }
-
   return (
     <div className="app-container">
-      {/* top-bar */}
-      <Topbar />
+      {!isSignin && <Topbar onToggleSidebar={() => setCollapsed((v) => !v)} />}
 
-      {/* body : side-bar + main */}
-      <div className="app-body">
-        {/* side-bar */}
-        <Sidebar />
+      <div className={`app-body ${!isSignin && collapsed ? "collapsed" : ""}`}>
+        {!isSignin && <Sidebar collapsed={collapsed} />}
 
-        {/* main */}
         <main className="app-main">
           <Routes>
             <Route
@@ -91,14 +71,14 @@ export default function App() {
         </main>
       </div>
 
-      {/* Global Music Player */}
-      {user?.id && (
+      {!isSignin && user?.id && (
         <MusicPlayer
           userId={user.id}
           onQueueUpdate={setGlobalQueue}
           onCurrentIndexUpdate={setGlobalCurrentIndex}
         />
       )}
+      
     </div>
   );
 }

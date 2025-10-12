@@ -400,24 +400,6 @@ const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
         )}
       </div>
 
-      {/* Create User */}
-      <section className={styles.section}>
-        <h3>Create User (Test)</h3>
-        <input
-          type="text"
-          placeholder="Enter your name"
-          value={userName}
-          onChange={(e) => setUserName(e.target.value)}
-          className={styles.inputSmall}
-        />
-        <button onClick={handleCreateUser} className={styles.buttonPrimary}>
-          Create User
-        </button>
-        <p className={styles.userInfo}>
-          Current User: {user?.name || "Not created"}
-        </p>
-      </section>
-
       {/* Popular Songs */}
       {popularSongs.length > 0 && searchQuery.trim() === "" && (
         <section className={styles.section}>
