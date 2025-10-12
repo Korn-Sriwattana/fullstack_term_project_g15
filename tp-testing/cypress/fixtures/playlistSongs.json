@@ -1,0 +1,38 @@
+[
+  {
+    "id": "ps1",
+    "song": {
+      "id": "s1",
+      "title": "Song A",
+      "artist": "Artist 1",
+      "coverUrl": "/songs/songA.jpg",
+      "duration": 210
+    },
+    "addedAt": "2025-10-01T12:30:00Z",
+    "customOrder": 0
+  },
+  {
+    "id": "ps2",
+    "song": {
+      "id": "s2",
+      "title": "Song B",
+      "artist": "Artist 2",
+      "coverUrl": "/songs/songB.jpg",
+      "duration": 180
+    },
+    "addedAt": "2025-10-01T12:32:00Z",
+    "customOrder": 1
+  },
+  {
+    "id": "ps3",
+    "song": {
+      "id": "s3",
+      "title": "Song C",
+      "artist": "Artist 3",
+      "coverUrl": "/songs/songC.jpg",
+      "duration": 240
+    },
+    "addedAt": "2025-10-01T12:35:00Z",
+    "customOrder": 2
+  }
+]

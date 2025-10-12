@@ -22,6 +22,13 @@
       "when": 1760108166954,
       "tag": "0002_crazy_the_leader",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1760176925505,
+      "tag": "0003_careless_chamber",
+      "breakpoints": true
     }
   ]
 }

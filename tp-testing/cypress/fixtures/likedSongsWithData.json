@@ -1,0 +1,24 @@
+[
+  {
+    "id": "1",
+    "likedAt": "2025-10-13T00:00:00Z",
+    "song": {
+      "id": 1,
+      "title": "Miniskirt - AOA (Male Full Cover)",
+      "artist": "Yihao Xing",
+      "duration": 181,
+      "coverUrl": "https://example.com/miniskirt.jpg"
+    }
+  },
+  {
+    "id": "2",
+    "likedAt": "2025-10-13T00:00:00Z",
+    "song": {
+      "id": 2,
+      "title": "BamBam 'WONDERING' M/V",
+      "artist": "BamBam Official",
+      "duration": 199,
+      "coverUrl": "https://example.com/bambam.jpg"
+    }
+  }
+]

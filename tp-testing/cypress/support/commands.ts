@@ -35,3 +35,38 @@
 //     }
 //   }
 // }
+/// <reference types="cypress" />
+
+// --- Declare custom command types ---
+declare global {
+  namespace Cypress {
+    interface Chainable<Subject = any> {
+      createUser(name: string): Chainable<void>;
+      saveLocalStorage(): Chainable<void>;
+      restoreLocalStorage(): Chainable<void>;
+    }
+  }
+}
+
+// --- Custom commands ---
+Cypress.Commands.add('createUser', (name: string) => {
+  cy.visit('/');
+  cy.get('input[placeholder="Enter your name"]').type(name);
+  cy.get('button').contains('Create User').click();
+  cy.contains(`Welcome, ${name}`);
+});
+
+// --- LocalStorage persistence ---
+let LOCAL_STORAGE_MEMORY: Record<string, string> = {};
+
+Cypress.Commands.add('saveLocalStorage', () => {
+  Object.keys(localStorage).forEach(key => {
+    LOCAL_STORAGE_MEMORY[key] = localStorage[key];
+  });
+});
+
+Cypress.Commands.add('restoreLocalStorage', () => {
+  Object.keys(LOCAL_STORAGE_MEMORY).forEach(key => {
+    localStorage.setItem(key, LOCAL_STORAGE_MEMORY[key]);
+  });
+});
