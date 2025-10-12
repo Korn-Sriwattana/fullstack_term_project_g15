@@ -1,0 +1,10 @@
+.musicCard{
+  background:#fff;
+  border:1px solid #e6e6e6;
+  border-radius:12px;
+  padding:16px;
+}
+.musicHeader{ margin-bottom:8px; }
+.musicTitle{ margin:0; font-size:18px; font-weight:700; color:#333; }
+.musicUnderline{ display:block; width:36px; height:3px; background:#e6e6e6; border-radius:2px; margin-top:4px; }
+.musicBody{ }

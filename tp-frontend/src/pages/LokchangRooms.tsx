@@ -5,6 +5,7 @@ import RoomSection from "../components/Room";
 import ChatSection from "../components/Chat";
 import QueueSection from "../components/Queue";
 import { useUser } from "../components/userContext";
+import MusicCard from "../components/MusicCard";
 
 //css
 import styles from "../assets/styles/lokchang-rooms.module.css";
@@ -453,19 +454,42 @@ const LokchangRooms = () => {
                 currentIsPublic, roomCount, roomId, handleLeaveRoom }}
         />
         {roomId && (
-        <>
-          <ChatSection 
-            messages={messages}
-            message={message}
-            setMessage={setMessage}
-            handleSendMessage={handleSendMessage}
-            currentUserId={userId}
-          />
-          <QueueSection {...{ queue, nowPlaying, youtubeUrl, setYoutubeUrl,
-                              handleAdd, handleRemove, isMuted, handleToggleMute,
-                              socketRef, roomIdRef, handleSkip, handleReorder, isHost: userId === roomHostId, isProcessing }} />
-          </>
+          <div className={styles.roomGrid}>
+            <div className={styles.musicCol}>
+              <MusicCard title="MUSIC">
+                <QueueSection
+                  {...{
+                    queue,
+                    nowPlaying,
+                    youtubeUrl,
+                    setYoutubeUrl,
+                    handleAdd,
+                    handleRemove,
+                    isMuted,
+                    handleToggleMute,
+                    socketRef,
+                    roomIdRef,
+                    handleSkip,
+                    handleReorder,
+                    isHost: userId === roomHostId,
+                    isProcessing,
+                  }}
+                />
+              </MusicCard>
+            </div>
+
+            <div className={styles.chatCol}>
+              <ChatSection
+                messages={messages}
+                message={message}
+                setMessage={setMessage}
+                handleSendMessage={handleSendMessage}
+                currentUserId={userId}
+              />
+            </div>
+          </div>
         )}
+
       </div>
     </div>
   );
