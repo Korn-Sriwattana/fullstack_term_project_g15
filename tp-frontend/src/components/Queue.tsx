@@ -1,5 +1,7 @@
 import React from "react";
 import YoutubePlayer from "./YoutubePlayer";
+import LikeButton from "./LikeButton";
+import AddToPlaylistButton from "./AddToPlaylist";
 
 //css
 import styles from "../assets/styles/community/queue.module.css";
@@ -7,6 +9,7 @@ import styles from "../assets/styles/community/queue.module.css";
 //images
 import volumeOff from "../assets/images/playMusic/volume-low.png";
 import volumeOn from "../assets/images/playMusic/volume-mute.png";
+import volumeHigh from "../assets/images/playMusic/volume-high.png";
 
 interface Props {
   queue: any[];
@@ -23,6 +26,7 @@ interface Props {
   handleReorder: (queueId: string, direction: 'up' | 'down') => void;
   isHost: boolean;
   isProcessing: boolean;
+  userId: string;
 }
 
 const QueueSection: React.FC<Props> = ({
@@ -40,7 +44,34 @@ const QueueSection: React.FC<Props> = ({
   handleReorder,
   isHost,
   isProcessing,
+  userId,
 }) => {
+  const [volume, setVolume] = React.useState(100);
+  const [showVolumeSlider, setShowVolumeSlider] = React.useState(false);
+  const volumeRef = React.useRef<HTMLDivElement>(null);
+
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newVolume = parseInt(e.target.value);
+    setVolume(newVolume);
+  };
+
+  // Close slider when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (volumeRef.current && !volumeRef.current.contains(event.target as Node)) {
+        setShowVolumeSlider(false);
+      }
+    };
+
+    if (showVolumeSlider) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showVolumeSlider]);
+
   return (
     <section className={styles.queueSection}>
       {isProcessing && "⏳"}
@@ -48,12 +79,55 @@ const QueueSection: React.FC<Props> = ({
         <div className={styles.nowPlayingCard}>
           <div className={styles.nowPlayingHeader}>
             <h4 className={styles.nowPlayingTitle}>Now Playing</h4>
-            <img
-              src={isMuted ? volumeOn : volumeOff}
-              alt={isMuted ? "Muted" : "Unmuted"}
-              onClick={handleToggleMute}
-              className={styles.volumeIcon}
-            />
+            
+             {/* Volume Control - แบบ MusicPlayer */}
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '8px'
+            }}>
+              <button 
+                onClick={handleToggleMute}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+                title={isMuted ? "Unmute" : "Mute"}
+              >
+                <img
+                  src={isMuted || volume === 0 ? volumeOn : volume < 50 ? volumeOff : volumeHigh}
+                  alt={isMuted || volume === 0 ? "Muted" : volume < 50 ? "Volume low" : "Volume high"}
+                  className={styles.volumeIcon}
+                  style={{ width: '24px', height: '24px' }}
+                />
+              </button>
+              
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={isMuted ? 0 : volume}
+                onChange={handleVolumeChange}
+                style={{
+                  width: '80px',
+                  cursor: 'pointer',
+                  accentColor: '#1db954'
+                }}
+              />
+              
+              <span style={{ 
+                fontSize: '12px', 
+                color: '#666',
+                minWidth: '35px',
+                textAlign: 'right'
+              }}>
+                {volume}%
+              </span>
+            </div>
           </div>
 
           <p className={styles.nowPlayingTrack}>
@@ -63,10 +137,37 @@ const QueueSection: React.FC<Props> = ({
           <YoutubePlayer
             nowPlaying={nowPlaying}
             isMuted={isMuted}
+            volume={volume}
             onEnd={() => {
               socketRef.current?.emit("song-ended", roomIdRef.current);
             }}
           />
+
+          {/*  Like & Add to Playlist */}
+          <div style={{ 
+            display: 'flex', 
+            gap: '8px', 
+            alignItems: 'center',
+            marginTop: '12px',
+            marginBottom: '8px'
+          }}>
+            <LikeButton 
+              userId={userId} 
+              songId={nowPlaying.id}
+            />
+            <AddToPlaylistButton
+              userId={userId}
+              song={nowPlaying}
+              iconOnly={false}
+              buttonStyle={{
+                padding: '6px 12px',
+                fontSize: '14px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+            />
+          </div>
 
           <div className={styles.controlsRow}>
             {isHost && (
@@ -159,10 +260,7 @@ const QueueSection: React.FC<Props> = ({
             add
           </button>
         </div>
-
-
       </div>
-
     </section>
   );
 };
