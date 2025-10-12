@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 export default function Profile() {
   const [user, setUser] = useState<any>(null);
@@ -6,12 +6,15 @@ export default function Profile() {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState("");
   const [profilePic, setProfilePic] = useState("");
+  const [preview, setPreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const API_URL = "http://localhost:3000";
 
   // ✅ โหลดข้อมูลผู้ใช้
   useEffect(() => {
-    fetch("http://localhost:3000/api/profile/me", {
-      credentials: "include",
-    })
+    fetch(`${API_URL}/api/profile/me`, { credentials: "include" })
       .then((res) => res.json())
       .then(async (data) => {
         setUser(data);
@@ -19,19 +22,46 @@ export default function Profile() {
         setProfilePic(data.profilePic || "");
 
         // ✅ โหลด playlist ของ user
-        const playlistsRes = await fetch(
-          `http://localhost:3000/playlists/${data.id}`,
-          { credentials: "include" }
-        );
+        const playlistsRes = await fetch(`${API_URL}/playlists/${data.id}`);
         const playlistsData = await playlistsRes.json();
         setPlaylists(playlistsData);
       })
       .catch((err) => console.error("Failed to fetch profile:", err));
   }, []);
 
-  // ✅ อัปเดตชื่อและรูป
+  // ✅ อัปโหลดรูปภาพใหม่
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    const reader = new FileReader();
+    reader.onloadend = () => setPreview(reader.result as string);
+    reader.readAsDataURL(file);
+
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+      const res = await fetch(`${API_URL}/upload/profile-pic`, {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) throw new Error("Upload failed");
+
+      const data = await res.json();
+      setProfilePic(data.imageUrl);
+      alert("Profile picture updated!");
+    } catch (err) {
+      console.error("Upload error:", err);
+      alert("Failed to upload image");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // ✅ บันทึกการแก้ไขชื่อ
   const handleSave = async () => {
-    await fetch("http://localhost:3000/api/profile/me", {
+    await fetch(`${API_URL}/api/profile/me`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
@@ -53,16 +83,69 @@ export default function Profile() {
     >
       {/* Section: Profile Header */}
       <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
-        <img
-          src={profilePic || "/default-avatar.png"}
-          alt="Profile"
-          style={{
-            width: 120,
-            height: 120,
-            borderRadius: "50%",
-            objectFit: "cover",
-          }}
-        />
+        <div style={{ position: "relative" }}>
+          <img
+            src={
+              preview
+                ? preview
+                : profilePic
+                ? `${API_URL}${profilePic}`
+                : "/default-avatar.png"
+            }
+            alt="Profile"
+            style={{
+              width: 120,
+              height: 120,
+              borderRadius: "50%",
+              objectFit: "cover",
+              border: "none", // ❌ ไม่มีขอบม่วง
+            }}
+          />
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleImageUpload}
+            style={{ display: "none" }}
+          />
+
+          {editing && (
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              style={{
+                position: "absolute",
+                bottom: 0,
+                right: 0,
+                transform: "translate(30%, 30%)", // ✅ ดึงให้อยู่พอดีขอบวงกลม
+                background: "white",
+                color: "#444",
+                border: "1px solid #ccc",
+                borderRadius: "50%",
+                width: "36px",
+                height: "36px",
+                cursor: "pointer",
+                boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "16px",
+                transition: "all 0.2s ease",
+              }}
+              onMouseEnter={(e) => (
+                (e.currentTarget.style.background = "#f3e8ff"),
+                (e.currentTarget.style.color = "#7e22ce")
+              )}
+              onMouseLeave={(e) => (
+                (e.currentTarget.style.background = "white"),
+                (e.currentTarget.style.color = "#444")
+              )}
+              title="Change profile picture"
+            >
+              📷
+            </button>
+          )}
+        </div>
 
         <div style={{ flex: 1 }}>
           {editing ? (
@@ -79,19 +162,6 @@ export default function Profile() {
                   marginBottom: "0.5rem",
                 }}
               />
-              <div style={{ marginTop: "0.5rem" }}>
-                <input
-                  value={profilePic}
-                  onChange={(e) => setProfilePic(e.target.value)}
-                  placeholder="Profile Image URL"
-                  style={{
-                    width: "80%",
-                    padding: "6px",
-                    borderRadius: 6,
-                    border: "1px solid #ccc",
-                  }}
-                />
-              </div>
               <button
                 onClick={handleSave}
                 style={{
@@ -140,7 +210,7 @@ export default function Profile() {
         )}
       </div>
 
-      {/* ข้อมูลเพิ่มเติม */}
+      {/* สรุปจำนวน Playlist / Friends */}
       <div style={{ marginTop: "1rem", color: "#555" }}>
         <span style={{ marginRight: "1.5rem" }}>
           <strong>{playlists.length}</strong> Playlists
@@ -149,18 +219,6 @@ export default function Profile() {
           <strong>{user.friendCount || 0}</strong> Friends
         </span>
       </div>
-
-      {/* Bio */}
-      <p
-        style={{
-          marginTop: "1.5rem",
-          color: "#444",
-          fontStyle: "italic",
-        }}
-      >
-        {user.bio ||
-          "If it’s love songs you want, I’ve got more than enough for you!"}
-      </p>
 
       <hr style={{ margin: "1.5rem 0", border: "1px solid #eee" }} />
 
@@ -186,7 +244,11 @@ export default function Profile() {
                 }}
               >
                 <img
-                  src={pl.coverUrl || "/default-cover.png"}
+                  src={
+                    pl.coverUrl
+                      ? `${API_URL}${pl.coverUrl}`
+                      : "/default-cover.png"
+                  }
                   alt={pl.name}
                   style={{
                     width: "100%",
