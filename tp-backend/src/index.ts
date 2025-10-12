@@ -68,16 +68,10 @@ import {
   checkLikedSong,
   playLikedSongs,
 } from "./controllers/likedSongsControllers.js";
-<<<<<<< HEAD
-import { upload, uploadPlaylistCover } from "./controllers/imageControllers.js";
-import { toNodeHandler, fromNodeHeaders } from "better-auth/node";
-import { auth } from "./lib/auth.ts";
-=======
 import { upload, uploadPlaylistCover, uploadProfile, uploadProfilePic } from "./controllers/imageControllers.js";
 import { toNodeHandler, fromNodeHeaders } from "better-auth/node";
 import { auth } from "./lib/auth.ts";
 import { randomUUID } from "crypto";
->>>>>>> origin/main
 
 const debug = Debug("pf-backend");
 
