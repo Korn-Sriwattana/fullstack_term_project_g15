@@ -1,0 +1,26 @@
+[
+  {
+    "id": "queue-001",
+    "songId": "song-001",
+    "title": "Test Song",
+    "artist": "Test Artist",
+    "duration": 180,
+    "addedBy": "test-user-123"
+  },
+  {
+    "id": "queue-002",
+    "songId": "song-002",
+    "title": "Long Test Song",
+    "artist": "Test Artist",
+    "duration": 480,
+    "addedBy": "test-user-456"
+  },
+  {
+    "id": "queue-003",
+    "songId": "song-003",
+    "title": "Short Test Song",
+    "artist": "Test Artist",
+    "duration": 60,
+    "addedBy": "test-user-123"
+  }
+]

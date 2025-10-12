@@ -1,0 +1,12 @@
+[
+  {
+    "id": 1,
+    "song": {
+      "id": 1,
+      "title": "Recently Played Song",
+      "artist": "Recent Artist",
+      "duration": 200,
+      "coverUrl": "https://via.placeholder.com/150"
+    }
+  }
+]
