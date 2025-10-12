@@ -443,9 +443,6 @@ const LokchangRooms = () => {
       setIsProcessing(false);
     }, 3000);
     
-    // ลบบรรทัดนี้ออก - ให้ backend จัดการและส่ง queue-sync กลับมา
-    // setQueue(prev => prev.filter(item => item.id !== queueId));
-
     console.log("📤 Emitting queue-remove:", { roomId, queueId });
     socketRef.current?.emit("queue-remove", { roomId, queueId });
   };
@@ -532,6 +529,7 @@ const LokchangRooms = () => {
                     handleReorder,
                     isHost: userId === roomHostId,
                     isProcessing,
+                    userId,
                   }}
                 />
               </MusicCard>
