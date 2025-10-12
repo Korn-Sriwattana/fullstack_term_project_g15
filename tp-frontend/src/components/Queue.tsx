@@ -115,18 +115,13 @@ const QueueSection: React.FC<Props> = ({
                 style={{
                   width: '80px',
                   cursor: 'pointer',
-                  accentColor: '#1db954'
+                  accentColor: '#1db954',
+                  verticalAlign: 'middle',
+                  margin: 0
                 }}
+                title={`Volume: ${volume}%`}
               />
               
-              <span style={{ 
-                fontSize: '12px', 
-                color: '#666',
-                minWidth: '35px',
-                textAlign: 'right'
-              }}>
-                {volume}%
-              </span>
             </div>
           </div>
 
