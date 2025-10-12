@@ -33,6 +33,7 @@
     "db:prototype": "tsx ./db/prototype.ts"
   },
   "dependencies": {
+    "better-auth": "^1.3.27",
     "cors": "^2.8.5",
     "debug": "^4.4.1",
     "dotenv": "^17.0.0",
