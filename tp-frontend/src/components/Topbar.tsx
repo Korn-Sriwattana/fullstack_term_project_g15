@@ -29,8 +29,7 @@ export default function Topbar() {
 
   // ✅ หา avatar จากทุกกรณีที่เป็นไปได้
   const avatarSrc =
-    user?.profile_pic || // จาก DB โดยตรง
-    user?.profilePic || // จาก context (camelCase)
+    user?.profilePic || // จาก DB โดยตรง
     session?.user?.image || // จาก Google OAuth
     defaultAvatar;
 
