@@ -116,6 +116,75 @@ app.locals.io = io;
 // Users
 app.post("/users", createUser);
 
+// ----------------- Profile API -----------------
+
+app.get("/api/profile/me", async (req, res, next) => {
+  try {
+    const session = await auth.api.getSession({
+      headers: fromNodeHeaders(req.headers),
+    });
+
+    if (!session?.user) {
+      res.status(401).json({ error: "Unauthenticated" });
+      return; // แค่ return เปล่าๆ
+    }
+
+    const [user] = await dbClient
+      .select()
+      .from(users)
+      .where(eq(users.id, session.user.id));
+
+    if (!user) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+
+    res.json(user); // ไม่ต้อง return ตัว res
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.put(
+  "/api/profile/me",
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const session = await auth.api.getSession({
+        headers: fromNodeHeaders(req.headers),
+      });
+
+      if (!session?.user) {
+        res.status(401).json({ error: "Unauthenticated" });
+        return; // ✅ ไม่ return res.json()
+      }
+
+      const { name, profilePic } = req.body;
+
+      // ✅ อัปเดตเฉพาะ name / profilePic ในตาราง users
+      await dbClient
+        .update(users)
+        .set({
+          name,
+          profilePic,
+        })
+        .where(eq(users.id, session.user.id));
+
+      // ✅ sync กลับไปยัง Better Auth (เฉพาะ name, image)
+      await auth.api.updateUser({
+        headers: fromNodeHeaders(req.headers),
+        body: {
+          name,
+          image: profilePic,
+        },
+      });
+
+      res.json({ success: true, name, profilePic }); // ✅ ไม่ต้อง return
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
 // ----------------- Personal Player API -----------------
 
 // Play single song

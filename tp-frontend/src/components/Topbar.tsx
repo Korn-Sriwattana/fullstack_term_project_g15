@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import type { User } from "../types/user";
 import defaultAvatar from "../assets/images/default-avatar.png";
 import logoutIcon from "../assets/images/logout-icon.png";
@@ -37,12 +37,17 @@ export default function Topbar({ user }: Props) {
   // ✅ handle logout
   const handleLogout = async () => {
     await authClient.signOut();
-    window.location.href = "/"; // ✅ force redirect ไปหน้า Home
+    window.location.href = "/";
   };
 
   return (
     <div className={styles.topbar}>
       <div className={styles.profileContainer} ref={dropdownRef}>
+        {/* ✅ เพิ่มคำทักทาย */}
+        <span className={styles.greeting}>
+          Hi,&nbsp;<strong>{user?.name || "Guest"}</strong>
+        </span>
+
         {/* Avatar */}
         <img
           src={avatarSrc}
@@ -58,7 +63,7 @@ export default function Topbar({ user }: Props) {
               onClick={() => navigate("/profile")}
               className={styles.dropdownItem}
             >
-              ดูโปรไฟล์
+              Profile
             </button>
             <button onClick={handleLogout} className={styles.dropdownItem}>
               <img
@@ -66,7 +71,7 @@ export default function Topbar({ user }: Props) {
                 alt="logout"
                 className={styles.logoutIcon}
               />
-              ออกจากระบบ
+              log out
             </button>
           </div>
         )}

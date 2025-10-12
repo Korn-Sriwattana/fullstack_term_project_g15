@@ -18,13 +18,13 @@ export default function Signin() {
     >
       {/* โลโก้เว็บ */}
       <img
-        src="src\assets\images\logo.png" // ✅ โลโก้เว็บของคุณ
+        src="src\assets\images\logo.png"
         alt="Lukchang Vibe"
         style={{ width: "120px", marginBottom: "1rem" }}
       />
 
       <h2 style={{ color: "#a855f7", marginBottom: "2rem" }}>
-        เข้าสู่ระบบ Lukchang Vibe
+        Hello Again! This is Lukchang Vibe
       </h2>
 
       {/* ปุ่ม Google Login */}

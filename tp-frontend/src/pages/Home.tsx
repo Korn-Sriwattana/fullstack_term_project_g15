@@ -655,7 +655,7 @@ const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
             />
 
             <p style={{ color: "#444", marginBottom: "2rem" }}>
-              สร้างบัญชีเพื่อเพลิดเพลินไปกับ <b>Lukchang vibe!</b>
+              create an account for enjoy with <b>Lukchang vibe!</b>
             </p>
             <button
               onClick={() => navigate("/signin")}
@@ -670,7 +670,7 @@ const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
                 transition: "0.2s",
               }}
             >
-              สร้างบัญชีเลย!
+              create an account!
             </button>
           </div>
         </div>
