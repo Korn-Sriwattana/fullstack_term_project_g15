@@ -146,22 +146,7 @@ const QueueSection: React.FC<Props> = ({
             marginTop: '12px',
             marginBottom: '8px'
           }}>
-            <LikeButton 
-              userId={userId} 
-              songId={nowPlaying.id}
-            />
-            <AddToPlaylistButton
-              userId={userId}
-              song={nowPlaying}
-              iconOnly={false}
-              buttonStyle={{
-                padding: '6px 12px',
-                fontSize: '14px',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                transition: 'all 0.2s'
-              }}
-            />
+           
           </div>
 
           <div className={styles.controlsRow}>
@@ -174,6 +159,22 @@ const QueueSection: React.FC<Props> = ({
                 Skip
               </button>
             )}
+            <AddToPlaylistButton
+              userId={userId}
+              song={nowPlaying}
+              iconOnly={false}
+              buttonStyle={{
+                padding: '6px 12px',
+                fontSize: '14px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+            />
+             <LikeButton 
+              userId={userId} 
+              songId={nowPlaying.id}
+            />
           </div>
         </div>
       )}
