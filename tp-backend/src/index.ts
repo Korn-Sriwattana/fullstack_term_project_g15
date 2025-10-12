@@ -132,11 +132,7 @@ app.get("/api/profile/me", async (req, res, next) => {
 
     if (!session?.user) {
       res.status(401).json({ error: "Unauthenticated" });
-<<<<<<< HEAD
-      return; // แค่ return เปล่าๆ
-=======
       return;
->>>>>>> origin/main
     }
 
     const [user] = await dbClient
@@ -149,11 +145,7 @@ app.get("/api/profile/me", async (req, res, next) => {
       return;
     }
 
-<<<<<<< HEAD
-    res.json(user); // ไม่ต้อง return ตัว res
-=======
     res.json(user);
->>>>>>> origin/main
   } catch (err) {
     next(err);
   }
@@ -169,20 +161,12 @@ app.put(
 
       if (!session?.user) {
         res.status(401).json({ error: "Unauthenticated" });
-<<<<<<< HEAD
-        return; // ✅ ไม่ return res.json()
-=======
         return;
->>>>>>> origin/main
       }
 
       const { name, profilePic } = req.body;
 
-<<<<<<< HEAD
-      // ✅ อัปเดตเฉพาะ name / profilePic ในตาราง users
-=======
       // อัปเดตเฉพาะ name / profilePic ในตาราง users
->>>>>>> origin/main
       await dbClient
         .update(users)
         .set({
@@ -191,11 +175,7 @@ app.put(
         })
         .where(eq(users.id, session.user.id));
 
-<<<<<<< HEAD
-      // ✅ sync กลับไปยัง Better Auth (เฉพาะ name, image)
-=======
       // sync กลับไปยัง Better Auth (เฉพาะ name, image)
->>>>>>> origin/main
       await auth.api.updateUser({
         headers: fromNodeHeaders(req.headers),
         body: {
@@ -204,19 +184,13 @@ app.put(
         },
       });
 
-<<<<<<< HEAD
-      res.json({ success: true, name, profilePic }); // ✅ ไม่ต้อง return
-=======
       res.json({ success: true, name, profilePic });
->>>>>>> origin/main
     } catch (err) {
       next(err);
     }
   }
 );
 
-<<<<<<< HEAD
-=======
 app.get("/api/proxy-image", async (req, res, next) => {
   try {
     const { url } = req.query;
@@ -238,7 +212,6 @@ app.get("/api/proxy-image", async (req, res, next) => {
     next(err);
   }
 });
->>>>>>> origin/main
 // ----------------- Personal Player API -----------------
 
 // Play single song
@@ -371,10 +344,6 @@ app.get(
           createdAt: roomMessages.createdAt,
           roomId: roomMessages.roomId,
           userId: roomMessages.userId,
-<<<<<<< HEAD
-          // แก้ไขส่วนนี้ให้เป็น object
-=======
->>>>>>> origin/main
           user: {
             id: users.id,
             name: users.name,
@@ -386,20 +355,12 @@ app.get(
         .where(eq(roomMessages.roomId, roomId))
         .orderBy(asc(roomMessages.createdAt));
 
-<<<<<<< HEAD
-      // แปลง results ให้ตรงกับ interface
-=======
->>>>>>> origin/main
       const formatted = results.map((row) => ({
         id: row.id,
         message: row.message,
         createdAt: row.createdAt,
         roomId: row.roomId,
         userId: row.userId,
-<<<<<<< HEAD
-        // เช็คว่า row.user และ row.user.id มีค่าหรือไม่
-=======
->>>>>>> origin/main
         user:
           row.user && row.user.id
             ? {
@@ -425,10 +386,6 @@ app.post("/chat", async (req, res, next) => {
     if (!message || !roomId || !userId)
       throw new Error("Missing required fields");
 
-<<<<<<< HEAD
-    // roomId, userId ต้องเป็น UUID เช่น "7a7e8d34-..."
-=======
->>>>>>> origin/main
     const result = await dbClient
       .insert(roomMessages)
       .values({ roomId, userId, message })
@@ -572,11 +529,7 @@ io.on("connection", (socket) => {
 
     io.emit("room-count-updated", { roomId, count: newCount });
 
-<<<<<<< HEAD
-    const socketUserId = (socket as any).userId; // เก็บ userId ใน socket
-=======
     const socketUserId = (socket as any).userId;
->>>>>>> origin/main
     if (socketUserId) {
       const [user] = await dbClient.query.users.findMany({
         where: eq(users.id, socketUserId),
@@ -587,11 +540,6 @@ io.on("connection", (socket) => {
         await sendSystemMessage(io, roomId, `${user.name} joined the room`);
       }
     }
-<<<<<<< HEAD
-    // fetch queue และ now-playing ล่าสุด
-=======
-
->>>>>>> origin/main
     const fullQueue = await dbClient
       .select({
         id: roomQueue.id,
@@ -652,17 +600,11 @@ io.on("connection", (socket) => {
         hostId: listening?.hostId,
       });
     }
-<<<<<<< HEAD
-    console.log(
-      `User ${socket.id} joined room ${roomId} (${newCount} members)`
-    );
-=======
 
     console.log(
       `User ${socket.id} joined room ${roomId} (${newCount} members)`
     );
     await broadcastPublicRooms(io);
->>>>>>> origin/main
   });
 
   socket.on("chat-message", async ({ roomId, userId, message }) => {
@@ -695,10 +637,6 @@ io.on("connection", (socket) => {
   socket.on("queue-add", async (payload) => {
     await addToQueue(io, payload);
 
-<<<<<<< HEAD
-    // หาชื่อ user และชื่อเพลง
-=======
->>>>>>> origin/main
     const [user] = await dbClient.query.users.findMany({
       where: eq(users.id, payload.userId),
       limit: 1,
@@ -724,10 +662,6 @@ io.on("connection", (socket) => {
   socket.on("queue-remove", async (payload) => {
     console.log("🔴 queue-remove event received from", socket.id, payload);
 
-<<<<<<< HEAD
-    // หาข้อมูลก่อนลบ
-=======
->>>>>>> origin/main
     const [queueItem] = await dbClient
       .select({
         song: {
@@ -747,10 +681,6 @@ io.on("connection", (socket) => {
 
     await removeFromQueue(io, payload);
 
-<<<<<<< HEAD
-    // ส่ง system message
-=======
->>>>>>> origin/main
     if (user && queueItem?.song) {
       await sendSystemMessage(
         io,
@@ -771,10 +701,6 @@ io.on("connection", (socket) => {
   socket.on("skip-song", async (payload) => {
     console.log("⏭️ skip-song event received from", socket.id, payload);
 
-<<<<<<< HEAD
-    // 🆕 หาชื่อเพลงที่กำลังเล่น
-=======
->>>>>>> origin/main
     const [listening] = await dbClient
       .select({
         currentSongId: listeningRooms.currentSongId,
@@ -801,10 +727,6 @@ io.on("connection", (socket) => {
     if (payload.roomId) {
       await playNextSong(io, payload.roomId);
 
-<<<<<<< HEAD
-      // 🆕 ส่ง system message
-=======
->>>>>>> origin/main
       if (user) {
         await sendSystemMessage(
           io,
@@ -832,11 +754,7 @@ io.on("connection", (socket) => {
 
     socket.leave(roomId);
 
-<<<<<<< HEAD
-    // ลบจาก room_members
-=======
     // ลบสมาชิกออกจาก database
->>>>>>> origin/main
     await dbClient
       .delete(roomMembers)
       .where(
@@ -851,14 +769,6 @@ io.on("connection", (socket) => {
     if (user) {
       await sendSystemMessage(io, roomId, `${user.name} left the room`);
     }
-<<<<<<< HEAD
-    console.log(
-      `User ${userId} (${socket.id}) left room ${roomId} (${newCount} members)`
-    );
-  });
-
-  // Leave room (ตอน disconnect)
-=======
 
    console.log(`✅ User ${userId} left room ${roomId} (${newCount} members remaining)`);
    // ✅ Broadcast updated room list ทันที
@@ -870,19 +780,12 @@ io.on("connection", (socket) => {
     }, 500);
   });
 
->>>>>>> origin/main
   socket.on("disconnecting", async () => {
     const roomsToCheck: string[] = [];
     const socketUserId = (socket as any).userId;
 
     for (const roomId of socket.rooms) {
       if (roomId !== socket.id) {
-<<<<<<< HEAD
-        // ลบออกจาก DB ด้วย
-        await dbClient
-          .delete(roomMembers)
-          .where(eq(roomMembers.roomId, roomId));
-=======
         roomsToCheck.push(roomId);
 
         if (socketUserId) {
@@ -904,17 +807,10 @@ io.on("connection", (socket) => {
             await sendSystemMessage(io, roomId, `${user.name} disconnected`);
           }
         }
->>>>>>> origin/main
 
         const room = io.sockets.adapter.rooms.get(roomId);
         const newCount = room ? room.size - 1 : 0;
         io.emit("room-count-updated", { roomId, count: newCount });
-<<<<<<< HEAD
-        console.log(
-          `User ${socket.id} disconnected from room ${roomId} (${newCount} members)`
-        );
-=======
->>>>>>> origin/main
       }
     }
 
@@ -1077,15 +973,8 @@ async function sendSystemMessage(io: any, roomId: string, message: string) {
     createdAt: new Date(),
   };
 
-<<<<<<< HEAD
-  // ส่งไปยัง client ทันที
   io.to(roomId).emit("chat-message", systemMsg);
 
-  // บันทึกลง database (optional)
-=======
-  io.to(roomId).emit("chat-message", systemMsg);
-
->>>>>>> origin/main
   try {
     await dbClient.insert(roomMessages).values({
       roomId,
@@ -1124,8 +1013,4 @@ app.get("/", (req, res) => {
 server.listen(PORT, () => {
   debug(`Listening on port ${PORT}: http://localhost:${PORT}`);
   console.log(`Listening on port ${PORT}: http://localhost:${PORT}`);
-<<<<<<< HEAD
 });
-=======
-});
->>>>>>> origin/main
