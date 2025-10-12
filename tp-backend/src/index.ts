@@ -71,6 +71,7 @@ import {
 import { upload, uploadPlaylistCover } from "./controllers/imageControllers.js";
 import { toNodeHandler, fromNodeHeaders } from "better-auth/node";
 import { auth } from "./lib/auth.ts";
+import { verifyToken } from "./middleware/verifyToken.ts";
 
 const debug = Debug("pf-backend");
 
@@ -96,6 +97,31 @@ app.use(
 );
 
 app.all("/api/auth/*splat", toNodeHandler(auth));
+// src/server.ts หรือแถว route /api/auth/* หลังจาก Better Auth handler
+app.get(
+  "/api/auth/token",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const session = await auth.api.getSession({
+        headers: fromNodeHeaders(req.headers),
+      });
+
+      if (!session?.session) {
+        res.status(401).json({ error: "Not authenticated" });
+        return; // ✅ แค่ return; ไม่มี res
+      }
+
+      // ✅ ส่ง token ให้ client
+      res.json({
+        token: session.session.token,
+        user: session.user,
+      });
+    } catch (error) {
+      console.error("Error fetching token:", error);
+      res.status(500).json({ error: "Internal Server Error" });
+    }
+  }
+);
 
 app.use(express.json());
 app.use("/uploads", express.static("uploads"));
@@ -118,35 +144,37 @@ app.post("/users", createUser);
 
 // ----------------- Profile API -----------------
 
-app.get("/api/profile/me", async (req, res, next) => {
-  try {
-    const session = await auth.api.getSession({
-      headers: fromNodeHeaders(req.headers),
-    });
+app.get(
+  "/api/profile/me",
+  verifyToken,
+  async (req, res, next): Promise<void> => {
+    try {
+      const user = (req as any).user;
+      if (!user) {
+        res.status(401).json({ error: "Unauthenticated" });
+        return;
+      }
 
-    if (!session?.user) {
-      res.status(401).json({ error: "Unauthenticated" });
-      return; // แค่ return เปล่าๆ
+      const [found] = await dbClient
+        .select()
+        .from(users)
+        .where(eq(users.id, user.id));
+
+      if (!found) {
+        res.status(404).json({ error: "User not found" });
+        return;
+      }
+
+      res.json(found);
+    } catch (err) {
+      next(err);
     }
-
-    const [user] = await dbClient
-      .select()
-      .from(users)
-      .where(eq(users.id, session.user.id));
-
-    if (!user) {
-      res.status(404).json({ error: "User not found" });
-      return;
-    }
-
-    res.json(user); // ไม่ต้อง return ตัว res
-  } catch (err) {
-    next(err);
   }
-});
+);
 
 app.put(
   "/api/profile/me",
+  verifyToken,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const session = await auth.api.getSession({
@@ -188,24 +216,24 @@ app.put(
 // ----------------- Personal Player API -----------------
 
 // Play single song
-app.post("/player/play-song", PersonalplaySong);
+app.post("/player/play-song", verifyToken, PersonalplaySong);
 
 // Play playlist
-app.post("/player/play-playlist", playPlaylist);
+app.post("/player/play-playlist", verifyToken, playPlaylist);
 
 // Navigation
-app.post("/player/next", playNext);
-app.post("/player/previous", playPrevious);
+app.post("/player/next", verifyToken, playNext);
+app.post("/player/previous", verifyToken, playPrevious);
 
 // Queue management
-app.post("/player/queue/add", addToPersonalQueue);
-app.get("/player/queue/:userId", getQueue);
+app.post("/player/queue/add", verifyToken, addToPersonalQueue);
+app.get("/player/queue/:userId", verifyToken, getQueue);
 
 // Player state
-app.get("/player/state/:userId", getPlayerState);
-app.post("/player/shuffle", toggleShuffle);
-app.post("/player/repeat", setRepeatMode);
-app.get("/player/recently-played/:userId", getRecentlyPlayed);
+app.get("/player/state/:userId", verifyToken, getPlayerState);
+app.post("/player/shuffle", verifyToken, toggleShuffle);
+app.post("/player/repeat", verifyToken, setRepeatMode);
+app.get("/player/recently-played/:userId", verifyToken, getRecentlyPlayed);
 
 // ดึงเพลงยอดนิยม (เรียงตาม playCount)
 // Get popular songs (by play count)
@@ -245,60 +273,66 @@ app.get(
 );
 
 // ----------------- Image Upload API -----------------
-app.post("/upload/playlist-cover", upload.single("cover"), uploadPlaylistCover);
+app.post(
+  "/upload/playlist-cover",
+  verifyToken,
+  upload.single("cover"),
+  uploadPlaylistCover
+);
 
 // ----------------- Playlist API -----------------
 
 // Get user playlists
-app.get("/playlists/:userId", getUserPlaylists);
+app.get("/playlists/:userId", verifyToken, getUserPlaylists);
 
 // Create playlist
-app.post("/playlists", createPlaylist);
+app.post("/playlists", verifyToken, createPlaylist);
 
 // Update playlist
-app.patch("/playlists/:playlistId", updatePlaylist);
+app.patch("/playlists/:playlistId", verifyToken, updatePlaylist);
 
 // Delete playlist
-app.delete("/playlists/:playlistId", deletePlaylist);
+app.delete("/playlists/:playlistId", verifyToken, deletePlaylist);
 
 // Get playlist songs
-app.get("/playlists/:playlistId/songs", getPlaylistSongs);
+app.get("/playlists/:playlistId/songs", verifyToken, getPlaylistSongs);
 
 // Add song to playlist
-app.post("/playlists/:playlistId/songs", addSongToPlaylist);
+app.post("/playlists/:playlistId/songs", verifyToken, addSongToPlaylist);
 
 // Reorder (Custom Order)
-app.patch("/playlists/:playlistId/reorder", reorderPlaylistSongs);
+app.patch("/playlists/:playlistId/reorder", verifyToken, reorderPlaylistSongs);
 
 // Remove song from playlist
 app.delete(
   "/playlists/:playlistId/songs/:playlistSongId",
+  verifyToken,
   removeSongFromPlaylist
 );
 
 // ----------------- Liked Songs API -----------------
 
 // Get liked songs
-app.get("/liked-songs/:userId", getLikedSongs);
+app.get("/liked-songs/:userId", verifyToken, getLikedSongs);
 
 // Add to liked songs
-app.post("/liked-songs", addLikedSong);
+app.post("/liked-songs", verifyToken, addLikedSong);
 
 // Remove from liked songs
-app.delete("/liked-songs/:userId/:songId", removeLikedSong);
+app.delete("/liked-songs/:userId/:songId", verifyToken, removeLikedSong);
 
 // Check if song is liked
-app.get("/liked-songs/:userId/:songId/check", checkLikedSong);
+app.get("/liked-songs/:userId/:songId/check", verifyToken, checkLikedSong);
 
 // Play all liked songs
-app.post("/liked-songs/:userId/play", playLikedSongs);
+app.post("/liked-songs/:userId/play", verifyToken, playLikedSongs);
 
 // ----------------- Community Player API -----------------
 
 // Rooms
-app.post("/rooms", createRoom);
+app.post("/rooms", verifyToken, createRoom);
 //Join room by inviteCode
-app.post("/rooms/join", joinRoom);
+app.post("/rooms/join", verifyToken, joinRoom);
 
 // List public rooms
 app.get("/rooms/public", listPublicRooms);
@@ -306,6 +340,7 @@ app.get("/rooms/public", listPublicRooms);
 // Fetch chat messages
 app.get(
   "/chat/:roomId",
+  verifyToken,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { roomId } = req.params;
@@ -355,7 +390,7 @@ app.get(
 );
 
 // Post chat message
-app.post("/chat", async (req, res, next) => {
+app.post("/chat", verifyToken, async (req, res, next) => {
   try {
     const { roomId, userId, message } = req.body;
 
@@ -369,6 +404,33 @@ app.post("/chat", async (req, res, next) => {
       .returning();
 
     res.json({ msg: "Message sent successfully", data: result[0] });
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.get("/rooms/:roomId/queue", verifyToken, async (req, res, next) => {
+  try {
+    const { roomId } = req.params;
+    const results = await dbClient
+      .select({
+        id: roomQueue.id,
+        queueIndex: roomQueue.queueIndex,
+        queuedBy: roomQueue.queuedBy,
+        song: {
+          id: songs.id,
+          youtubeVideoId: songs.youtubeVideoId,
+          title: songs.title,
+          artist: songs.artist,
+          coverUrl: songs.coverUrl,
+        },
+      })
+      .from(roomQueue)
+      .leftJoin(songs, eq(roomQueue.songId, songs.id))
+      .where(eq(roomQueue.roomId, roomId))
+      .orderBy(asc(roomQueue.queueIndex));
+
+    res.json(results);
   } catch (err) {
     next(err);
   }
@@ -403,6 +465,7 @@ app.get(
 // เพิ่มเพลงใหม่ (จาก YouTube link)
 app.post(
   "/songs/add",
+  verifyToken,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { youtubeVideoId } = req.body;
@@ -462,33 +525,6 @@ app.post(
     }
   }
 );
-
-app.get("/rooms/:roomId/queue", async (req, res, next) => {
-  try {
-    const { roomId } = req.params;
-    const results = await dbClient
-      .select({
-        id: roomQueue.id,
-        queueIndex: roomQueue.queueIndex,
-        queuedBy: roomQueue.queuedBy,
-        song: {
-          id: songs.id,
-          youtubeVideoId: songs.youtubeVideoId,
-          title: songs.title,
-          artist: songs.artist,
-          coverUrl: songs.coverUrl,
-        },
-      })
-      .from(roomQueue)
-      .leftJoin(songs, eq(roomQueue.songId, songs.id))
-      .where(eq(roomQueue.roomId, roomId))
-      .orderBy(asc(roomQueue.queueIndex));
-
-    res.json(results);
-  } catch (err) {
-    next(err);
-  }
-});
 
 // ----------------- WebSocket -----------------
 io.on("connection", (socket) => {

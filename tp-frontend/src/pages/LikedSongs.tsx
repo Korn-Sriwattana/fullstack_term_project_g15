@@ -1,12 +1,11 @@
 import { useState, useEffect } from "react";
 import { useUser } from "../components/userContext";
-import styles from "../assets/styles/LikedSongs.module.css"; 
+import styles from "../assets/styles/LikedSongs.module.css";
 import type { Song } from "../types/song.ts";
 import LikeButton from "../components/LikeButton.tsx";
 import { useLikedSongs } from "../components/LikedSongsContext.tsx";
 import AddToPlaylistButton from "../components/AddToPlaylist";
-
-const API_URL = "http://localhost:3000";
+import { useApi } from "../lib/api";
 
 interface LikedSong {
   id: string;
@@ -21,9 +20,12 @@ export default function LikedSongs() {
   const [likedSongs, setLikedSongs] = useState<LikedSong[]>([]);
   const [loading, setLoading] = useState(true);
   const { likedSongIds, refreshLikedSongs } = useLikedSongs();
+  const { apiFetch } = useApi();
 
-  const [sortBy, setSortBy] = useState<'dateAdded' | 'title' | 'artist' | 'duration'>('dateAdded');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [sortBy, setSortBy] = useState<
+    "dateAdded" | "title" | "artist" | "duration"
+  >("dateAdded");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
   useEffect(() => {
     if (userId) {
@@ -33,11 +35,10 @@ export default function LikedSongs() {
 
   const loadLikedSongs = async () => {
     if (!userId) return;
-    
+
     try {
       setLoading(true);
-      const res = await fetch(`${API_URL}/liked-songs/${userId}`);
-      const data = await res.json();
+      const data = await apiFetch(`/liked-songs/${userId}`);
       setLikedSongs(data);
     } catch (err) {
       console.error("Load liked songs failed:", err);
@@ -54,14 +55,14 @@ export default function LikedSongs() {
 
     if ((window as any).musicPlayer) {
       const songsToPlay = sortedLikedSongs;
-      const [firstSong, ...restSongs] = songsToPlay.map(item => item.song);
-      
+      const [firstSong, ...restSongs] = songsToPlay.map((item) => item.song);
+
       await (window as any).musicPlayer.playSong(firstSong);
-      
+
       for (const song of restSongs) {
         await (window as any).musicPlayer.addToQueue(song);
       }
-      
+
       alert(`Playing ${songsToPlay.length} liked songs`);
     }
   };
@@ -75,14 +76,14 @@ export default function LikedSongs() {
     if ((window as any).musicPlayer) {
       const songsToShuffle = sortedLikedSongs;
       const shuffled = [...songsToShuffle].sort(() => Math.random() - 0.5);
-      const [firstSong, ...restSongs] = shuffled.map(item => item.song);
-      
+      const [firstSong, ...restSongs] = shuffled.map((item) => item.song);
+
       await (window as any).musicPlayer.playSong(firstSong);
-      
+
       for (const song of restSongs) {
         await (window as any).musicPlayer.addToQueue(song);
       }
-      
+
       alert(`Shuffling ${shuffled.length} liked songs`);
     }
   };
@@ -119,41 +120,44 @@ export default function LikedSongs() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric', 
-      year: 'numeric' 
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
     });
   };
 
   const sortedLikedSongs = [...likedSongs].sort((a, b) => {
     let comparison = 0;
-    
+
     switch (sortBy) {
-      case 'title':
-        comparison = (a.song.title || '').localeCompare(b.song.title || '');
+      case "title":
+        comparison = (a.song.title || "").localeCompare(b.song.title || "");
         break;
-      case 'artist':
-        comparison = (a.song.artist || '').localeCompare(b.song.artist || '');
+      case "artist":
+        comparison = (a.song.artist || "").localeCompare(b.song.artist || "");
         break;
-      case 'duration':
+      case "duration":
         comparison = (a.song.duration || 0) - (b.song.duration || 0);
         break;
-      case 'dateAdded':
+      case "dateAdded":
       default:
-        comparison = new Date(a.likedAt).getTime() - new Date(b.likedAt).getTime();
+        comparison =
+          new Date(a.likedAt).getTime() - new Date(b.likedAt).getTime();
         break;
     }
-    
-    return sortOrder === 'asc' ? comparison : -comparison;
+
+    return sortOrder === "asc" ? comparison : -comparison;
   });
 
-  const handleSortChange = (newSortBy: 'dateAdded' | 'title' | 'artist' | 'duration') => {
+  const handleSortChange = (
+    newSortBy: "dateAdded" | "title" | "artist" | "duration"
+  ) => {
     if (sortBy === newSortBy) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
     } else {
       setSortBy(newSortBy);
-      setSortOrder('asc');
+      setSortOrder("asc");
     }
   };
 
@@ -171,12 +175,8 @@ export default function LikedSongs() {
         <div className={styles.headerRow}>
           <div className={styles.cover}>💜</div>
           <div className={styles.info}>
-            <div className={styles.playlistLabel}>
-              PLAYLIST
-            </div>
-            <h1 className={styles.titleHeading}>
-              Liked Songs
-            </h1>
+            <div className={styles.playlistLabel}>PLAYLIST</div>
+            <h1 className={styles.titleHeading}>Liked Songs</h1>
             <div className={styles.subtitle}>
               {user.name} • {likedSongs.length} songs
             </div>
@@ -185,34 +185,34 @@ export default function LikedSongs() {
 
         {likedSongs.length > 0 && (
           <div className={styles.controls}>
-            <button 
+            <button
               onClick={handlePlayAll}
               className={styles.playAllBtn}
               onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'scale(1.04)';
-                e.currentTarget.style.background = '#1ed760';
+                e.currentTarget.style.transform = "scale(1.04)";
+                e.currentTarget.style.background = "#1ed760";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'scale(1)';
-                e.currentTarget.style.background = '#1DB954';
+                e.currentTarget.style.transform = "scale(1)";
+                e.currentTarget.style.background = "#1DB954";
               }}
             >
               <span className={styles.playIcon}>▶️</span>
               Play All
             </button>
 
-            <button 
+            <button
               onClick={handleShuffle}
               className={styles.shuffleBtn}
               onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'scale(1.04)';
-                e.currentTarget.style.borderColor = '#000';
-                e.currentTarget.style.color = '#000';
+                e.currentTarget.style.transform = "scale(1.04)";
+                e.currentTarget.style.borderColor = "#000";
+                e.currentTarget.style.color = "#000";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'scale(1)';
-                e.currentTarget.style.borderColor = '#d1d1d1';
-                e.currentTarget.style.color = '#666';
+                e.currentTarget.style.transform = "scale(1)";
+                e.currentTarget.style.borderColor = "#d1d1d1";
+                e.currentTarget.style.color = "#666";
               }}
             >
               <span className={styles.shuffleIcon}>🔀</span>
@@ -224,7 +224,7 @@ export default function LikedSongs() {
 
       <section className={styles.section}>
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+          <div style={{ textAlign: "center", padding: "40px", color: "#666" }}>
             Loading...
           </div>
         ) : likedSongs.length > 0 ? (
@@ -232,89 +232,97 @@ export default function LikedSongs() {
             <div className={styles.sortBar}>
               <span className={styles.sortLabel}>Sort by:</span>
               <button
-                onClick={() => handleSortChange('dateAdded')}
-                className={`${styles.sortBtn} ${sortBy === 'dateAdded' ? styles.sortBtnActive : ''}`}
+                onClick={() => handleSortChange("dateAdded")}
+                className={`${styles.sortBtn} ${
+                  sortBy === "dateAdded" ? styles.sortBtnActive : ""
+                }`}
               >
-                Date Added {sortBy === 'dateAdded' && (sortOrder === 'asc' ? '↑' : '↓')}
+                Date Added{" "}
+                {sortBy === "dateAdded" && (sortOrder === "asc" ? "↑" : "↓")}
               </button>
               <button
-                onClick={() => handleSortChange('title')}
-                className={`${styles.sortBtn} ${sortBy === 'title' ? styles.sortBtnActive : ''}`}
+                onClick={() => handleSortChange("title")}
+                className={`${styles.sortBtn} ${
+                  sortBy === "title" ? styles.sortBtnActive : ""
+                }`}
               >
-                Title {sortBy === 'title' && (sortOrder === 'asc' ? '↑' : '↓')}
+                Title {sortBy === "title" && (sortOrder === "asc" ? "↑" : "↓")}
               </button>
               <button
-                onClick={() => handleSortChange('artist')}
-                className={`${styles.sortBtn} ${sortBy === 'artist' ? styles.sortBtnActive : ''}`}
+                onClick={() => handleSortChange("artist")}
+                className={`${styles.sortBtn} ${
+                  sortBy === "artist" ? styles.sortBtnActive : ""
+                }`}
               >
-                Artist {sortBy === 'artist' && (sortOrder === 'asc' ? '↑' : '↓')}
+                Artist{" "}
+                {sortBy === "artist" && (sortOrder === "asc" ? "↑" : "↓")}
               </button>
               <button
-                onClick={() => handleSortChange('duration')}
-                className={`${styles.sortBtn} ${sortBy === 'duration' ? styles.sortBtnActive : ''}`}
+                onClick={() => handleSortChange("duration")}
+                className={`${styles.sortBtn} ${
+                  sortBy === "duration" ? styles.sortBtnActive : ""
+                }`}
               >
-                Duration {sortBy === 'duration' && (sortOrder === 'asc' ? '↑' : '↓')}
+                Duration{" "}
+                {sortBy === "duration" && (sortOrder === "asc" ? "↑" : "↓")}
               </button>
             </div>
 
             <div className={styles.resultsList}>
               {sortedLikedSongs.map((item, index) => (
-                <div
-                  key={item.id}
-                  className={styles.resultItem}
-                >
-                  <div className={styles.indexNum}>
-                    {index + 1}
-                  </div>
-                  
+                <div key={item.id} className={styles.resultItem}>
+                  <div className={styles.indexNum}>{index + 1}</div>
+
                   {item.song.coverUrl && (
-                    <img 
-                      src={item.song.coverUrl} 
+                    <img
+                      src={item.song.coverUrl}
                       alt={item.song.title}
                       className={styles.resultCover}
                     />
                   )}
-                  
+
                   <div className={styles.resultInfo} style={{ flex: 1 }}>
                     <div className={styles.resultTitle}>{item.song.title}</div>
-                    <div className={styles.resultArtist}>{item.song.artist}</div>
+                    <div className={styles.resultArtist}>
+                      {item.song.artist}
+                    </div>
                   </div>
-                  
+
                   <div className={styles.dateText}>
                     {formatDate(item.likedAt)}
                   </div>
-                  
+
                   <div className={styles.resultDuration}>
                     {formatTime(item.song.duration)}
                   </div>
-                  
-                  <div style={{ display: 'flex', gap: '5px' }}>
-                    <button 
+
+                  <div style={{ display: "flex", gap: "5px" }}>
+                    <button
                       onClick={() => handlePlaySong(item.song)}
                       className={styles.buttonPrimary}
-                      style={{ padding: '6px 12px', fontSize: '13px' }}
+                      style={{ padding: "6px 12px", fontSize: "13px" }}
                     >
                       Play
                     </button>
-                    <button 
+                    <button
                       onClick={() => handleAddToQueue(item.song)}
                       className={styles.buttonSecondary}
-                      style={{ padding: '6px 12px', fontSize: '13px' }}
+                      style={{ padding: "6px 12px", fontSize: "13px" }}
                     >
                       + Queue
                     </button>
-                    <AddToPlaylistButton 
-                      userId={userId} 
+                    <AddToPlaylistButton
+                      userId={userId}
                       song={item.song}
                       iconOnly={false}
                       buttonClassName={styles.buttonSecondary}
-                      buttonStyle={{ padding: '6px 12px', fontSize: '13px' }}
+                      buttonStyle={{ padding: "6px 12px", fontSize: "13px" }}
                       onSuccess={async () => {
-                        console.log('Song added to playlist');
+                        console.log("Song added to playlist");
                       }}
                     />
-                    <LikeButton 
-                      userId={userId!} 
+                    <LikeButton
+                      userId={userId!}
                       songId={item.song.id}
                       onLikeChange={(isLiked) => {
                         if (!isLiked) {
@@ -327,9 +335,11 @@ export default function LikedSongs() {
               ))}
             </div>
           </>
-        ) : ( 
+        ) : (
           <section className={styles.emptyWrap}>
-            <h2 className={styles.emptyTitle}>You haven't liked any songs yet</h2>
+            <h2 className={styles.emptyTitle}>
+              You haven't liked any songs yet
+            </h2>
             <p className={styles.emptyHint}>
               Tap the heart on tracks you love to keep them all in one place
             </p>
@@ -339,4 +349,3 @@ export default function LikedSongs() {
     </div>
   );
 }
-

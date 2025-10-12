@@ -1,9 +1,41 @@
+// src/pages/Signin.tsx
+import { useEffect } from "react";
+import { useUser } from "../components/userContext";
+import { useNavigate } from "react-router-dom";
 import { authClient } from "../lib/auth-client";
 
 export default function Signin() {
+  const { setUser, setToken } = useUser();
+  const navigate = useNavigate();
+
   const handleGoogleLogin = async () => {
+    // ✅ เริ่ม Google OAuth ผ่าน BetterAuth
     await authClient.signIn.social({ provider: "google" });
   };
+
+  // ✅ หลัง redirect กลับมาจาก Google -> ขอ token จาก backend
+  useEffect(() => {
+    const fetchToken = async () => {
+      try {
+        const res = await fetch("http://localhost:3000/api/auth/token", {
+          credentials: "include", // ใช้ cookie ของ BetterAuth แค่ครั้งเดียว
+        });
+        if (!res.ok) throw new Error("Failed to fetch token");
+
+        const data = await res.json();
+        setUser(data.user);
+        setToken(data.token);
+
+        navigate("/profile");
+      } catch (err) {
+        console.error("Error fetching token:", err);
+      }
+    };
+
+    // ตรวจว่ามี code (callback จาก Google) หรือไม่
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("code")) fetchToken();
+  }, []);
 
   return (
     <div
@@ -16,9 +48,8 @@ export default function Signin() {
         backgroundColor: "#ffffff",
       }}
     >
-      {/* โลโก้เว็บ */}
       <img
-        src="src\assets\images\logo.png"
+        src="src/assets/images/logo.png"
         alt="Lukchang Vibe"
         style={{ width: "120px", marginBottom: "1rem" }}
       />
@@ -27,7 +58,6 @@ export default function Signin() {
         Hello Again! This is Lukchang Vibe
       </h2>
 
-      {/* ปุ่ม Google Login */}
       <button
         onClick={handleGoogleLogin}
         style={{

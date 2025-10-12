@@ -11,8 +11,7 @@ import styles from "../assets/styles/lokchang-rooms.module.css";
 
 //images
 import coverImg from "../assets/images/cover.png";
-
-const API_URL = "http://localhost:3000";
+import { useApi } from "../lib/api";
 
 const LokchangRooms = () => {
   const { user } = useUser();
@@ -21,9 +20,10 @@ const LokchangRooms = () => {
   }
 
   const userId = user?.id || "";
+  const { apiFetch } = useApi();
 
   const [roomId, setRoomId] = useState("");
-  const [roomHostId, setRoomHostId] = useState<string>(""); 
+  const [roomHostId, setRoomHostId] = useState<string>("");
   const [roomNameInput, setRoomNameInput] = useState("");
   const [roomDescriptionInput, setRoomDescriptionInput] = useState("");
   const [currentRoomName, setCurrentRoomName] = useState("");
@@ -50,7 +50,9 @@ const LokchangRooms = () => {
   const [isMuted, setIsMuted] = useState(true);
 
   const [isProcessing, setIsProcessing] = useState(false);
-  const processingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const processingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
 
   function extractVideoId(url: string): string | null {
     try {
@@ -72,21 +74,20 @@ const LokchangRooms = () => {
   }, [roomId]);
 
   useEffect(() => {
-  if (!roomId) return;
-  fetch(`${API_URL}/chat/${roomId}`)
-    .then((res) => res.json())
-    .then((data) => {
-      console.log("📩 Chat messages loaded:", data);
-      console.log("First message:", data[0]);
-      setMessages(data);
-    })
-    .catch(console.error);
-}, [roomId]);
+    if (!roomId) return;
+    apiFetch(`/chat/${roomId}`)
+      .then((data) => {
+        console.log("📩 Chat messages loaded:", data);
+        console.log("First message:", data[0]);
+        setMessages(data);
+      })
+      .catch(console.error);
+  }, [roomId]);
 
   useEffect(() => {
     if (socketRef.current) return;
 
-    const socket = io(API_URL, {
+    const socket = io("http://localhost:3000", {
       reconnection: true,
       reconnectionAttempts: 10,
       reconnectionDelay: 1000,
@@ -96,7 +97,7 @@ const LokchangRooms = () => {
 
     socket.on("connect", () => {
       console.log("Connected:", socket.id);
-       if (userId) {
+      if (userId) {
         socket.emit("set-user", userId);
       }
       if (roomIdRef.current) socket.emit("join-room", roomIdRef.current);
@@ -124,7 +125,7 @@ const LokchangRooms = () => {
     socket.on("queue-sync", ({ queue }: { queue: any[] }) => {
       console.log(" queue-sync received:", queue.length, "items");
       setQueue(queue);
-      
+
       setIsProcessing(false);
       if (processingTimeoutRef.current) {
         clearTimeout(processingTimeoutRef.current);
@@ -132,34 +133,37 @@ const LokchangRooms = () => {
       }
     });
 
-    socket.on("now-playing", ({ roomId: rId, song, startedAt, hostId }: any) => {
-      console.log("now-playing received:", { rId, song, startedAt });
-      
-      if (rId !== roomIdRef.current) return;
-      if (hostId) setRoomHostId(hostId);
-      if (!song) {
-        setNowPlaying(null);
-        return;
+    socket.on(
+      "now-playing",
+      ({ roomId: rId, song, startedAt, hostId }: any) => {
+        console.log("now-playing received:", { rId, song, startedAt });
+
+        if (rId !== roomIdRef.current) return;
+        if (hostId) setRoomHostId(hostId);
+        if (!song) {
+          setNowPlaying(null);
+          return;
+        }
+
+        const elapsed = startedAt
+          ? Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000)
+          : 0;
+
+        console.log("Song info:", {
+          title: song.title,
+          duration: song.duration,
+          elapsed,
+        });
+
+        setNowPlaying({
+          ...song,
+          startTime: Math.max(0, elapsed),
+          duration: song.duration,
+        });
+
+        setIsProcessing(false);
       }
-
-      const elapsed = startedAt
-        ? Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000)
-        : 0;
-
-      console.log("Song info:", { 
-        title: song.title, 
-        duration: song.duration, 
-        elapsed
-      });
-
-      setNowPlaying({
-        ...song,
-        startTime: Math.max(0, elapsed),
-        duration: song.duration,
-      });
-
-      setIsProcessing(false);
-    });
+    );
 
     return () => {
       socket.disconnect();
@@ -174,25 +178,21 @@ const LokchangRooms = () => {
   }, [roomId]);
 
   useEffect(() => {
-    fetch(`${API_URL}/rooms/public`)
-      .then((res) => res.json())
+    apiFetch("/rooms/public")
       .then((data) => setPublicRooms(data))
       .catch(console.error);
   }, []);
 
   useEffect(() => {
     if (!roomId) return;
-    fetch(`${API_URL}/chat/${roomId}`)
-      .then((res) => res.json())
+    apiFetch(`/chat/${roomId}`)
       .then((data) => setMessages(data))
       .catch(console.error);
   }, [roomId]);
 
   useEffect(() => {
     if (!roomId) return;
-
-    fetch(`${API_URL}/rooms/${roomId}/queue`)
-      .then((res) => res.json())
+    apiFetch(`/rooms/${roomId}/queue`)
       .then((data) => {
         console.log("Initial queue loaded:", data);
         setQueue(data);
@@ -219,35 +219,30 @@ const LokchangRooms = () => {
     }
 
     try {
-      const res = await fetch(`${API_URL}/rooms/join`, {
+      const data = await apiFetch("/rooms/join", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ inviteCode: code, userId }),
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
+      if (!data.roomId) {
         alert(data.error || "Failed to join room");
         return;
       }
 
-      if (data.roomId) {
-        setRoomId(data.roomId);
-        setCurrentRoomName(data.roomName);
-        setCurrentInviteCode(data.inviteCode);
-        setCurrentIsPublic(data.isPublic);
+      setRoomId(data.roomId);
+      setCurrentRoomName(data.roomName);
+      setCurrentInviteCode(data.inviteCode);
+      setCurrentIsPublic(data.isPublic);
 
-        const [queueRes, chatRes] = await Promise.all([
-          fetch(`${API_URL}/rooms/${data.roomId}/queue`).then((r) => r.json()),
-          fetch(`${API_URL}/chat/${data.roomId}`).then((r) => r.json()),
-        ]);
+      const [queueRes, chatRes] = await Promise.all([
+        apiFetch(`/rooms/${data.roomId}/queue`),
+        apiFetch(`/chat/${data.roomId}`),
+      ]);
 
-        setQueue(queueRes);
-        setMessages(chatRes);
+      setQueue(queueRes);
+      setMessages(chatRes);
 
-        alert(`Joined Room: ${data.roomName}`);
-      }
+      alert(`Joined Room: ${data.roomName}`);
     } catch (error) {
       console.error("Error joining room:", error);
       alert("Failed to join room");
@@ -264,9 +259,8 @@ const LokchangRooms = () => {
       return;
     }
 
-    const res = await fetch(`${API_URL}/rooms`, {
+    const created = await apiFetch("/rooms", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         hostId: userId,
         name: roomNameInput,
@@ -274,7 +268,6 @@ const LokchangRooms = () => {
         isPublic: mode === "public",
       }),
     });
-    const created = await res.json();
 
     setRoomId(created.roomId);
     setCurrentRoomName(created.roomName);
@@ -282,17 +275,15 @@ const LokchangRooms = () => {
     setCurrentIsPublic(created.isPublic);
     setRoomNameInput("");
     setRoomDescriptionInput("");
-
     setNowPlaying(null);
 
-    fetch(`${API_URL}/rooms/${created.roomId}/queue`)
-      .then(res => res.json())
-      .then(data => {
-        setQueue(data);
-      });
+    const data = await apiFetch(`/rooms/${created.roomId}/queue`);
+    setQueue(data);
 
     alert(
-      `Room created & joined: ${created.roomName} (${created.isPublic ? "Public" : "Private"})`
+      `Room created & joined: ${created.roomName} (${
+        created.isPublic ? "Public" : "Private"
+      })`
     );
   };
 
@@ -335,15 +326,10 @@ const LokchangRooms = () => {
       setIsProcessing(false);
     }, 3000);
 
-    const res = await fetch(`${API_URL}/songs/add`, {
+    const song = await apiFetch("/songs/add", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        youtubeVideoId: videoId,
-      }),
+      body: JSON.stringify({ youtubeVideoId: videoId }),
     });
-
-    const song = await res.json();
 
     if (!song.id) {
       alert("Failed to add/find song");
@@ -360,7 +346,7 @@ const LokchangRooms = () => {
   };
 
   const handleToggleMute = () => {
-    setIsMuted(prev => !prev);
+    setIsMuted((prev) => !prev);
   };
 
   const handleRemove = (queueId: string) => {
@@ -374,7 +360,7 @@ const LokchangRooms = () => {
       return;
     }
 
-    const itemExists = queue.find(item => item.id === queueId);
+    const itemExists = queue.find((item) => item.id === queueId);
     if (!itemExists) {
       console.log("⚠️ Item not in queue anymore");
       return;
@@ -384,7 +370,7 @@ const LokchangRooms = () => {
     processingTimeoutRef.current = setTimeout(() => {
       setIsProcessing(false);
     }, 3000);
-    setQueue(prev => prev.filter(item => item.id !== queueId));
+    setQueue((prev) => prev.filter((item) => item.id !== queueId));
 
     console.log("📤 Emitting queue-remove:", { roomId, queueId });
     socketRef.current?.emit("queue-remove", { roomId, queueId });
@@ -409,7 +395,7 @@ const LokchangRooms = () => {
     socketRef.current?.emit("skip-song", { roomId });
   };
 
-  const handleReorder = (queueId: string, direction: 'up' | 'down') => {
+  const handleReorder = (queueId: string, direction: "up" | "down") => {
     if (!roomId) return;
     if (userId !== roomHostId) {
       alert("Only the host can reorder songs");
@@ -421,11 +407,11 @@ const LokchangRooms = () => {
       return;
     }
 
-    const currentIndex = queue.findIndex(item => item.id === queueId);
+    const currentIndex = queue.findIndex((item) => item.id === queueId);
     if (currentIndex === -1) return;
 
-    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
-    
+    const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+
     if (newIndex < 0 || newIndex >= queue.length) return;
 
     setIsProcessing(true);
@@ -447,23 +433,53 @@ const LokchangRooms = () => {
         </div>
 
         <RoomSection
-          {...{ roomNameInput, setRoomNameInput, roomDescriptionInput, setRoomDescriptionInput,
-                mode, setMode, handleCreateRoom, inviteCodeInput, setInviteCodeInput,
-                handleJoinRoom, publicRooms, currentRoomName, currentInviteCode,
-                currentIsPublic, roomCount, roomId, handleLeaveRoom }}
+          {...{
+            roomNameInput,
+            setRoomNameInput,
+            roomDescriptionInput,
+            setRoomDescriptionInput,
+            mode,
+            setMode,
+            handleCreateRoom,
+            inviteCodeInput,
+            setInviteCodeInput,
+            handleJoinRoom,
+            publicRooms,
+            currentRoomName,
+            currentInviteCode,
+            currentIsPublic,
+            roomCount,
+            roomId,
+            handleLeaveRoom,
+          }}
         />
         {roomId && (
-        <>
-          <ChatSection 
-            messages={messages}
-            message={message}
-            setMessage={setMessage}
-            handleSendMessage={handleSendMessage}
-            currentUserId={userId}
-          />
-          <QueueSection {...{ queue, nowPlaying, youtubeUrl, setYoutubeUrl,
-                              handleAdd, handleRemove, isMuted, handleToggleMute,
-                              socketRef, roomIdRef, handleSkip, handleReorder, isHost: userId === roomHostId, isProcessing }} />
+          <>
+            <ChatSection
+              messages={messages}
+              message={message}
+              setMessage={setMessage}
+              handleSendMessage={handleSendMessage}
+              currentUserId={userId}
+            />
+            <QueueSection
+              {...{
+                queue,
+                nowPlaying,
+                youtubeUrl,
+                setYoutubeUrl,
+                handleAdd,
+                handleRemove,
+                isMuted,
+                handleToggleMute,
+                socketRef,
+                roomIdRef,
+                handleSkip,
+                handleReorder,
+                isHost: userId === roomHostId,
+                isProcessing,
+              }}
+            />
           </>
         )}
       </div>

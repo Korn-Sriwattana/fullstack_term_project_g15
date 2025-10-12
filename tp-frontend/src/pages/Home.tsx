@@ -7,6 +7,7 @@ import AddToPlaylistButton from "../components/AddToPlaylist";
 import searchIcon from "../assets/images/search-icon.png";
 import { authClient } from "../lib/auth-client.ts";
 import { useNavigate } from "react-router-dom";
+import { useApi } from "../lib/api";
 
 const API_URL = "http://localhost:3000";
 
@@ -18,6 +19,7 @@ interface HomeProps {
 const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
   const { setUser, user } = useUser();
   const userId = user?.id || "";
+  const { apiFetch } = useApi();
 
   const [userName, setUserName] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -47,10 +49,9 @@ const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
       }
 
       try {
-        const res = await fetch(
-          `${API_URL}/songs/search?q=${encodeURIComponent(searchQuery)}`
+        const data = await apiFetch(
+          `/songs/search?q=${encodeURIComponent(searchQuery)}`
         );
-        const data = await res.json();
         setSearchResults(data);
       } catch (err) {
         console.error("Search failed:", err);
@@ -62,7 +63,7 @@ const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
     }, 300);
 
     return () => clearTimeout(timeoutId);
-  }, [searchQuery]);
+  }, [searchQuery, apiFetch]);
 
   // Load recently played when user changes
   useEffect(() => {
@@ -83,21 +84,14 @@ const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
     }
 
     try {
-      const res = await fetch(`${API_URL}/users`, {
+      const data = await apiFetch("/users", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: userName,
           email: `${Date.now()}@test.com`,
           password: "1234",
         }),
       });
-
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
-
-      const data = await res.json();
 
       setUserName(data.name);
 
@@ -137,23 +131,24 @@ const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
       return;
     }
 
-    const res = await fetch(`${API_URL}/songs/add`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        youtubeVideoId: videoId,
-      }),
-    });
+    try {
+      const song = await apiFetch("/songs/add", {
+        method: "POST",
+        body: JSON.stringify({
+          youtubeVideoId: videoId,
+        }),
+      });
 
-    const song = await res.json();
+      if (!song.id) {
+        alert("Failed to add/find song");
+        return;
+      }
 
-    if (!song.id) {
-      alert("Failed to add/find song");
-      return;
+      setYoutubeUrl("");
+      alert("Song added!");
+    } catch (err) {
+      console.error("Add song failed:", err);
     }
-
-    setYoutubeUrl("");
-    alert("Song added!");
   };
 
   const handlePlaySong = async (song: Song) => {
@@ -186,10 +181,7 @@ const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
     if (!userId) return;
 
     try {
-      const res = await fetch(
-        `${API_URL}/player/recently-played/${userId}?limit=10`
-      );
-      const data = await res.json();
+      const data = await apiFetch(`/player/recently-played/${userId}?limit=10`);
       setRecentlyPlayed(data);
     } catch (err) {
       console.error("Load recently played failed:", err);
@@ -198,8 +190,7 @@ const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
 
   const loadPopularSongs = async () => {
     try {
-      const res = await fetch(`${API_URL}/songs/popular?limit=20`);
-      const data = await res.json();
+      const data = await apiFetch("/songs/popular?limit=20");
       setPopularSongs(data);
     } catch (err) {
       console.error("Load popular songs failed:", err);

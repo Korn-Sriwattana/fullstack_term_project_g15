@@ -1,26 +1,40 @@
 import { useState, useRef, useEffect } from "react";
-import type { User } from "../types/user";
 import defaultAvatar from "../assets/images/default-avatar.png";
 import logoutIcon from "../assets/images/logout-icon.png";
 import styles from "../assets/styles/Topbar.module.css";
 import { useNavigate } from "react-router-dom";
 import { authClient } from "../lib/auth-client";
+import { useUser } from "../components/userContext";
 
-type Props = {
-  user?: User | null;
-};
-
-export default function Topbar({ user }: Props) {
+export default function Topbar() {
   const [open, setOpen] = useState(false);
-  const avatarSrc =
-    user && user.avatarUrl && user.avatarUrl.trim() !== ""
-      ? user.avatarUrl
-      : defaultAvatar;
-
   const navigate = useNavigate();
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { user, logout } = useUser();
+  const { data: session } = authClient.useSession();
 
-  // ✅ ปิด dropdown ถ้าคลิกข้างนอก
+  // ✅ ใช้ชื่อจาก sessionStorage หรือ user
+  const [tabUserName, setTabUserName] = useState<string>(() => {
+    return sessionStorage.getItem("tabUserName") || user?.name || "Guest";
+  });
+
+  // ✅ อัปเดตชื่อเมื่อ user/session เปลี่ยน
+  useEffect(() => {
+    const activeName = user?.name || session?.user?.name;
+    if (activeName) {
+      sessionStorage.setItem("tabUserName", activeName);
+      setTabUserName(activeName);
+    }
+  }, [user, session]);
+
+  // ✅ หา avatar จากทุกกรณีที่เป็นไปได้
+  const avatarSrc =
+    user?.profile_pic || // จาก DB โดยตรง
+    user?.profilePic || // จาก context (camelCase)
+    session?.user?.image || // จาก Google OAuth
+    defaultAvatar;
+
+  // ✅ ปิด dropdown เมื่อคลิกข้างนอก
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -37,23 +51,29 @@ export default function Topbar({ user }: Props) {
   // ✅ handle logout
   const handleLogout = async () => {
     await authClient.signOut();
+    logout();
+    sessionStorage.removeItem("tabUserName");
     window.location.href = "/";
   };
 
   return (
     <div className={styles.topbar}>
       <div className={styles.profileContainer} ref={dropdownRef}>
-        {/* ✅ เพิ่มคำทักทาย */}
+        {/* คำทักทาย */}
         <span className={styles.greeting}>
-          Hi,&nbsp;<strong>{user?.name || "Guest"}</strong>
+          Hi,&nbsp;<strong>{tabUserName}</strong>
         </span>
 
-        {/* Avatar */}
+        {/* ✅ Avatar เป็นรูปจริงจาก profile_pic */}
         <img
           src={avatarSrc}
-          alt={user?.name ? `${user.name}'s avatar` : "Default avatar"}
+          alt="user avatar"
           className={styles.avatar}
           onClick={() => setOpen((prev) => !prev)}
+          onError={(e) => {
+            // ถ้าโหลดรูปไม่ได้ → fallback เป็น default
+            (e.currentTarget as HTMLImageElement).src = defaultAvatar;
+          }}
         />
 
         {/* Dropdown Menu */}
