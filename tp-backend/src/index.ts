@@ -691,11 +691,53 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("song-ended", (payload) => {
+  socket.on("song-ended", async (payload) => {
     console.log("⏹️ song-ended event received from", socket.id);
     const roomId = typeof payload === "string" ? payload : payload?.roomId;
     if (roomId) {
-      playNextSong(io, roomId);
+      // ลบเพลงที่เล่นจบแล้วออกจาก queue ก่อน
+      const [listening] = await dbClient
+        .select({ currentSongId: listeningRooms.currentSongId })
+        .from(listeningRooms)
+        .where(eq(listeningRooms.id, roomId));
+      
+      if (listening?.currentSongId) {
+        const [currentItem] = await dbClient
+          .select({ id: roomQueue.id })
+          .from(roomQueue)
+          .where(
+            and(
+              eq(roomQueue.roomId, roomId),
+              eq(roomQueue.songId, listening.currentSongId)
+            )
+          )
+          .orderBy(asc(roomQueue.queueIndex))
+          .limit(1);
+        
+        if (currentItem) {
+          console.log("🗑️ Removing finished song from queue:", currentItem.id);
+          await dbClient.delete(roomQueue).where(eq(roomQueue.id, currentItem.id));
+          
+          // Reindex queue
+          const remainingItems = await dbClient
+            .select()
+            .from(roomQueue)
+            .where(eq(roomQueue.roomId, roomId))
+            .orderBy(asc(roomQueue.queueIndex));
+
+          await dbClient.transaction(async (tx: any) => {
+            for (let i = 0; i < remainingItems.length; i++) {
+              await tx
+                .update(roomQueue)
+                .set({ queueIndex: i })
+                .where(eq(roomQueue.id, remainingItems[i].id));
+            }
+          });
+        }
+      }
+      
+      // จากนั้นค่อยเล่นเพลงถัดไป
+      await playNextSong(io, roomId);
     }
   });
 
@@ -717,6 +759,40 @@ io.on("connection", (socket) => {
         .where(eq(songs.id, listening.currentSongId))
         .limit(1);
       if (song) songTitle = `"${song.title}"`;
+      
+      // ลบเพลงที่ skip ออกจาก queue ก่อน
+      const [currentItem] = await dbClient
+        .select({ id: roomQueue.id })
+        .from(roomQueue)
+        .where(
+          and(
+            eq(roomQueue.roomId, payload.roomId),
+            eq(roomQueue.songId, listening.currentSongId)
+          )
+        )
+        .orderBy(asc(roomQueue.queueIndex))
+        .limit(1);
+      
+      if (currentItem) {
+        console.log("🗑️ Removing skipped song from queue:", currentItem.id);
+        await dbClient.delete(roomQueue).where(eq(roomQueue.id, currentItem.id));
+        
+        // Reindex queue
+        const remainingItems = await dbClient
+          .select()
+          .from(roomQueue)
+          .where(eq(roomQueue.roomId, payload.roomId))
+          .orderBy(asc(roomQueue.queueIndex));
+
+        await dbClient.transaction(async (tx: any) => {
+          for (let i = 0; i < remainingItems.length; i++) {
+            await tx
+              .update(roomQueue)
+              .set({ queueIndex: i })
+              .where(eq(roomQueue.id, remainingItems[i].id));
+          }
+        });
+      }
     }
 
     const socketUserId = (socket as any).userId;
@@ -726,6 +802,7 @@ io.on("connection", (socket) => {
     });
 
     if (payload.roomId) {
+      // เล่นเพลงถัดไป
       await playNextSong(io, payload.roomId);
 
       if (user) {
