@@ -4,12 +4,53 @@
   border-bottom: 1px solid #d4d4d4;
   display: flex;
   align-items: center;
+<<<<<<< HEAD
   justify-content: flex-end;
   padding: 0px 13px;
+=======
+  justify-content: flex-start;      
+  padding: 0 16px;
+>>>>>>> origin/main
   gap: 16px;
   position: relative;
 }
 
+<<<<<<< HEAD
+=======
+/* view - sidebar */
+.topbar .menuBtn {
+  all: unset;                     
+  cursor: pointer;
+  line-height: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.topbar .menuBtn,
+.topbar .menuBtn:hover,
+.topbar .menuBtn:focus,
+.topbar .menuBtn:focus-visible {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  border-radius: 0 !important;
+}
+
+.topbar .menuBtn::before,
+.topbar .menuBtn::after {
+  content: none !important;
+}
+
+.topbar .menuIcon {
+  width: 25px;
+  height: 20px;
+  display: block;
+}
+
+/* say hi */
+>>>>>>> origin/main
 .greeting {
   color: #a855f7;
   font-size: 1rem;
@@ -27,6 +68,7 @@
   object-fit: cover;
   transition: transform 0.2s ease;
 }
+<<<<<<< HEAD
 
 .avatar:hover {
   transform: scale(1.1);
@@ -41,6 +83,23 @@
 .dropdown {
   position: absolute;
   top: 42px; /* ต่ำกว่า avatar */
+=======
+.avatar:hover { transform: scale(1.1); }
+
+
+.profileContainer {
+  position: relative;
+  margin-left: auto;             
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Dropdown */
+.dropdown {
+  position: absolute;
+  top: 42px;
+>>>>>>> origin/main
   right: 0;
   background-color: #fff;
   border: 1px solid #e0e0e0;
@@ -52,7 +111,11 @@
   flex-direction: column;
 }
 
+<<<<<<< HEAD
 /* Dropdown items */
+=======
+/* list dropdown */
+>>>>>>> origin/main
 .dropdownItem {
   background: none;
   border: none;
@@ -66,13 +129,20 @@
   align-items: center;
   gap: 8px;
 }
+<<<<<<< HEAD
 
+=======
+>>>>>>> origin/main
 .dropdownItem:hover {
   background-color: #f4f0ff;
   color: #7c3aed;
 }
 
+<<<<<<< HEAD
 /* Logout icon */
+=======
+/* ไอคอน logout */
+>>>>>>> origin/main
 .logoutIcon {
   width: 16px;
   height: 16px;

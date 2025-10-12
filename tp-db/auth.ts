@@ -39,6 +39,12 @@ export const auth = betterAuth({
               .where(eq(users.email, newUser.email))
               .limit(1);
 
+          // ✅ แปลง URL เป็นขนาดใหญ่ก่อนเก็บ
+          let profilePic = newUser.image;
+          if (profilePic?.includes("googleusercontent.com")) {
+            profilePic = profilePic.replace(/=s\d+-c$/, "=s500");
+          }
+
             if (!existing) {
               // ✅ ยังไม่เคยมี → สร้างบัญชีใหม่
               await db.insert(users).values({
