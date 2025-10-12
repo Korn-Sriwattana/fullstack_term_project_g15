@@ -71,6 +71,7 @@ import {
 import { upload, uploadPlaylistCover, uploadProfile, uploadProfilePic } from "./controllers/imageControllers.js";
 import { toNodeHandler, fromNodeHeaders } from "better-auth/node";
 import { auth } from "./lib/auth.ts";
+import { randomUUID } from "crypto";
 
 const debug = Debug("pf-backend");
 
@@ -600,9 +601,11 @@ io.on("connection", (socket) => {
         hostId: listening?.hostId,
       });
     }
+
     console.log(
       `User ${socket.id} joined room ${roomId} (${newCount} members)`
     );
+    await broadcastPublicRooms(io);
   });
 
   socket.on("chat-message", async ({ roomId, userId, message }) => {
@@ -743,6 +746,8 @@ io.on("connection", (socket) => {
       return;
     }
 
+    console.log(`👋 User ${userId} leaving room ${roomId}`);
+
     const [user] = await dbClient.query.users.findMany({
       where: eq(users.id, userId),
       limit: 1,
@@ -750,6 +755,7 @@ io.on("connection", (socket) => {
 
     socket.leave(roomId);
 
+    // ลบสมาชิกออกจาก database
     await dbClient
       .delete(roomMembers)
       .where(
@@ -758,31 +764,64 @@ io.on("connection", (socket) => {
 
     const newCount = io.sockets.adapter.rooms.get(roomId)?.size || 0;
 
+    // อัพเดท count ให้ทุกคน
     io.emit("room-count-updated", { roomId, count: newCount });
+    
     if (user) {
       await sendSystemMessage(io, roomId, `${user.name} left the room`);
     }
-    console.log(
-      `User ${userId} (${socket.id}) left room ${roomId} (${newCount} members)`
-    );
+
+   console.log(`✅ User ${userId} left room ${roomId} (${newCount} members remaining)`);
+   // ✅ Broadcast updated room list ทันที
+    await broadcastPublicRooms(io);
+
+    // ตรวจสอบและลบห้องถ้าว่าง
+    setTimeout(async () => {
+      await deleteRoomIfEmpty(io, roomId);
+    }, 500);
   });
 
   socket.on("disconnecting", async () => {
+    const roomsToCheck: string[] = [];
+    const socketUserId = (socket as any).userId;
+
     for (const roomId of socket.rooms) {
       if (roomId !== socket.id) {
-        await dbClient
-          .delete(roomMembers)
-          .where(eq(roomMembers.roomId, roomId));
+        roomsToCheck.push(roomId);
+
+        if (socketUserId) {
+          await dbClient
+            .delete(roomMembers)
+            .where(
+              and(
+                eq(roomMembers.roomId, roomId),
+                eq(roomMembers.userId, socketUserId)
+              )
+            );
+
+          const [user] = await dbClient.query.users.findMany({
+            where: eq(users.id, socketUserId),
+            limit: 1,
+          });
+
+          if (user) {
+            await sendSystemMessage(io, roomId, `${user.name} disconnected`);
+          }
+        }
 
         const room = io.sockets.adapter.rooms.get(roomId);
         const newCount = room ? room.size - 1 : 0;
-
         io.emit("room-count-updated", { roomId, count: newCount });
-        console.log(
-          `User ${socket.id} disconnected from room ${roomId} (${newCount} members)`
-        );
       }
     }
+
+    await broadcastPublicRooms(io);
+
+    setTimeout(async () => {
+      for (const roomId of roomsToCheck) {
+        await deleteRoomIfEmpty(io, roomId);
+      }
+    }, 1000);
   });
 
   socket.on("disconnect", () => {
@@ -810,6 +849,121 @@ function sanitizeQueueItem(item: any) {
     song: sanitizeSong(item.song),
   };
 }
+
+// function helper สำหรับลบห้องว่าง
+async function deleteRoomIfEmpty(io: any, roomId: string) {
+  try {
+    const [memberCount] = await dbClient
+      .select({ count: sql<number>`count(*)` })
+      .from(roomMembers)
+      .where(eq(roomMembers.roomId, roomId));
+
+    const dbCount = memberCount?.count || 0;
+    const socketCount = io.sockets.adapter.rooms.get(roomId)?.size || 0;
+
+    console.log(`🔍 Checking room ${roomId}:`, { dbCount, socketCount });
+
+    if (dbCount === 0 && socketCount === 0) {
+      console.log(`🗑️ Deleting empty room: ${roomId}`);
+
+      await dbClient.transaction(async (tx) => {
+        await tx.delete(roomQueue).where(eq(roomQueue.roomId, roomId));
+        await tx.delete(roomMessages).where(eq(roomMessages.roomId, roomId));
+        await tx.delete(roomMembers).where(eq(roomMembers.roomId, roomId));
+        await tx.delete(listeningRooms).where(eq(listeningRooms.id, roomId));
+      });
+
+      io.emit("room-deleted", { roomId });
+      
+      // ✅ Broadcast updated room list
+      await broadcastPublicRooms(io);
+
+      console.log(`✅ Room ${roomId} deleted successfully`);
+      return true;
+    }
+
+    return false;
+  } catch (err) {
+    console.error(`❌ Error checking/deleting room ${roomId}:`, err);
+    return false;
+  }
+}
+
+// helper function สำหรับ broadcast room list
+async function broadcastPublicRooms(io: any) {
+  try {
+    const rooms = await dbClient.query.listeningRooms.findMany({
+      where: (rooms, { eq }) => eq(rooms.isPublic, true),
+      columns: {
+        id: true,
+        name: true,
+        description: true,
+        inviteCode: true,
+        hostId: true,
+        maxMembers: true,
+        createdAt: true,
+      },
+    });
+
+    const formattedRooms = await Promise.all(
+      rooms.map(async (r) => {
+        const [memberCount] = await dbClient
+          .select({ count: sql<number>`count(*)` })
+          .from(roomMembers)
+          .where(eq(roomMembers.roomId, r.id));
+
+        const dbCount = memberCount?.count || 0;
+        const socketCount = io.sockets.adapter.rooms.get(r.id)?.size || 0;
+        const actualCount = Math.max(dbCount, socketCount);
+
+        return {
+          roomId: r.id,
+          roomName: r.name,
+          description: r.description,
+          inviteCode: r.inviteCode,
+          hostId: r.hostId,
+          createdAt: r.createdAt,
+          isPublic: true,
+          count: actualCount,
+          maxMembers: r.maxMembers || 5,
+        };
+      })
+    );
+
+    // กรองเฉพาะห้องที่มีคน
+    const activeRooms = formattedRooms.filter(room => room.count > 0);
+
+    // ส่ง event ไปยัง clients ทั้งหมด
+    io.emit("public-rooms-updated", activeRooms);
+    
+    console.log(`📡 Broadcasted ${activeRooms.length} active public rooms`);
+    return activeRooms;
+  } catch (err) {
+    console.error("❌ Error broadcasting public rooms:", err);
+    return [];
+  }
+}
+
+// เพิ่ม scheduled cleanup (optional - สำหรับความแน่ใจเป็นพิเศษ)
+setInterval(async () => {
+  try {
+    console.log("🧹 Running scheduled room cleanup...");
+
+    const allRooms = await dbClient
+      .select({ id: listeningRooms.id })
+      .from(listeningRooms);
+
+    let deletedCount = 0;
+    for (const room of allRooms) {
+      const deleted = await deleteRoomIfEmpty(io, room.id);
+      if (deleted) deletedCount++;
+    }
+
+    console.log(`✅ Cleanup completed. Deleted ${deletedCount} empty rooms.`);
+  } catch (err) {
+    console.error("❌ Error in scheduled cleanup:", err);
+  }
+}, 2 * 60 * 1000); // ทุก 2 นาที
 
 async function sendSystemMessage(io: any, roomId: string, message: string) {
   const systemMsg = {

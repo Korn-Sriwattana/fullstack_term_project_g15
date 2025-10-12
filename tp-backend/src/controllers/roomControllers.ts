@@ -1,8 +1,8 @@
 import type { RequestHandler } from "express";
 import { randomUUID } from "crypto";
 import { dbClient } from "@db/client.js";
-import { listeningRooms, roomMembers } from "@db/schema.js";
-import { eq, and, count } from "drizzle-orm";
+import { listeningRooms, roomMembers, roomQueue, roomMessages } from "@db/schema.js";
+import { eq, and, count, sql } from "drizzle-orm";
 
 // Create Room
 export const createRoom: RequestHandler = async (req, res, next) => {
@@ -43,14 +43,6 @@ export const createRoom: RequestHandler = async (req, res, next) => {
       roomId: room.id,
       userId: hostId,
       role: 'host',
-    });
-
-    req.app.locals.io.emit("room-created", {
-      roomId: room.id,
-      roomName: room.name,
-      description: room.description,
-      inviteCode: room.inviteCode,
-      isPublic: room.isPublic,
     });
 
     res.status(201).json({
@@ -150,6 +142,11 @@ export const joinRoom: RequestHandler = async (req, res, next) => {
 // List Public Rooms
 export const listPublicRooms: RequestHandler = async (req, res, next) => {
   try {
+    // ปิด cache
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    
     const rooms = await dbClient.query.listeningRooms.findMany({
       where: (rooms, { eq }) => eq(rooms.isPublic, true),
       columns: {
@@ -193,7 +190,50 @@ export const listPublicRooms: RequestHandler = async (req, res, next) => {
       })
     );
 
-    res.json(formattedRooms);
+    // ✅ ลบห้องที่มี 0 คนทิ้งเลย + กรองเฉพาะห้องที่มีคน
+    const activeRooms: any[] = [];
+    const emptyRoomIds: string[] = [];
+
+    for (const room of formattedRooms) {
+      if (room.count === 0) {
+        emptyRoomIds.push(room.roomId);
+      } else {
+        activeRooms.push(room);
+      }
+    }
+
+    // 🗑️ ลบห้องว่างทั้งหมดในครั้งเดียว
+    if (emptyRoomIds.length > 0) {
+      console.log(`🗑️ Deleting ${emptyRoomIds.length} empty public rooms:`, emptyRoomIds);
+      
+      try {
+        await dbClient.transaction(async (tx) => {
+          for (const roomId of emptyRoomIds) {
+            // ลบ queue
+            await tx.delete(roomQueue).where(eq(roomQueue.roomId, roomId));
+            // ลบ messages
+            await tx.delete(roomMessages).where(eq(roomMessages.roomId, roomId));
+            // ลบ members (ถ้ามี)
+            await tx.delete(roomMembers).where(eq(roomMembers.roomId, roomId));
+            // ลบห้อง
+            await tx.delete(listeningRooms).where(eq(listeningRooms.id, roomId));
+          }
+        });
+
+        // แจ้ง clients ทั้งหมดว่าห้องถูกลบ
+        emptyRoomIds.forEach(roomId => {
+          io.emit("room-deleted", { roomId });
+        });
+
+        console.log(`✅ Deleted ${emptyRoomIds.length} empty rooms successfully`);
+      } catch (err) {
+        console.error("❌ Error deleting empty rooms:", err);
+      }
+    }
+
+    console.log(`📋 Listing ${activeRooms.length} active public rooms`);
+
+    res.json(activeRooms);
   } catch (err) {
     next(err);
   }
