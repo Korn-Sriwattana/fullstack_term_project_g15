@@ -5,6 +5,7 @@ import logoutIcon from "../assets/images/logout-icon.png";
 import styles from "../assets/styles/Topbar.module.css";
 import { useNavigate } from "react-router-dom";
 import { authClient } from "../lib/auth-client";
+import { useUser } from "./userContext";
 
 type Props = {
   user?: User | null;
@@ -33,10 +34,11 @@ export default function Topbar({ user }: Props) {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
+  const { setUser } = useUser();
   // ✅ handle logout
   const handleLogout = async () => {
     await authClient.signOut();
+    setUser(null);
     window.location.href = "/";
   };
 

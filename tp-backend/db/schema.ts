@@ -78,7 +78,7 @@ export const verification = pgTable("verification", {
 
 /* USERS */
 export const users = pgTable("users", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: text("id").primaryKey(), // ✅ เปลี่ยนจาก uuid → text
   name: varchar("name", { length: 255 }).notNull(),
   email: varchar("email", { length: 255 }).notNull().unique(),
   profilePic: varchar("profile_pic", { length: 255 }),
@@ -92,10 +92,10 @@ export const users = pgTable("users", {
 export const friends = pgTable(
   "friends",
   {
-    userId: uuid("user_id")
+    userId: text("user_id") // ✅ เปลี่ยนจาก uuid → text
       .notNull()
       .references(() => users.id),
-    friendId: uuid("friend_id")
+    friendId: text("friend_id") // ✅ เปลี่ยนจาก uuid → text
       .notNull()
       .references(() => users.id),
     createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -116,7 +116,7 @@ export const playlists = pgTable(
     name: varchar("name", { length: 255 }).notNull(),
     description: text("description"),
     isPublic: boolean("is_public").default(true),
-    ownerId: uuid("owner_id")
+    ownerId: text("owner_id") // ✅ เปลี่ยนจาก uuid → text
       .notNull()
       .references(() => users.id),
     coverUrl: varchar("cover_url", { length: 255 }),
@@ -135,12 +135,12 @@ export const songs = pgTable("songs", {
     .unique(),
   title: varchar("title", { length: 255 }).notNull(),
   artist: varchar("artist", { length: 255 }),
-  duration: integer("duration").notNull(), // seconds
+  duration: integer("duration").notNull(),
   coverUrl: varchar("cover_url", { length: 255 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-/* PLAYLIST_SONGS (unique คู่ playlistId, songId) */
+/* PLAYLIST_SONGS */
 export const playlistSongs = pgTable(
   "playlist_songs",
   {
@@ -173,7 +173,7 @@ export const playlistSongs = pgTable(
 /* LISTENING_ROOMS */
 export const listeningRooms = pgTable("listening_rooms", {
   id: uuid("id").primaryKey().defaultRandom(),
-  hostId: uuid("host_id")
+  hostId: text("host_id") // ✅ เปลี่ยนจาก uuid → text
     .notNull()
     .references(() => users.id),
   name: varchar("name", { length: 255 }).notNull(),
@@ -189,14 +189,14 @@ export const listeningRooms = pgTable("listening_rooms", {
     .notNull(),
 });
 
-/* ROOM_MEMBERS (unique คู่ roomId, userId) */
+/* ROOM_MEMBERS */
 export const roomMembers = pgTable(
   "room_members",
   {
     roomId: uuid("room_id")
       .notNull()
       .references(() => listeningRooms.id),
-    userId: uuid("user_id")
+    userId: text("user_id") // ✅ เปลี่ยนจาก uuid → text
       .notNull()
       .references(() => users.id),
     role: varchar("role", { length: 20 }).default("listener").notNull(),
@@ -207,7 +207,7 @@ export const roomMembers = pgTable(
   })
 );
 
-/* ROOM_MESSAGES (index room_id, created_at) */
+/* ROOM_MESSAGES */
 export const roomMessages = pgTable(
   "room_messages",
   {
@@ -215,7 +215,7 @@ export const roomMessages = pgTable(
     roomId: uuid("room_id")
       .notNull()
       .references(() => listeningRooms.id),
-    userId: uuid("user_id")
+    userId: text("user_id") // ✅ เปลี่ยนจาก uuid → text
       .notNull()
       .references(() => users.id),
     message: text("message").notNull(),
@@ -231,7 +231,7 @@ export const roomMessages = pgTable(
   })
 );
 
-/* ROOM_QUEUE (unique คู่ roomId, queueIndex) */
+/* ROOM_QUEUE */
 export const roomQueue = pgTable(
   "room_queue",
   {
@@ -242,7 +242,7 @@ export const roomQueue = pgTable(
     songId: uuid("song_id")
       .notNull()
       .references(() => songs.id),
-    queuedBy: uuid("queued_by")
+    queuedBy: text("queued_by") // ✅ เปลี่ยนจาก uuid → text
       .notNull()
       .references(() => users.id),
     queueIndex: integer("queue_index").notNull(),
@@ -260,11 +260,11 @@ export const roomQueue = pgTable(
   })
 );
 
-/* ROOM_PRESENCE (pk ที่ userId, indexes roomId/lastSeenAt) */
+/* ROOM_PRESENCE */
 export const roomPresence = pgTable(
   "room_presence",
   {
-    userId: uuid("user_id")
+    userId: text("user_id") // ✅ เปลี่ยนจาก uuid → text
       .primaryKey()
       .references(() => users.id),
     roomId: uuid("room_id")
@@ -289,27 +289,23 @@ export const songStats = pgTable("song_stats", {
   lastPlayedAt: timestamp("last_played_at"),
 });
 
-/* PERSONAL_QUEUE - คิวส่วนตัวสำหรับฟังเพลง */
+/* PERSONAL_QUEUE */
 export const personalQueue = pgTable(
   "personal_queue",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    userId: uuid("user_id")
+    userId: text("user_id") // ✅ เปลี่ยนจาก uuid → text
       .notNull()
       .references(() => users.id),
     songId: uuid("song_id")
       .notNull()
       .references(() => songs.id),
     queueIndex: integer("queue_index").notNull(),
-
-    // ข้อมูลเพิ่มเติม: เพลงมาจากไหน
-    source: varchar("source", { length: 50 }), // 'playlist' | 'manual' | 'search'
+    source: varchar("source", { length: 50 }),
     sourcePlaylistId: uuid("source_playlist_id").references(() => playlists.id),
-
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (t) => ({
-    // Index สำหรับ performance
     userQueueIdx: index("personal_queue_user_queue_idx").on(
       t.userId,
       t.queueIndex
@@ -317,33 +313,27 @@ export const personalQueue = pgTable(
   })
 );
 
-/* PLAYER_STATE - สถานะ player ของแต่ละ user */
+/* PLAYER_STATE */
 export const playerState = pgTable("player_state", {
-  userId: uuid("user_id")
+  userId: text("user_id") // ✅ เปลี่ยนจาก uuid → text
     .primaryKey()
     .references(() => users.id),
-
-  // เพลงปัจจุบัน
   currentSongId: uuid("current_song_id").references(() => songs.id),
-  currentIndex: integer("current_index").default(0), // ตำแหน่งใน queue
-  currentTime: integer("current_time").default(0), // วินาทีที่เล่นอยู่
-
-  // สถานะการเล่น
+  currentIndex: integer("current_index").default(0),
+  currentTime: integer("current_time").default(0),
   isPlaying: boolean("is_playing").default(false),
-  repeatMode: varchar("repeat_mode", { length: 10 }).default("off"), // 'off' | 'all' | 'one'
+  repeatMode: varchar("repeat_mode", { length: 10 }).default("off"),
   shuffleMode: boolean("shuffle_mode").default(false),
-
-  // Shuffle state (เก็บลำดับที่สุ่ม)
-  shuffledIndices: text("shuffled_indices"), // JSON array [2,0,4,1,3]
-
+  shuffledIndices: text("shuffled_indices"),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+/* PLAY_HISTORY */
 export const playHistory = pgTable(
   "play_history",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    userId: uuid("user_id")
+    userId: text("user_id") // ✅ เปลี่ยนจาก uuid → text
       .notNull()
       .references(() => users.id),
     songId: uuid("song_id")
@@ -359,12 +349,12 @@ export const playHistory = pgTable(
   })
 );
 
-/* LIKED_SONGS - เพลงที่ผู้ใช้กด like (unique คู่ userId, songId) */
+/* LIKED_SONGS */
 export const likedSongs = pgTable(
   "liked_songs",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    userId: uuid("user_id")
+    userId: text("user_id") // ✅ เปลี่ยนจาก uuid → text
       .notNull()
       .references(() => users.id),
     songId: uuid("song_id")
@@ -373,9 +363,7 @@ export const likedSongs = pgTable(
     likedAt: timestamp("liked_at").defaultNow().notNull(),
   },
   (t) => ({
-    // unique constraint: ผู้ใช้แต่ละคนไม่สามารถ like เพลงเดียวกันซ้ำได้
     userSongUk: uniqueIndex("liked_songs_user_song_uk").on(t.userId, t.songId),
-    // index สำหรับ query เร็ว
     userLikedIdx: index("liked_songs_user_liked_idx").on(t.userId, t.likedAt),
   })
 );

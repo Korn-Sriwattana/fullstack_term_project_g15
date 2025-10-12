@@ -112,7 +112,12 @@ const io = new Server(server, {
 app.locals.io = io;
 
 // ----------------- REST API -----------------
-
+app.get("/api/me", async (req, res) => {
+  const session = await auth.api.getSession({
+    headers: fromNodeHeaders(req.headers),
+  });
+  res.json(session);
+});
 // Users
 app.post("/users", createUser);
 

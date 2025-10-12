@@ -1,8 +1,8 @@
 CREATE TABLE "account" (
 	"id" text PRIMARY KEY NOT NULL,
-	"account_id" text NOT NULL,
-	"provider_id" text NOT NULL,
 	"user_id" text NOT NULL,
+	"provider_id" text NOT NULL,
+	"account_id" text NOT NULL,
 	"access_token" text,
 	"refresh_token" text,
 	"id_token" text,
@@ -11,25 +11,25 @@ CREATE TABLE "account" (
 	"scope" text,
 	"password" text,
 	"created_at" timestamp DEFAULT now() NOT NULL,
-	"updated_at" timestamp NOT NULL
+	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "friends" (
-	"user_id" uuid NOT NULL,
-	"friend_id" uuid NOT NULL,
+	"user_id" text NOT NULL,
+	"friend_id" text NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "liked_songs" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"user_id" uuid NOT NULL,
+	"user_id" text NOT NULL,
 	"song_id" uuid NOT NULL,
 	"liked_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "listening_rooms" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"host_id" uuid NOT NULL,
+	"host_id" text NOT NULL,
 	"name" varchar(255) NOT NULL,
 	"description" text,
 	"is_public" boolean DEFAULT true,
@@ -44,7 +44,7 @@ CREATE TABLE "listening_rooms" (
 --> statement-breakpoint
 CREATE TABLE "personal_queue" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"user_id" uuid NOT NULL,
+	"user_id" text NOT NULL,
 	"song_id" uuid NOT NULL,
 	"queue_index" integer NOT NULL,
 	"source" varchar(50),
@@ -54,13 +54,13 @@ CREATE TABLE "personal_queue" (
 --> statement-breakpoint
 CREATE TABLE "play_history" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"user_id" uuid NOT NULL,
+	"user_id" text NOT NULL,
 	"song_id" uuid NOT NULL,
 	"played_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "player_state" (
-	"user_id" uuid PRIMARY KEY NOT NULL,
+	"user_id" text PRIMARY KEY NOT NULL,
 	"current_song_id" uuid,
 	"current_index" integer DEFAULT 0,
 	"current_time" integer DEFAULT 0,
@@ -84,14 +84,14 @@ CREATE TABLE "playlists" (
 	"name" varchar(255) NOT NULL,
 	"description" text,
 	"is_public" boolean DEFAULT true,
-	"owner_id" uuid NOT NULL,
+	"owner_id" text NOT NULL,
 	"cover_url" varchar(255),
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "room_members" (
 	"room_id" uuid NOT NULL,
-	"user_id" uuid NOT NULL,
+	"user_id" text NOT NULL,
 	"role" varchar(20) DEFAULT 'listener' NOT NULL,
 	"joined_at" timestamp DEFAULT now() NOT NULL
 );
@@ -99,13 +99,13 @@ CREATE TABLE "room_members" (
 CREATE TABLE "room_messages" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"room_id" uuid NOT NULL,
-	"user_id" uuid NOT NULL,
+	"user_id" text NOT NULL,
 	"message" text NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "room_presence" (
-	"user_id" uuid PRIMARY KEY NOT NULL,
+	"user_id" text PRIMARY KEY NOT NULL,
 	"room_id" uuid NOT NULL,
 	"joined_at" timestamp DEFAULT now() NOT NULL,
 	"last_seen_at" timestamp DEFAULT now() NOT NULL,
@@ -116,20 +116,20 @@ CREATE TABLE "room_queue" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"room_id" uuid NOT NULL,
 	"song_id" uuid NOT NULL,
-	"queued_by" uuid NOT NULL,
+	"queued_by" text NOT NULL,
 	"queue_index" integer NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "session" (
 	"id" text PRIMARY KEY NOT NULL,
-	"expires_at" timestamp NOT NULL,
+	"user_id" text NOT NULL,
 	"token" text NOT NULL,
-	"created_at" timestamp DEFAULT now() NOT NULL,
-	"updated_at" timestamp NOT NULL,
+	"expires_at" timestamp NOT NULL,
 	"ip_address" text,
 	"user_agent" text,
-	"user_id" text NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "session_token_unique" UNIQUE("token")
 );
 --> statement-breakpoint
@@ -162,7 +162,7 @@ CREATE TABLE "user" (
 );
 --> statement-breakpoint
 CREATE TABLE "users" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"id" text PRIMARY KEY NOT NULL,
 	"name" varchar(255) NOT NULL,
 	"email" varchar(255) NOT NULL,
 	"profile_pic" varchar(255),

@@ -4,11 +4,17 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { dbClient as db } from "../../db/client.ts";
 import { users } from "../../db/schema.ts";
 import { eq } from "drizzle-orm";
+import { randomUUID } from "crypto";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "pg",
   }),
+  advanced: {
+    database: {
+      generateId: () => randomUUID(), // ✅ ใช้ฟังก์ชันสร้าง UUID
+    },
+  },
 
   socialProviders: {
     google: {
