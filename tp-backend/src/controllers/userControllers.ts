@@ -4,17 +4,19 @@ import { users } from "@db/schema.js";
 
 export const createUser: RequestHandler = async (req, res, next) => {
   try {
-    const { name, email, password } = req.body as {
-      name?: string; email?: string; password?: string;
+    const { name, email } = req.body as {
+      name?: string;
+      email?: string;
+      password?: string;
     };
-    if (!name || !email || !password) {
+    if (!name || !email) {
       res.status(400).json({ error: "Missing required fields" });
       return;
     }
 
     const [row] = await dbClient
       .insert(users)
-      .values({ name, email, password })
+      .values({ name, email })
       .returning({ id: users.id, name: users.name, email: users.email });
 
     res.status(201).json(row);

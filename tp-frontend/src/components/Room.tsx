@@ -215,7 +215,7 @@ const RoomSection: React.FC<Props> = (props) => {
                 }}
               >
                 <option value="public" style={{ backgroundColor: "#ffffffff" }}>
-                  🌍 Public
+                  🌐 Public
                 </option>
                 <option value="private" style={{ backgroundColor: "#ffffffff" }}>
                   🔒 Private

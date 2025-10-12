@@ -5,6 +5,7 @@ import type { Song, QueueItem } from "../types/song.ts";
 import LikeButton from "../components/LikeButton";
 import AddToPlaylistButton from "../components/AddToPlaylist";
 import searchIcon from "../assets/images/search-icon.png";
+import { authClient } from "../lib/auth-client";
 
 const API_URL = "http://localhost:3000";
 
@@ -16,6 +17,27 @@ interface HomeProps {
 const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
   const { setUser, user } = useUser();
   const userId = user?.id || "";
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const result = await authClient.getSession();
+
+        // ✅ Better Auth จะคืนค่าเป็น { data, error }
+        const data = result?.data;
+
+        if (data?.user) {
+          setUser({
+            id: data.user.id,
+            name: data.user.name,
+            email: data.user.email,
+          });
+        }
+      } catch (err) {
+        console.error("Session check failed:", err);
+      }
+    };
+    checkSession();
+  }, [setUser]);
 
   const [userName, setUserName] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -27,6 +49,17 @@ const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
   const [showAllPopular, setShowAllPopular] = useState(false);
   const quickAddRef = useRef<HTMLDivElement>(null);
 
+  // Popup for login reminder
+  const [showLoginPopup, setShowLoginPopup] = useState(false);
+
+  useEffect(() => {
+    if (!userId) {
+      setShowLoginPopup(true);
+    } else {
+      setShowLoginPopup(false); // ✅ ปิด popup เมื่อ login แล้ว
+    }
+  }, [userId]);
+
   // Real-time search with debounce
   useEffect(() => {
     const searchSongs = async () => {
@@ -36,7 +69,9 @@ const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
       }
 
       try {
-        const res = await fetch(`${API_URL}/songs/search?q=${encodeURIComponent(searchQuery)}`);
+        const res = await fetch(
+          `${API_URL}/songs/search?q=${encodeURIComponent(searchQuery)}`
+        );
         const data = await res.json();
         setSearchResults(data);
       } catch (err) {
@@ -171,9 +206,11 @@ const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
 
   const loadRecentlyPlayed = async () => {
     if (!userId) return;
-    
+
     try {
-      const res = await fetch(`${API_URL}/player/recently-played/${userId}?limit=10`);
+      const res = await fetch(
+        `${API_URL}/player/recently-played/${userId}?limit=10`
+      );
       const data = await res.json();
       setRecentlyPlayed(data);
     } catch (err) {
@@ -233,17 +270,17 @@ const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
       {/* Search */}
       <div>
         <input
-          type="text"           
+          type="text"
           placeholder="Search"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className={styles.searchInput}
           style={{
             backgroundImage: `url(${searchIcon})`,
-            backgroundRepeat: 'no-repeat',
-            backgroundPosition: '16px center',
-            backgroundSize: '20px',
-            paddingLeft: 56,                  
+            backgroundRepeat: "no-repeat",
+            backgroundPosition: "16px center",
+            backgroundSize: "20px",
+            paddingLeft: 56,
           }}
         />
 
@@ -295,11 +332,11 @@ const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
                 <div
                   key={song.id}
                   className={styles.resultItem}
-                  style={{ display: 'flex', alignItems: 'center', gap: '10px' }}
+                  style={{ display: "flex", alignItems: "center", gap: "10px" }}
                 >
                   {song.coverUrl && (
-                    <img 
-                      src={song.coverUrl} 
+                    <img
+                      src={song.coverUrl}
                       alt={song.title}
                       className={styles.resultCover}
                     />
@@ -311,35 +348,45 @@ const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
                   <div className={styles.resultDuration}>
                     {formatTime(song.duration)}
                   </div>
-                  <div style={{ display: 'flex', gap: '5px' }}>
-                    <button 
+                  <div style={{ display: "flex", gap: "5px" }}>
+                    <button
                       onClick={() => handlePlaySong(song)}
                       className={styles.buttonPrimary}
-                      style={{ padding: '6px 12px', fontSize: '13px' }}
+                      style={{ padding: "6px 12px", fontSize: "13px" }}
                     >
                       Play
                     </button>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); handleAddToQueue(song); }}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAddToQueue(song);
+                      }}
                       className={styles.buttonSecondary}
-                      style={{ padding: '6px 12px', fontSize: '13px' }}
+                      style={{ padding: "6px 12px", fontSize: "13px" }}
                     >
                       + Queue
                     </button>
                     {userId && (
                       <>
-                        <AddToPlaylistButton 
-                          userId={userId} 
+                        <AddToPlaylistButton
+                          userId={userId}
                           song={song}
                           iconOnly={false}
                           buttonClassName={styles.buttonSecondary}
-                          buttonStyle={{ padding: '6px 12px', fontSize: '13px' }}
+                          buttonStyle={{
+                            padding: "6px 12px",
+                            fontSize: "13px",
+                          }}
                         />
-                        <LikeButton 
-                          userId={userId} 
+                        <LikeButton
+                          userId={userId}
                           songId={song.id}
                           onLikeChange={async (isLiked) => {
-                            console.log(`Song ${song.title} is now ${isLiked ? 'liked' : 'unliked'}`);
+                            console.log(
+                              `Song ${song.title} is now ${
+                                isLiked ? "liked" : "unliked"
+                              }`
+                            );
                             loadRecentlyPlayed();
                           }}
                         />
@@ -366,118 +413,148 @@ const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
         <button onClick={handleCreateUser} className={styles.buttonPrimary}>
           Create User
         </button>
-        <p className={styles.userInfo}>Current User: {user?.name || "Not created"}</p>
+        <p className={styles.userInfo}>
+          Current User: {user?.name || "Not created"}
+        </p>
       </section>
 
       {/* Popular Songs */}
-        {popularSongs.length > 0 && searchQuery.trim() === "" && (
-          <section className={styles.section}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-              <h3>🔥 Popular Songs</h3>
-              {popularSongs.length > 5 && (
-                <button
-                  onClick={() => setShowAllPopular(!showAllPopular)}
-                  className={styles.buttonSecondary}
-                  style={{ padding: '4px 12px', fontSize: '13px' }}
-                >
-                  {showAllPopular ? 'Show Less' : `Show More (${popularSongs.length})`}
-                </button>
-              )}
-            </div>
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', 
-              gap: '15px' 
-            }}>
-              {(showAllPopular ? popularSongs : popularSongs.slice(0, 5)).map((item) => (
+      {popularSongs.length > 0 && searchQuery.trim() === "" && (
+        <section className={styles.section}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "10px",
+            }}
+          >
+            <h3>🔥 Popular Songs</h3>
+            {popularSongs.length > 5 && (
+              <button
+                onClick={() => setShowAllPopular(!showAllPopular)}
+                className={styles.buttonSecondary}
+                style={{ padding: "4px 12px", fontSize: "13px" }}
+              >
+                {showAllPopular
+                  ? "Show Less"
+                  : `Show More (${popularSongs.length})`}
+              </button>
+            )}
+          </div>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
+              gap: "15px",
+            }}
+          >
+            {(showAllPopular ? popularSongs : popularSongs.slice(0, 5)).map(
+              (item) => (
                 <div
                   key={item.song.id}
                   style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    padding: '12px',
-                    borderRadius: '8px',
-                    backgroundColor: '#f5f5f5',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    position: 'relative',
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    padding: "12px",
+                    borderRadius: "8px",
+                    backgroundColor: "#f5f5f5",
+                    cursor: "pointer",
+                    transition: "all 0.2s",
+                    position: "relative",
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#e8e8e8';
-                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.backgroundColor = "#e8e8e8";
+                    e.currentTarget.style.transform = "translateY(-2px)";
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = '#f5f5f5';
-                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.backgroundColor = "#f5f5f5";
+                    e.currentTarget.style.transform = "translateY(0)";
                   }}
                 >
                   {item.song.coverUrl && (
-                    <div style={{ position: 'relative', width: '100%', paddingBottom: '100%', marginBottom: '8px' }}>
-                      <img 
-                        src={item.song.coverUrl} 
+                    <div
+                      style={{
+                        position: "relative",
+                        width: "100%",
+                        paddingBottom: "100%",
+                        marginBottom: "8px",
+                      }}
+                    >
+                      <img
+                        src={item.song.coverUrl}
                         alt={item.song.title}
                         style={{
-                          position: 'absolute',
+                          position: "absolute",
                           top: 0,
                           left: 0,
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'cover',
-                          borderRadius: '6px',
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                          borderRadius: "6px",
                         }}
                       />
                     </div>
                   )}
-                  <div style={{ 
-                    textAlign: 'center', 
-                    width: '100%',
-                    marginBottom: '8px',
-                  }}>
-                    <div style={{ 
-                      fontWeight: '600',
-                      fontSize: '14px',
-                      marginBottom: '4px',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}>
+                  <div
+                    style={{
+                      textAlign: "center",
+                      width: "100%",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontWeight: "600",
+                        fontSize: "14px",
+                        marginBottom: "4px",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
                       {item.song.title}
                     </div>
-                    <div style={{ 
-                      fontSize: '12px',
-                      color: '#666',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}>
+                    <div
+                      style={{
+                        fontSize: "12px",
+                        color: "#666",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
                       {item.song.artist}
                     </div>
-                    <div style={{ 
-                      fontSize: '11px',
-                      color: '#999',
-                      marginTop: '2px',
-                    }}>
+                    <div
+                      style={{
+                        fontSize: "11px",
+                        color: "#999",
+                        marginTop: "2px",
+                      }}
+                    >
                       {formatPlayCount(item.playCount)} plays
                     </div>
                   </div>
-                  <button 
+                  <button
                     onClick={() => handlePlaySong(item.song)}
                     className={styles.buttonPrimary}
-                    style={{ 
-                      padding: '6px 16px', 
-                      fontSize: '13px',
-                      width: '100%',
-                      borderRadius: '20px',
+                    style={{
+                      padding: "6px 16px",
+                      fontSize: "13px",
+                      width: "100%",
+                      borderRadius: "20px",
                     }}
                   >
                     ▶ Play
                   </button>
                 </div>
-              ))}
-            </div>
-          </section>
-        )}
+              )
+            )}
+          </div>
+        </section>
+      )}
 
       {/* Right: Recently Played & Queue */}
       <div>
@@ -488,22 +565,22 @@ const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
               recentlyPlayed.map((item) => (
                 <div key={item.id} className={styles.recentlyPlayedItem}>
                   {item.song?.coverUrl && (
-                    <img 
-                      src={item.song.coverUrl} 
-                      alt={item.song.title} 
-                      className={styles.recentlyPlayedCover} 
+                    <img
+                      src={item.song.coverUrl}
+                      alt={item.song.title}
+                      className={styles.recentlyPlayedCover}
                     />
                   )}
                   <div className={styles.recentlyPlayedInfo}>
                     <div className={styles.recentlyPlayedTitle}>
-                      {item.song?.title || 'Unknown'}
+                      {item.song?.title || "Unknown"}
                     </div>
                     <div className={styles.recentlyPlayedArtist}>
-                      {item.song?.artist || 'Unknown Artist'}
+                      {item.song?.artist || "Unknown Artist"}
                     </div>
                   </div>
-                  <button 
-                    onClick={() => handlePlaySong(item.song)} 
+                  <button
+                    onClick={() => handlePlaySong(item.song)}
                     className={styles.recentlyPlayedButton}
                   >
                     Play
@@ -527,24 +604,26 @@ const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
               queue.map((item, index) => (
                 <div
                   key={item.id}
-                  className={index === currentIndex ? styles.queueItemActive : styles.queueItem}
+                  className={
+                    index === currentIndex
+                      ? styles.queueItemActive
+                      : styles.queueItem
+                  }
                 >
-                  <div className={styles.queueNumber}>
-                    {index + 1}
-                  </div>
+                  <div className={styles.queueNumber}>{index + 1}</div>
                   {item.song?.coverUrl && (
-                    <img 
-                      src={item.song.coverUrl} 
+                    <img
+                      src={item.song.coverUrl}
                       alt={item.song.title}
                       className={styles.queueCover}
                     />
                   )}
                   <div className={styles.queueInfo}>
                     <div className={styles.queueTitle}>
-                      {item.song?.title || 'Unknown'}
+                      {item.song?.title || "Unknown"}
                     </div>
                     <div className={styles.queueArtist}>
-                      {item.song?.artist || 'Unknown Artist'}
+                      {item.song?.artist || "Unknown Artist"}
                     </div>
                   </div>
                 </div>
@@ -559,6 +638,96 @@ const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
           </div>
         </section>
       </div>
+      {showLoginPopup && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            backgroundColor: "rgba(0,0,0,0.6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+          }}
+        >
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: "20px",
+              padding: "48px 56px",
+              boxShadow: "0 8px 24px rgba(0,0,0,0.3)",
+              textAlign: "center",
+              maxWidth: "420px",
+              animation: "fadeIn 0.3s ease-out",
+            }}
+          >
+            {/* ✅ โลโก้ด้านบน */}
+            <img
+              src="src\assets\images\logo.png" // 🔸 import logo จาก assets ด้านบนของไฟล์ เช่น: import logo from "../assets/images/logo.png";
+              alt="Lukchang Vibe Logo"
+              style={{
+                width: "100px",
+                height: "100px",
+                objectFit: "contain",
+                marginBottom: "20px",
+              }}
+            />
+
+            {/* ✅ ข้อความหลัก */}
+            <h2
+              style={{
+                marginBottom: "10px",
+                fontSize: "24px",
+                fontWeight: 700,
+                color: "#A855F7", // 💜 สีม่วงจากภาพ
+              }}
+            >
+              This is Lukchang Vibe
+            </h2>
+
+            <p
+              style={{ marginBottom: "28px", color: "#555", fontSize: "12px" }}
+            >
+              Create an account to enjoy with <strong>Lukchang Vibe!</strong>
+            </p>
+
+            {/* ✅ ปุ่มเดียว สีม่วง */}
+            <button
+              onClick={() => (window.location.href = "/signin")}
+              style={{
+                backgroundColor: "#A855F7",
+                color: "white",
+                border: "none",
+                borderRadius: "10px",
+                padding: "12px 28px",
+                fontWeight: "600",
+                fontSize: "15px",
+                cursor: "pointer",
+                boxShadow: "0 4px 10px rgba(168,85,247,0.4)",
+                transition: "background 0.2s ease",
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.backgroundColor = "#B97DFB")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.backgroundColor = "#A855F7")
+              }
+            >
+              Sign In / Log In
+            </button>
+          </div>
+
+          <style>{`
+      @keyframes fadeIn {
+        from { opacity: 0; transform: scale(0.95); }
+        to { opacity: 1; transform: scale(1); }
+      }
+    `}</style>
+        </div>
+      )}
     </div>
   );
 };
