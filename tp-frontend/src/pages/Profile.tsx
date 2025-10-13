@@ -41,7 +41,9 @@ export default function Profile() {
   const [selectedPlaylist, setSelectedPlaylist] = useState<Playlist | null>(null);
   const [playlistSongs, setPlaylistSongs] = useState<PlaylistSong[]>([]);
   const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
-
+  
+  const [friendCount, setFriendCount] = useState(0);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const API_URL = "http://localhost:3000";
     
@@ -61,6 +63,21 @@ export default function Profile() {
         loadPlaylists();
       }
     }, [user?.id]);
+
+    useEffect(() => {
+    const loadFriendCount = async () => {
+      if (!user?.id) return;
+      try {
+        const res = await fetch(`http://localhost:3000/api/friends/list?userId=${user.id}`);
+        const data = await res.json();
+        setFriendCount(data.friends?.length || 0);
+      } catch (err) {
+        console.error("Failed to fetch friend count:", err);
+      }
+    };
+
+    loadFriendCount();
+  }, [user?.id]);
 
     useEffect(() => {
       // บันทึก id ของผู้ใช้ที่กำลังดู (ล็อกอินอยู่)
@@ -540,10 +557,10 @@ export default function Profile() {
       {/* Stats */}
       <div style={{ marginTop: "1rem", color: "#555" }}>
         <span style={{ marginRight: "1.5rem" }}>
-          <strong>{playlists.length}</strong> Playlists
+          <strong>{playlists.length}</strong> Public Playlists
         </span>
         <span>
-          <strong>{(user as any).friendCount || 0}</strong> Friends
+          <strong>{friendCount}</strong> Friends
         </span>
       </div>
 
@@ -560,7 +577,7 @@ export default function Profile() {
                       </button>
                     )}
                     <h1 className={styles.title}>
-                      {viewMode === 'list' ? `Public Playlists (${playlists.length})` : selectedPlaylist?.name}
+                      {viewMode === 'list' ? `Public Playlists` : selectedPlaylist?.name}
                     </h1>
                   </div>
                 </div>

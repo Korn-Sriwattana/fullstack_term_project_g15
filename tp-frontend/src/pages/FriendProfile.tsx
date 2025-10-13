@@ -34,6 +34,8 @@ export default function FriendProfile() {
   const navigate = useNavigate();
 
   const [friend, setFriend] = useState<any>(null);
+  const [friendCount, setFriendCount] = useState(0);
+
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [selectedPlaylist, setSelectedPlaylist] = useState<Playlist | null>(null);
   const [playlistSongs, setPlaylistSongs] = useState<PlaylistSong[]>([]);
@@ -54,6 +56,21 @@ export default function FriendProfile() {
       if (user?.id) {
         loadPlaylists();
       }
+    }, [user?.id]);
+
+    useEffect(() => {
+      const loadFriendCount = async () => {
+        if (!user?.id) return;
+        try {
+          const res = await fetch(`http://localhost:3000/api/friends/list?userId=${user.id}`);
+          const data = await res.json();
+          setFriendCount(data.friends?.length || 0);
+        } catch (err) {
+          console.error("Failed to fetch friend count:", err);
+        }
+      };
+
+      loadFriendCount();
     }, [user?.id]);
 
   const API_URL = "http://localhost:3000";
@@ -267,6 +284,9 @@ export default function FriendProfile() {
         <span style={{ marginRight: "1.5rem" }}>
           <strong>{playlists.length}</strong> Public Playlists
         </span>
+        <span>
+          <strong>{friendCount}</strong> Friends
+        </span>
       </div>
 
       <hr style={{ margin: "1.5rem 0", border: "1px solid #eee" }} />
@@ -282,7 +302,7 @@ export default function FriendProfile() {
                       </button>
                     )}
                     <h1 className={styles.title}>
-                      {viewMode === 'list' ? `Public Playlists (${playlists.length})` : selectedPlaylist?.name}
+                      {viewMode === 'list' ? `Public Playlists` : selectedPlaylist?.name}
                     </h1>
                   </div>
                 </div>
