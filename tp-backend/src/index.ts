@@ -1114,7 +1114,7 @@ async function deleteRoomIfEmpty(io: any, roomId: string) {
     const dbCount = memberCount?.count || 0;
     const socketCount = io.sockets.adapter.rooms.get(roomId)?.size || 0;
 
-    console.log(`🔍 Checking room ${roomId}:`, { dbCount, socketCount });
+    //console.log(`🔍 Checking room ${roomId}:`, { dbCount, socketCount });
 
     if (dbCount === 0 && socketCount === 0) {
       console.log(`🗑️ Deleting empty room: ${roomId}`);
@@ -1200,7 +1200,7 @@ async function broadcastPublicRooms(io: any) {
 // เพิ่ม scheduled cleanup (optional - สำหรับความแน่ใจเป็นพิเศษ)
 setInterval(async () => {
   try {
-    console.log("🧹 Running scheduled room cleanup...");
+    //console.log("🧹 Running scheduled room cleanup...");
 
     const allRooms = await dbClient
       .select({ id: listeningRooms.id })

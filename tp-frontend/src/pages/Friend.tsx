@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useUser } from "../components/userContext";
+import styles from "../assets/styles/FriendsPage.module.css";
 
 const API_URL = "http://localhost:3000";
 
@@ -33,10 +34,8 @@ export default function FriendsPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState<FriendUser[]>([]);
-
   const userId = user?.id || "";
 
-  // ✅ โหลดข้อมูลเพื่อนและคำขอ
   useEffect(() => {
     if (!userId) return;
     fetchRequests();
@@ -44,27 +43,16 @@ export default function FriendsPage() {
   }, [userId]);
 
   const fetchRequests = async () => {
-    try {
-      const res = await fetch(
-        `${API_URL}/api/friends/requests?userId=${userId}`
-      );
-      const data = await res.json();
-      setRequests(data.requests || []);
-    } catch (err) {
-      console.error("Failed to load friend requests:", err);
-    }
+    const res = await fetch(`${API_URL}/api/friends/requests?userId=${userId}`);
+    const data = await res.json();
+    setRequests(data.requests || []);
   };
 
   const fetchFriends = async () => {
-    try {
-      const res = await fetch(`${API_URL}/api/friends/list?userId=${userId}`);
-      const data = await res.json();
-      setFriends(data.friends || []);
-    } catch (err) {
-      console.error("Failed to load friends:", err);
-    } finally {
-      setLoading(false);
-    }
+    const res = await fetch(`${API_URL}/api/friends/list?userId=${userId}`);
+    const data = await res.json();
+    setFriends(data.friends || []);
+    setLoading(false);
   };
 
   const acceptRequest = async (friendId: string) => {
@@ -97,7 +85,6 @@ export default function FriendsPage() {
 
   const handleSearch = async () => {
     if (!searchTerm.trim()) return;
-
     const res = await fetch(
       `${API_URL}/api/friends/search?query=${encodeURIComponent(
         searchTerm
@@ -113,130 +100,104 @@ export default function FriendsPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userId, friendId }),
     });
-    alert("Friend request sent!");
     setSearchResults((prev) =>
       prev.map((u) => (u.id === friendId ? { ...u, status: "requested" } : u))
     );
   };
 
-  if (loading)
-    return <p className="text-center mt-10 text-gray-500">Loading...</p>;
+  if (loading) return <p>Loading...</p>;
 
   return (
-    <div className="flex bg-gray-50 min-h-screen">
-      <aside className="w-56 bg-white border-r"></aside>
-
-      <main className="flex-1 p-8 overflow-y-auto space-y-10">
-        {/* ========== Search Bar ========== */}
-        <section className="mb-8">
-          <div className="flex gap-2 items-center">
+    <div className={styles.container}>
+      <aside className={styles.sidebar}></aside>
+      <main className={styles.main}>
+        {/* ---------- Search ---------- */}
+        <section className={styles.section}>
+          <div className={styles.searchBar}>
             <input
               type="text"
-              placeholder="Search user by email prefix (e.g. soy100)"
+              placeholder="Search user"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400"
+              className={styles.searchInput}
             />
-            <button
-              onClick={handleSearch}
-              className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg"
-            >
+            <button onClick={handleSearch} className={styles.searchButton}>
               Search
             </button>
           </div>
 
-          {/* Search results */}
-          {/* Search results */}
           {searchResults.length > 0 && (
-            <div className="mt-5 flex flex-col gap-3">
+            <div className={styles.cardsList}>
               {searchResults.map((u) => (
-                <div
-                  key={u.id}
-                  className="flex items-center justify-between bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all px-5 py-3"
-                >
-                  {/* Left: avatar + info */}
-                  <div className="flex items-center gap-4">
+                <div key={u.id} className={styles.card}>
+                  <div className={styles.profile}>
                     <img
                       src={u.profilePic || "/default-avatar.png"}
                       alt={u.name}
-                      className="w-12 h-12 rounded-full object-cover border border-gray-300"
+                      className={styles.avatar}
                     />
-                    <div className="flex flex-col">
-                      <span className="font-semibold text-gray-800">
-                        {u.name}
+                    <div className={styles.userText}>
+                      <span className={styles.userName}>{u.name}</span>
+                      <span className={styles.userEmail}>
+                        {u.email.split("@")[0]}
                       </span>
-                      <span className="text-sm text-gray-500">{u.email}</span>
                     </div>
                   </div>
 
-                  {/* Right: status or button */}
-                  <div>
-                    {u.status === "none" && (
-                      <button
-                        onClick={() => sendRequest(u.id)}
-                        className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all"
-                      >
-                        Add Friend
-                      </button>
-                    )}
-                    {u.status === "requested" && (
-                      <span className="text-gray-500 text-sm italic">
-                        Requested
-                      </span>
-                    )}
-                    {u.status === "incoming" && (
-                      <span className="text-blue-500 text-sm italic">
-                        Incoming Request
-                      </span>
-                    )}
-                    {u.status === "accepted" && (
-                      <span className="text-green-600 text-sm font-medium">
-                        Friend
-                      </span>
-                    )}
-                  </div>
+                  {u.status === "none" && (
+                    <button
+                      onClick={() => sendRequest(u.id)}
+                      className={styles.actionButton}
+                    >
+                      Send Request
+                    </button>
+                  )}
+                  {u.status === "requested" && (
+                    <span className="text-gray-500 italic">Requested</span>
+                  )}
+                  {u.status === "incoming" && (
+                    <span className="text-blue-500 italic">
+                      Incoming Request
+                    </span>
+                  )}
+                  {u.status === "accepted" && (
+                    <span className="text-green-600 font-medium">Friend</span>
+                  )}
                 </div>
               ))}
             </div>
           )}
         </section>
 
-        {/* ========== Friend Requests ========== */}
-        <section>
-          <h2 className="text-xl font-semibold mb-4 text-purple-700">
-            Friend Requests
-          </h2>
-
+        {/* ---------- Friend Requests ---------- */}
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>Friend Requests</h2>
           {requests.length === 0 ? (
-            <p className="text-gray-500">No pending friend requests.</p>
+            <p className={styles.sectionEmpty}>No pending friend requests.</p>
           ) : (
-            <div className="flex flex-col space-y-4">
+            <div className={styles.cardsList}>
               {requests.map((req) => (
-                <div
-                  key={req.friendId}
-                  className="flex items-center justify-between bg-white p-4 rounded-lg shadow-sm border border-gray-100"
-                >
-                  <div className="flex items-center gap-3">
+                <div key={req.friendId} className={styles.card}>
+                  <div className={styles.profile}>
                     <img
                       src={req.requester?.profilePic || "/default-avatar.png"}
                       alt={req.requester?.name}
-                      className="w-10 h-10 rounded-full object-cover"
+                      className={styles.avatar}
                     />
-                    <span className="font-medium text-gray-700">
+                    <span className={styles.userName}>
                       {req.requester?.name || "Unknown"}
                     </span>
                   </div>
-
                   <div className="flex gap-3">
                     <button
                       onClick={() => acceptRequest(req.requester?.id!)}
-                      className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-lg"
+                      className={styles.actionButton}
                     >
                       ✓
                     </button>
                     <button
                       onClick={() => rejectRequest(req.requester?.id!)}
-                      className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg"
+                      className={styles.smallButton}
                     >
                       ✕
                     </button>
@@ -247,33 +208,26 @@ export default function FriendsPage() {
           )}
         </section>
 
-        {/* ========== My Friends ========== */}
-        <section>
-          <h2 className="text-xl font-semibold mb-4 text-purple-700">
-            My Friends
-          </h2>
-
+        {/* ---------- My Friends ---------- */}
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>My Friends</h2>
           {friends.length === 0 ? (
-            <p className="text-gray-500">You have no friends yet.</p>
+            <p className={styles.sectionEmpty}>You have no friends yet.</p>
           ) : (
-            <div className="flex flex-col space-y-4">
+            <div className={styles.cardsList}>
               {friends.map((f) => (
-                <div
-                  key={f.id}
-                  className="flex items-center justify-between bg-white p-4 rounded-lg shadow-sm border border-gray-100"
-                >
-                  <div className="flex items-center gap-3">
+                <div key={f.id} className={styles.card}>
+                  <div className={styles.profile}>
                     <img
                       src={f.profilePic || "/default-avatar.png"}
                       alt={f.name}
-                      className="w-10 h-10 rounded-full object-cover"
+                      className={styles.avatar}
                     />
-                    <span className="font-medium text-gray-700">{f.name}</span>
+                    <span className={styles.userName}>{f.name}</span>
                   </div>
-
                   <button
                     onClick={() => removeFriend(f.id)}
-                    className="bg-gray-300 hover:bg-gray-400 text-black px-3 py-1 rounded-lg"
+                    className={styles.smallButton}
                   >
                     🗑️
                   </button>
