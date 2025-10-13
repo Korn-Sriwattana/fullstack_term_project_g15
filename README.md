@@ -26,3 +26,16 @@ File init.sh เปลี่ยนจาก CRLF เป็น LF
 1. pnpm install
 2. npx cypress install
 3. npm run test
+
+- better-auth
+    - frontend
+    1. pnpm add better-auth@latest
+    - backend
+    1. pnpm add better-auth@latest
+    2. pnmp dlx @better-auth/cli@latest generate
+    - db
+1. pnpm add better-auth@latest
+2. pnmp dlx @better-auth/cli@latest generate
+3. docker compose down -v
+4. docker compose up -d
+5. npm run db:push
