@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import type { Song } from "../types/song";
+import styles from "../assets/styles/Playlist.module.css";
 
 const API_URL = "http://localhost:3000";
 
@@ -7,6 +8,7 @@ interface Playlist {
   id: string;
   name: string;
   songCount: number;
+  isPublic: boolean;
 }
 
 export interface AddToPlaylistButtonProps {
@@ -36,15 +38,25 @@ export default function AddToPlaylistButton({
     }
   }, [showModal, userId]);
 
+  useEffect(() => {
+    if (userId) {
+      localStorage.setItem("viewerId", userId);
+    }
+  }, [userId]);
+
+
   const loadPlaylists = async () => {
     try {
-      const res = await fetch(`${API_URL}/playlists/${userId}`);
+      const viewerId = localStorage.getItem("viewerId") || userId;
+      const res = await fetch(`${API_URL}/playlists/${userId}?viewerId=${viewerId}`);
       const data = await res.json();
       setPlaylists(data);
     } catch (err) {
       console.error("Load playlists failed:", err);
     }
   };
+
+
 
   const handleAddToPlaylist = async (playlistId: string) => {
     setLoading(true);
@@ -192,9 +204,25 @@ export default function AddToPlaylistButton({
                         e.currentTarget.style.borderColor = "#ddd";
                       }}
                     >
-                      <div style={{ fontWeight: 500, marginBottom: "4px", color: "#333", }}>
-                        {playlist.name}
-                      </div>
+                      <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        fontWeight: 500,
+                        marginBottom: "4px",
+                        color: "#333",
+                      }}
+                    >
+                      <span>{playlist.name}</span>
+
+                      {!playlist.isPublic && (
+                        <span className={styles.playlistPrivateBadge}>
+                                                  Private
+                                                </span>
+                      )}
+                    </div>
+
                       <div style={{ fontSize: "12px", color: "#666" }}>
                         {playlist.songCount} songs
                       </div>
