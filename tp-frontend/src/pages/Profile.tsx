@@ -581,7 +581,7 @@ export default function Profile() {
                       </button>
                     )}
                     <h1 className={styles.title}>
-                      {viewMode === 'list' ? 'Public Playlists' : selectedPlaylist?.name}
+                      {viewMode === 'list' ? `Public Playlists (${playlists.length})` : selectedPlaylist?.name}
                     </h1>
                   </div>
                 </div>
@@ -589,8 +589,6 @@ export default function Profile() {
       {/* LIST VIEW - Playlists Grid */}
       {viewMode === 'list' && (
         <section className={styles.section}>
-          <h3>Playlists ({playlists.length})</h3>
-          
           {playlists.length > 0 ? (
             <div className={styles.playlistGrid}>
               {playlists.map((playlist) => (
