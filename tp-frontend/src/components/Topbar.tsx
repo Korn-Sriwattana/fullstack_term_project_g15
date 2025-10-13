@@ -22,6 +22,7 @@ export default function Topbar({ user, onToggleSidebar }: Props) {
       ? user.avatarUrl
       : defaultAvatar;
 
+  const API_URL = "http://localhost:3000";
   const navigate = useNavigate();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -39,9 +40,9 @@ export default function Topbar({ user, onToggleSidebar }: Props) {
   }, []);
   const { setUser } = useUser();
   const handleLogout = async () => {
-    await authClient.signOut();
-    setUser(null);
-    window.location.href = "/";
+    await fetch(`${API_URL}/api/auth/signout`, { credentials: "include" }); // better-auth logout
+    localStorage.removeItem("email"); // mock logout
+    window.location.href = "/signin";
   };
 
   return (
@@ -52,7 +53,11 @@ export default function Topbar({ user, onToggleSidebar }: Props) {
         className={styles.menuBtn}
         aria-label="Toggle sidebar"
       >
-        <img src={toggleIcon} alt="Toggle sidebar" className={styles.menuIcon} />
+        <img
+          src={toggleIcon}
+          alt="Toggle sidebar"
+          className={styles.menuIcon}
+        />
       </button>
 
       <div className={styles.profileContainer} ref={dropdownRef}>

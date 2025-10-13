@@ -45,7 +45,9 @@ const LokchangRooms = () => {
   const roomIdRef = useRef<string>("");
 
   const [queue, setQueue] = useState<any[]>([]);
+  const [rawQueue, setRawQueue] = useState<any[]>([]); // เก็บ queue ดิบ
   const [nowPlaying, setNowPlaying] = useState<any>(null);
+  const currentPlayingQueueIdRef = useRef<string | null>(null); // ใช้ ref แทน state
 
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [isMuted, setIsMuted] = useState(true);
@@ -73,16 +75,24 @@ const LokchangRooms = () => {
   }, [roomId]);
 
   useEffect(() => {
-  if (!roomId) return;
-  fetch(`${API_URL}/chat/${roomId}`)
-    .then((res) => res.json())
-    .then((data) => {
-      console.log("📩 Chat messages loaded:", data);
-      console.log("First message:", data[0]);
-      setMessages(data);
-    })
-    .catch(console.error);
-}, [roomId]);
+    if (!roomId) return;
+    fetch(`${API_URL}/chat/${roomId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("📩 Chat messages loaded:", data);
+        console.log("First message:", data[0]);
+        setMessages(data);
+      })
+      .catch(console.error);
+  }, [roomId]);
+
+  // useEffect สำหรับกรองเพลงที่กำลังเล่นออกจาก queue
+  useEffect(() => {
+    const filteredQueue = currentPlayingQueueIdRef.current 
+      ? rawQueue.filter((item: any) => item.id !== currentPlayingQueueIdRef.current)
+      : rawQueue;
+    setQueue(filteredQueue);
+  }, [rawQueue]);
 
   useEffect(() => {
     if (socketRef.current) return;
@@ -97,7 +107,7 @@ const LokchangRooms = () => {
 
     socket.on("connect", () => {
       console.log("Connected:", socket.id);
-       if (userId) {
+      if (userId) {
         socket.emit("set-user", userId);
       }
       if (roomIdRef.current) socket.emit("join-room", roomIdRef.current);
@@ -142,6 +152,7 @@ const LokchangRooms = () => {
         setCurrentRoomName("");
         setCurrentInviteCode("");
         setQueue([]);
+        setRawQueue([]);
         setNowPlaying(null);
         setMessages([]);
         alert("Room has been deleted (no members left)");
@@ -149,8 +160,10 @@ const LokchangRooms = () => {
     });
 
     socket.on("queue-sync", ({ queue }: { queue: any[] }) => {
-      console.log(" queue-sync received:", queue.length, "items");
-      setQueue(queue);
+      console.log("📋 queue-sync received:", queue.length, "items");
+      
+      // เก็บ queue ดิบไว้ก่อน
+      setRawQueue(queue);
       
       setIsProcessing(false);
       if (processingTimeoutRef.current) {
@@ -160,12 +173,16 @@ const LokchangRooms = () => {
     });
 
     socket.on("now-playing", ({ roomId: rId, song, startedAt, hostId }: any) => {
-      console.log("now-playing received:", { rId, song, startedAt });
+      console.log("🎵 now-playing received:", { rId, song, startedAt });
       
       if (rId !== roomIdRef.current) return;
       if (hostId) setRoomHostId(hostId);
+      
       if (!song) {
         setNowPlaying(null);
+        currentPlayingQueueIdRef.current = null;
+        // กรอง queue ใหม่เมื่อไม่มีเพลงเล่น
+        setQueue(rawQueue);
         return;
       }
 
@@ -176,8 +193,16 @@ const LokchangRooms = () => {
       console.log("Song info:", { 
         title: song.title, 
         duration: song.duration, 
-        elapsed
+        elapsed,
+        queueId: song.queueId
       });
+
+      // เก็บ queueId ของเพลงที่กำลังเล่นใน ref
+      if (song.queueId) {
+        currentPlayingQueueIdRef.current = song.queueId;
+        // กรองเพลงที่กำลังเล่นออกจาก queue ทันที
+        setQueue(rawQueue.filter((item: any) => item.id !== song.queueId));
+      }
 
       setNowPlaying({
         ...song,
@@ -192,7 +217,7 @@ const LokchangRooms = () => {
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [userId]);
+  }, [userId]); // เอา currentPlayingQueueId ออกจาก dependencies
 
   useEffect(() => {
     if (roomId && socketRef.current) {
@@ -217,7 +242,7 @@ const LokchangRooms = () => {
       .then((res) => res.json())
       .then((data) => {
         console.log("Initial queue loaded:", data);
-        setQueue(data);
+        setRawQueue(data);
       })
       .catch(console.error);
   }, [roomId]);
@@ -232,6 +257,7 @@ const LokchangRooms = () => {
     if (roomId && socketRef.current) {
       socketRef.current.emit("leave-room", { roomId, userId });
       setQueue([]);
+      setRawQueue([]);
       setNowPlaying(null);
       setMessages([]);
       setRoomId("");
@@ -265,11 +291,10 @@ const LokchangRooms = () => {
           fetch(`${API_URL}/chat/${data.roomId}`).then((r) => r.json()),
         ]);
 
-        setQueue(queueRes);
+        setRawQueue(queueRes);
         setMessages(chatRes);
 
         alert(`Joined Room: ${data.roomName}`);
-        
       }
     } catch (error) {
       console.error("Error joining room:", error);
@@ -316,7 +341,7 @@ const LokchangRooms = () => {
       // ดึง queue
       const queueRes = await fetch(`${API_URL}/rooms/${created.roomId}/queue`);
       const queueData = await queueRes.json();
-      setQueue(queueData);
+      setRawQueue(queueData);
 
       alert(
         `Room created & joined: ${created.roomName} (${created.isPublic ? "Public" : "Private"})`
@@ -339,6 +364,7 @@ const LokchangRooms = () => {
 
       setMessages([]);
       setQueue([]);
+      setRawQueue([]);
       setNowPlaying(null);
     }
   };
@@ -416,8 +442,7 @@ const LokchangRooms = () => {
     processingTimeoutRef.current = setTimeout(() => {
       setIsProcessing(false);
     }, 3000);
-    setQueue(prev => prev.filter(item => item.id !== queueId));
-
+    
     console.log("📤 Emitting queue-remove:", { roomId, queueId });
     socketRef.current?.emit("queue-remove", { roomId, queueId });
   };
@@ -504,6 +529,7 @@ const LokchangRooms = () => {
                     handleReorder,
                     isHost: userId === roomHostId,
                     isProcessing,
+                    userId,
                   }}
                 />
               </MusicCard>

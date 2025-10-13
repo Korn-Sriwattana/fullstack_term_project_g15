@@ -68,7 +68,12 @@ import {
   checkLikedSong,
   playLikedSongs,
 } from "./controllers/likedSongsControllers.js";
-import { upload, uploadPlaylistCover, uploadProfile, uploadProfilePic } from "./controllers/imageControllers.js";
+import {
+  upload,
+  uploadPlaylistCover,
+  uploadProfile,
+  uploadProfilePic,
+} from "./controllers/imageControllers.js";
 import { toNodeHandler, fromNodeHeaders } from "better-auth/node";
 import { auth } from "./lib/auth.ts";
 import { randomUUID } from "crypto";
@@ -151,6 +156,119 @@ app.get("/api/profile/me", async (req, res, next) => {
   }
 });
 
+app.post(
+  "/api/normal-signup",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { email, password, name } = req.body;
+      if (!email || !password) {
+        res.status(400).json({ error: "Email and password required" });
+        return;
+      }
+
+      const existing = await dbClient
+        .select()
+        .from(users)
+        .where(eq(users.email, email))
+        .limit(1);
+
+      if (existing.length > 0) {
+        res.status(200).json({
+          message: "User already exists — mock login success",
+          user: existing[0],
+        });
+        return;
+      }
+
+      const id = randomUUID();
+      const [user] = await dbClient
+        .insert(users)
+        .values({
+          id,
+          name: name || "Create Normal User",
+          email,
+          profilePic: null,
+        })
+        .returning();
+
+      res.status(201).json({
+        message: "Normal signup success",
+        user,
+      });
+    } catch (err) {
+      console.error("Normal signup failed:", err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+);
+// ✅ ตรวจสอบผู้ใช้จาก database โดยตรง (mock login)
+app.get("/api/user/check", async (req: Request, res: Response) => {
+  try {
+    const { email } = req.query;
+    if (!email || typeof email !== "string") {
+      res.status(400).json({ error: "Missing email" });
+      return;
+    }
+
+    const [user] = await dbClient
+      .select()
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
+
+    if (!user) {
+      res.status(404).json({ exists: false });
+    } else {
+      res.json({ exists: true, user });
+    }
+  } catch (err) {
+    console.error("Check user failed:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+// ✅ ตรวจสอบ user ปัจจุบันจาก session หรือ localStorage
+app.get("/api/current-user", async (req, res) => {
+  try {
+    // ✅ ตรวจสอบจาก Better Auth session ก่อน
+    const session = await auth.api.getSession({
+      headers: fromNodeHeaders(req.headers),
+    });
+
+    if (session?.user) {
+      const [dbUser] = await dbClient
+        .select()
+        .from(users)
+        .where(eq(users.email, session.user.email))
+        .limit(1);
+
+      if (dbUser) {
+        res.json({ user: dbUser, source: "better-auth" });
+        return;
+      }
+    }
+
+    // ✅ ถ้าไม่มี session ให้ใช้ query email จาก localStorage
+    const email = req.query.email as string;
+    if (email) {
+      const [dbUser] = await dbClient
+        .select()
+        .from(users)
+        .where(eq(users.email, email))
+        .limit(1);
+      if (dbUser) {
+        res.json({ user: dbUser, source: "mock" });
+        return;
+      }
+    }
+
+    // ❌ ไม่มีผู้ใช้ใดตรง
+    res.status(404).json({ error: "User not found" });
+  } catch (err) {
+    console.error("Error fetching current user:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 app.put(
   "/api/profile/me",
   async (req: Request, res: Response, next: NextFunction) => {
@@ -204,7 +322,7 @@ app.get("/api/proxy-image", async (req, res, next) => {
 
     const buffer = await response.arrayBuffer();
     const contentType = response.headers.get("content-type") || "image/jpeg";
-    
+
     res.setHeader("Content-Type", contentType);
     res.setHeader("Cache-Control", "public, max-age=86400");
     res.send(Buffer.from(buffer));
@@ -272,7 +390,11 @@ app.get(
 
 // ----------------- Image Upload API -----------------
 app.post("/upload/playlist-cover", upload.single("cover"), uploadPlaylistCover);
-app.post("/upload/profile-pic", uploadProfile.single("image"), uploadProfilePic);
+app.post(
+  "/upload/profile-pic",
+  uploadProfile.single("image"),
+  uploadProfilePic
+);
 
 // ----------------- Playlist API -----------------
 
@@ -658,7 +780,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("play-song", (payload) => playSong(io, payload));
-  
+
   socket.on("queue-remove", async (payload) => {
     console.log("🔴 queue-remove event received from", socket.id, payload);
 
@@ -690,11 +812,55 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("song-ended", (payload) => {
+  socket.on("song-ended", async (payload) => {
     console.log("⏹️ song-ended event received from", socket.id);
     const roomId = typeof payload === "string" ? payload : payload?.roomId;
     if (roomId) {
-      playNextSong(io, roomId);
+      // ลบเพลงที่เล่นจบแล้วออกจาก queue ก่อน
+      const [listening] = await dbClient
+        .select({ currentSongId: listeningRooms.currentSongId })
+        .from(listeningRooms)
+        .where(eq(listeningRooms.id, roomId));
+
+      if (listening?.currentSongId) {
+        const [currentItem] = await dbClient
+          .select({ id: roomQueue.id })
+          .from(roomQueue)
+          .where(
+            and(
+              eq(roomQueue.roomId, roomId),
+              eq(roomQueue.songId, listening.currentSongId)
+            )
+          )
+          .orderBy(asc(roomQueue.queueIndex))
+          .limit(1);
+
+        if (currentItem) {
+          console.log("🗑️ Removing finished song from queue:", currentItem.id);
+          await dbClient
+            .delete(roomQueue)
+            .where(eq(roomQueue.id, currentItem.id));
+
+          // Reindex queue
+          const remainingItems = await dbClient
+            .select()
+            .from(roomQueue)
+            .where(eq(roomQueue.roomId, roomId))
+            .orderBy(asc(roomQueue.queueIndex));
+
+          await dbClient.transaction(async (tx: any) => {
+            for (let i = 0; i < remainingItems.length; i++) {
+              await tx
+                .update(roomQueue)
+                .set({ queueIndex: i })
+                .where(eq(roomQueue.id, remainingItems[i].id));
+            }
+          });
+        }
+      }
+
+      // จากนั้นค่อยเล่นเพลงถัดไป
+      await playNextSong(io, roomId);
     }
   });
 
@@ -716,6 +882,42 @@ io.on("connection", (socket) => {
         .where(eq(songs.id, listening.currentSongId))
         .limit(1);
       if (song) songTitle = `"${song.title}"`;
+
+      // ลบเพลงที่ skip ออกจาก queue ก่อน
+      const [currentItem] = await dbClient
+        .select({ id: roomQueue.id })
+        .from(roomQueue)
+        .where(
+          and(
+            eq(roomQueue.roomId, payload.roomId),
+            eq(roomQueue.songId, listening.currentSongId)
+          )
+        )
+        .orderBy(asc(roomQueue.queueIndex))
+        .limit(1);
+
+      if (currentItem) {
+        console.log("🗑️ Removing skipped song from queue:", currentItem.id);
+        await dbClient
+          .delete(roomQueue)
+          .where(eq(roomQueue.id, currentItem.id));
+
+        // Reindex queue
+        const remainingItems = await dbClient
+          .select()
+          .from(roomQueue)
+          .where(eq(roomQueue.roomId, payload.roomId))
+          .orderBy(asc(roomQueue.queueIndex));
+
+        await dbClient.transaction(async (tx: any) => {
+          for (let i = 0; i < remainingItems.length; i++) {
+            await tx
+              .update(roomQueue)
+              .set({ queueIndex: i })
+              .where(eq(roomQueue.id, remainingItems[i].id));
+          }
+        });
+      }
     }
 
     const socketUserId = (socket as any).userId;
@@ -725,6 +927,7 @@ io.on("connection", (socket) => {
     });
 
     if (payload.roomId) {
+      // เล่นเพลงถัดไป
       await playNextSong(io, payload.roomId);
 
       if (user) {
@@ -765,13 +968,15 @@ io.on("connection", (socket) => {
 
     // อัพเดท count ให้ทุกคน
     io.emit("room-count-updated", { roomId, count: newCount });
-    
+
     if (user) {
       await sendSystemMessage(io, roomId, `${user.name} left the room`);
     }
 
-   console.log(`✅ User ${userId} left room ${roomId} (${newCount} members remaining)`);
-   // ✅ Broadcast updated room list ทันที
+    console.log(
+      `✅ User ${userId} left room ${roomId} (${newCount} members remaining)`
+    );
+    // ✅ Broadcast updated room list ทันที
     await broadcastPublicRooms(io);
 
     // ตรวจสอบและลบห้องถ้าว่าง
@@ -873,7 +1078,7 @@ async function deleteRoomIfEmpty(io: any, roomId: string) {
       });
 
       io.emit("room-deleted", { roomId });
-      
+
       // ✅ Broadcast updated room list
       await broadcastPublicRooms(io);
 
@@ -930,11 +1135,11 @@ async function broadcastPublicRooms(io: any) {
     );
 
     // กรองเฉพาะห้องที่มีคน
-    const activeRooms = formattedRooms.filter(room => room.count > 0);
+    const activeRooms = formattedRooms.filter((room) => room.count > 0);
 
     // ส่ง event ไปยัง clients ทั้งหมด
     io.emit("public-rooms-updated", activeRooms);
-    
+
     console.log(`📡 Broadcasted ${activeRooms.length} active public rooms`);
     return activeRooms;
   } catch (err) {
