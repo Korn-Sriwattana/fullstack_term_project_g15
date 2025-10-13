@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useUser } from "../components/userContext.tsx"; // ✅ path แก้ให้ตรงกับของคุณ
 import styles from "../assets/styles/FriendsPage.module.css";
 import { io } from "socket.io-client";
+import { useNavigate } from "react-router-dom";
+
 const socket = io("http://localhost:3000", {
    transports: ["websocket"],
    reconnection: true,
@@ -40,6 +42,7 @@ export default function FriendsPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState<FriendUser[]>([]);
+  const navigate = useNavigate();
 
   const userId = user?.id || "";
   useEffect(() => {
@@ -303,7 +306,12 @@ export default function FriendsPage() {
           ) : (
             <div className={styles.cardsList}>
               {friends.map((f) => (
-                <div key={f.id} className={styles.card}>
+                <div
+                  key={f.id}
+                  className={styles.card}
+                  onClick={() => navigate(`/profile/${f.id}`)}
+                  style={{ cursor: "pointer" }}
+                >
                   <div className={styles.profile}>
                     <img
                       src={getImageUrl(f.profilePic)}

@@ -85,6 +85,7 @@ import {
   getFriendsList,
   searchUsers,
   getFriendRequests,
+  getUserProfile,
 } from "./controllers/friendController.ts";
 import bcrypt from "bcrypt";
 
@@ -126,6 +127,8 @@ const io = new Server(server, {
   },
 });
 app.locals.io = io;
+
+export { io };
 
 // ----------------- REST API -----------------
 app.get("/api/me", async (req, res) => {
@@ -434,6 +437,7 @@ app.post("/api/friends/accept", acceptFriendRequest);
 app.delete("/api/friends/remove", removeFriend);
 app.get("/api/friends/list", getFriendsList);
 app.get("/api/friends/search", searchUsers);
+app.get("/api/users/:id/profile", getUserProfile);
 
 // ----------------- Playlist API -----------------
 
@@ -1265,13 +1269,6 @@ async function sendSystemMessage(io: any, roomId: string, message: string) {
   }
 }
 
-
-// ส่ง event เมื่อรับเพื่อนสำเร็จ
-export const notifyFriendAccepted = (userId: string, friendId: string) => {
-  io.to(userId).emit("friend-updated", { friendId });
-  io.to(friendId).emit("friend-updated", { friendId: userId });
-};
-export { io };
 // ----------------- Error Middleware -----------------
 const jsonErrorHandler: ErrorRequestHandler = (
   err: Error,
