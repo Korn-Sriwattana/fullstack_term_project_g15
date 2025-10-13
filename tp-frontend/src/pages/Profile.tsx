@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { useUser } from "../components/userContext";
 import type { Song } from "../types/song.ts";
 import LikeButton from "../components/LikeButton";
@@ -41,7 +41,9 @@ export default function Profile() {
   const [selectedPlaylist, setSelectedPlaylist] = useState<Playlist | null>(null);
   const [playlistSongs, setPlaylistSongs] = useState<PlaylistSong[]>([]);
   const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
-
+  
+  const [friendCount, setFriendCount] = useState(0);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const API_URL = "http://localhost:3000";
     
@@ -61,6 +63,21 @@ export default function Profile() {
         loadPlaylists();
       }
     }, [user?.id]);
+
+    useEffect(() => {
+    const loadFriendCount = async () => {
+      if (!user?.id) return;
+      try {
+        const res = await fetch(`http://localhost:3000/api/friends/list?userId=${user.id}`);
+        const data = await res.json();
+        setFriendCount(data.friends?.length || 0);
+      } catch (err) {
+        console.error("Failed to fetch friend count:", err);
+      }
+    };
+
+    loadFriendCount();
+  }, [user?.id]);
 
     useEffect(() => {
       // บันทึก id ของผู้ใช้ที่กำลังดู (ล็อกอินอยู่)
@@ -192,15 +209,35 @@ export default function Profile() {
       setSelectedPlaylist(null);
       setPlaylistSongs([]);
     };
+
+    const sortedPlaylistSongs = useMemo(() => {
+        if (sortBy === 'custom') return playlistSongs;
+        const copy = [...playlistSongs];
+        copy.sort((a, b) => {
+          let cmp = 0;
+          if (sortBy === 'dateAdded') {
+            cmp = new Date(a.addedAt).getTime() - new Date(b.addedAt).getTime();
+          } else if (sortBy === 'title') {
+            cmp = (a.song.title || '').localeCompare(b.song.title || '');
+          } else if (sortBy === 'artist') {
+            cmp = (a.song.artist || '').localeCompare(b.song.artist || '');
+          } else if (sortBy === 'duration') {
+            cmp = (a.song.duration || 0) - (b.song.duration || 0);
+          }
+          return sortOrder === 'asc' ? cmp : -cmp;
+        });
+        return copy;
+      }, [playlistSongs, sortBy, sortOrder]);
+    
   
     const handlePlayPlaylist = async () => {
-      if (!selectedPlaylist || playlistSongs.length === 0) {
+      if (!selectedPlaylist || sortedPlaylistSongs.length === 0) {
         alert("No songs in this playlist");
         return;
       }
-  
+
       if ((window as any).musicPlayer) {
-        const [firstSong, ...restSongs] = playlistSongs.map(item => item.song);
+        const [firstSong, ...restSongs] = sortedPlaylistSongs.map(item => item.song);
         
         await (window as any).musicPlayer.playSong(firstSong);
         
@@ -208,7 +245,7 @@ export default function Profile() {
           await (window as any).musicPlayer.addToQueue(song);
         }
         
-        alert(`Playing ${playlistSongs.length} songs from ${selectedPlaylist.name}`);
+        alert(`Playing ${sortedPlaylistSongs.length} songs from ${selectedPlaylist.name}`);
       }
     };
   
@@ -242,13 +279,13 @@ export default function Profile() {
     };
   
     const handleShufflePlaylist = async () => {
-      if (!selectedPlaylist || playlistSongs.length === 0) {
+      if (!selectedPlaylist || sortedPlaylistSongs.length === 0) {
         alert("No songs in this playlist");
         return;
       }
-  
+
       if ((window as any).musicPlayer) {
-        const shuffled = [...playlistSongs].sort(() => Math.random() - 0.5);
+        const shuffled = [...sortedPlaylistSongs].sort(() => Math.random() - 0.5);
         const [firstSong, ...restSongs] = shuffled.map(item => item.song);
         
         await (window as any).musicPlayer.playSong(firstSong);
@@ -260,6 +297,7 @@ export default function Profile() {
         alert(`Shuffling ${shuffled.length} songs from ${selectedPlaylist.name}`);
       }
     };
+
   
     const handleSongAddedToPlaylist = async () => {
       await loadPlaylists();
@@ -519,10 +557,10 @@ export default function Profile() {
       {/* Stats */}
       <div style={{ marginTop: "1rem", color: "#555" }}>
         <span style={{ marginRight: "1.5rem" }}>
-          <strong>{playlists.length}</strong> Playlists
+          <strong>{playlists.length}</strong> Public Playlists
         </span>
         <span>
-          <strong>{(user as any).friendCount || 0}</strong> Friends
+          <strong>{friendCount}</strong> Friends
         </span>
       </div>
 
@@ -539,7 +577,7 @@ export default function Profile() {
                       </button>
                     )}
                     <h1 className={styles.title}>
-                      {viewMode === 'list' ? `Public Playlists (${playlists.length})` : selectedPlaylist?.name}
+                      {viewMode === 'list' ? `Public Playlists` : selectedPlaylist?.name}
                     </h1>
                   </div>
                 </div>
@@ -636,7 +674,7 @@ export default function Profile() {
               </div>
             </div>
 
-            {playlistSongs.length > 0 && (
+            {sortedPlaylistSongs.length > 0 && (
               <div className={detailStyles.controls}>
                 <button
                   onClick={handlePlayPlaylist}
@@ -676,7 +714,7 @@ export default function Profile() {
           </div>
 
           {/* Sort Controls */}
-          {playlistSongs.length > 0 && (
+          {sortedPlaylistSongs.length > 0 && (
             <div className={detailStyles.sortBar}>
               <span className={detailStyles.sortLabel}>Sort by:</span>
 
@@ -729,8 +767,8 @@ export default function Profile() {
           )}
 
           <div className={styles.resultsList}>
-            {playlistSongs.length > 0 ? (
-              playlistSongs.map((item, index) => (
+            {sortedPlaylistSongs.length > 0 ? (
+              sortedPlaylistSongs.map((item, index) => (
                 <div 
                   key={item.id} 
                   className={styles.resultItem}
