@@ -4,6 +4,10 @@ Group Member
 
 660610738	Korn Sriwattana	660610779	Pimolnat Kaewboot	660612137	Kachapat Punthong	660610863	Yada Pholam
 
+13 OCT (20.29)ทำครั้งเดียว
+- backend
+pnpm add -D @types/bcrypt
+
 better-auth installation(ทำครั้งเดียวพอ)
 - db, backend, frontend
 pnpm add better-auth@latest
