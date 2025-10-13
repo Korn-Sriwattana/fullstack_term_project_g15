@@ -113,7 +113,7 @@ export default function FriendProfile() {
             await (window as any).musicPlayer.addToQueue(song);
           }
           
-          alert(`Playing ${songs.length} songs from ${playlist.name}`);
+          // alert(`Playing ${songs.length} songs from ${playlist.name}`);
         }
       } catch (err) {
         console.error("Failed to play playlist:", err);

@@ -245,7 +245,7 @@ export default function Profile() {
           await (window as any).musicPlayer.addToQueue(song);
         }
         
-        alert(`Playing ${sortedPlaylistSongs.length} songs from ${selectedPlaylist.name}`);
+        // alert(`Playing ${sortedPlaylistSongs.length} songs from ${selectedPlaylist.name}`);
       }
     };
   
@@ -270,7 +270,7 @@ export default function Profile() {
             await (window as any).musicPlayer.addToQueue(song);
           }
           
-          alert(`Playing ${songs.length} songs from ${playlist.name}`);
+          // alert(`Playing ${songs.length} songs from ${playlist.name}`);
         }
       } catch (err) {
         console.error("Failed to play playlist:", err);

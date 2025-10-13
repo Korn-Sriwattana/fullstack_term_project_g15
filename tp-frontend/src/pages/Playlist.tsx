@@ -317,7 +317,7 @@ export default function Playlist() {
         await (window as any).musicPlayer.addToQueue(song);
       }
       
-      alert(`Playing ${sortedPlaylistSongs.length} songs from ${selectedPlaylist.name}`);
+      // alert(`Playing ${sortedPlaylistSongs.length} songs from ${selectedPlaylist.name}`);
     }
   };
 
@@ -342,7 +342,7 @@ export default function Playlist() {
           await (window as any).musicPlayer.addToQueue(song);
         }
         
-        alert(`Playing ${songs.length} songs from ${playlist.name}`);
+        // alert(`Playing ${songs.length} songs from ${playlist.name}`);
       }
     } catch (err) {
       console.error("Failed to play playlist:", err);
@@ -392,10 +392,6 @@ export default function Playlist() {
       return;
     }
     setDraggedIndex(index);
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
   };
 
   const [showToast, setShowToast] = useState(false);
