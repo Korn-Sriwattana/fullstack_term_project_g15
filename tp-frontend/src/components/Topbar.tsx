@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import styles from "../assets/styles/Topbar.module.css";
 import { useCurrentUser } from "../hook/useCurrentUser";
 import { useUser } from "./userContext";
+import { authClient } from "../lib/auth-client";
 
 // Images
 import defaultAvatar from "../assets/images/default-avatar.png";
@@ -37,16 +38,29 @@ export default function Topbar({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // ✅ Logout (ใช้ได้กับทั้ง Better Auth และ mock)
   const handleLogout = async () => {
     try {
-      await fetch(`${API_URL}/api/auth/signout`, { credentials: "include" });
+      // 1️⃣ ใช้ Better Auth signOut โดยตรง
+      await authClient.signOut();
+
+      // 2️⃣ ล้าง cookie manual เผื่อบาง browser cache ค้าง
+      document.cookie =
+        "better-auth.session=; Max-Age=0; path=/; SameSite=Lax;";
+
+      // 3️⃣ ล้าง localStorage / sessionStorage
+      localStorage.removeItem("email");
+      localStorage.removeItem("better-auth.session");
+      sessionStorage.clear();
+
+      // 4️⃣ แจ้ง logout ให้ทุกแท็บรู้
+      localStorage.setItem("logout-event", Date.now().toString());
+
+      // 5️⃣ ล้าง state และ redirect
+      setUser(null);
+      window.location.replace("/signin");
     } catch (err) {
-      console.warn("Logout warning:", err);
+      console.error("Logout failed:", err);
     }
-    localStorage.removeItem("email");
-    setUser(null);
-    window.location.href = "/signin";
   };
 
   if (loading) return null; // หรือ Skeleton loading ก็ได้
