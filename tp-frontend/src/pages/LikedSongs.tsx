@@ -31,6 +31,12 @@ export default function LikedSongs() {
     }
   }, [userId, likedSongIds]);
 
+    useEffect(() => {
+    if (user?.id) {
+      refreshLikedSongs(user.id);
+    }
+  }, [user?.id, refreshLikedSongs]);
+  
   const loadLikedSongs = async () => {
     if (!userId) return;
     
