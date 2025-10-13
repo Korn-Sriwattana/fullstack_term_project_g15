@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import type { Song } from "../types/song.ts";
 import LikeButton from "../components/LikeButton";
 import AddToPlaylistButton from "../components/AddToPlaylist";
@@ -22,11 +22,14 @@ interface PlaylistSong {
   id: string;
   song: Song;
   addedAt: string;
+  customOrder?: number;
 }
 
+const API_URL = "http://localhost:3000";
+
 export default function FriendProfile() {
-  const { id } = useParams(); // friendId จาก URL
-  const API_URL = "http://localhost:3000";
+  const { id } = useParams();
+  const navigate = useNavigate();
 
   const [friend, setFriend] = useState<any>(null);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
@@ -35,60 +38,93 @@ export default function FriendProfile() {
   const [viewMode, setViewMode] = useState<"list" | "detail">("list");
   const [loading, setLoading] = useState(true);
 
-  // ✅ โหลดข้อมูลโปรไฟล์เพื่อน
+  // โหลดข้อมูลเพื่อน + playlists
   useEffect(() => {
-    const fetchFriend = async () => {
+    const loadFriend = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/users/${id}/profile`);
-        const data = await res.json();
-        setFriend(data.user);
-
-        const playlistRes = await fetch(`${API_URL}/playlists/${id}?mode=public`);
+        const [profileRes, playlistRes] = await Promise.all([
+          fetch(`${API_URL}/api/users/${id}/profile`),
+          fetch(`${API_URL}/playlists/${id}?mode=public`)
+        ]);
+        const profileData = await profileRes.json();
         const playlistData = await playlistRes.json();
+
+        setFriend(profileData.user);
         setPlaylists(playlistData);
       } catch (err) {
-        console.error("Failed to fetch friend data:", err);
+        console.error("Failed to load friend:", err);
       } finally {
         setLoading(false);
       }
     };
-    fetchFriend();
+    loadFriend();
   }, [id]);
 
-  const handleOpenPlaylist = (playlist: Playlist) => {
-    setSelectedPlaylist(playlist);
-    setViewMode("detail");
-    loadPlaylistSongs(playlist.id);
+  const getImageUrl = (url?: string) => {
+    if (!url) return "/default-avatar.png";
+    if (url.startsWith("http")) return url;
+    return `${API_URL}${url}`;
   };
 
   const handleBackToList = () => {
     setViewMode("list");
     setSelectedPlaylist(null);
+    setPlaylistSongs([]);
   };
 
-  const loadPlaylistSongs = async (playlistId: string) => {
+  const handleOpenPlaylist = async (playlist: Playlist) => {
+    setSelectedPlaylist(playlist);
+    setViewMode("detail");
+
     try {
-      const res = await fetch(`${API_URL}/playlists/${playlistId}/songs`);
+      const res = await fetch(`${API_URL}/playlists/${playlist.id}/songs`);
       const data = await res.json();
       setPlaylistSongs(data);
     } catch (err) {
-      console.error("Failed to load songs:", err);
+      console.error("Load playlist songs failed:", err);
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  const handlePlaySong = async (song: Song) => {
+    if ((window as any).musicPlayer) {
+      await (window as any).musicPlayer.playSong(song);
+    }
   };
 
-  const getImageUrl = (picUrl?: string | null) => {
-    if (!picUrl) return "/default-avatar.png";
-    if (picUrl.startsWith("http")) return picUrl;
-    return `${API_URL}${picUrl}`;
+  const handleAddToQueue = async (song: Song) => {
+    if ((window as any).musicPlayer) {
+      await (window as any).musicPlayer.addToQueue(song);
+    }
   };
+
+  const handlePlayPlaylist = async () => {
+    if (!playlistSongs.length) return;
+    const [first, ...rest] = playlistSongs.map((i) => i.song);
+    if ((window as any).musicPlayer) {
+      await (window as any).musicPlayer.playSong(first);
+      for (const s of rest) await (window as any).musicPlayer.addToQueue(s);
+    }
+  };
+
+  const handleShufflePlaylist = async () => {
+    if (!playlistSongs.length) return;
+    const shuffled = [...playlistSongs].sort(() => Math.random() - 0.5);
+    const [first, ...rest] = shuffled.map((i) => i.song);
+    if ((window as any).musicPlayer) {
+      await (window as any).musicPlayer.playSong(first);
+      for (const s of rest) await (window as any).musicPlayer.addToQueue(s);
+    }
+  };
+
+  const formatDate = (d: string) =>
+    new Date(d).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
 
   if (loading) return <p>Loading...</p>;
-  if (!friend) return <p>User not found.</p>;
+  if (!friend) return <p>User not found</p>;
 
   return (
     <div
@@ -98,7 +134,16 @@ export default function FriendProfile() {
         color: "#222",
       }}
     >
-      {/* ---------- Header ---------- */}
+      {/* 🔙 ปุ่มย้อนกลับ */}
+      <button
+        onClick={() => navigate(-1)}
+        className={styles.backButton}
+        title="Back"
+      >
+        ←
+      </button>
+
+      {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
         <img
           src={getImageUrl(friend.profilePic)}
@@ -108,10 +153,10 @@ export default function FriendProfile() {
             height: 120,
             borderRadius: "50%",
             objectFit: "cover",
+            border: "none",
           }}
         />
-
-        <div style={{ flex: 1 }}>
+        <div>
           <h1 style={{ fontSize: "2rem", fontWeight: "700" }}>{friend.name}</h1>
           <p
             style={{
@@ -125,16 +170,16 @@ export default function FriendProfile() {
         </div>
       </div>
 
-      {/* ---------- Stats ---------- */}
+      {/* Stats */}
       <div style={{ marginTop: "1rem", color: "#555" }}>
-        <span style={{ marginRight: "1.5rem" }}>
+        <span>
           <strong>{playlists.length}</strong> Public Playlists
         </span>
       </div>
 
       <hr style={{ margin: "1.5rem 0", border: "1px solid #eee" }} />
 
-      {/* ---------- Playlist Section ---------- */}
+      {/* Playlist Section */}
       <div>
         <div className={styles.header}>
           <div className={styles.headerLeft}>
@@ -149,13 +194,13 @@ export default function FriendProfile() {
             )}
             <h1 className={styles.title}>
               {viewMode === "list"
-                ? `${friend.name}'s Public Playlists (${playlists.length})`
+                ? `Public Playlists (${playlists.length})`
                 : selectedPlaylist?.name}
             </h1>
           </div>
         </div>
 
-        {/* ---------- LIST VIEW ---------- */}
+        {/* LIST VIEW */}
         {viewMode === "list" && (
           <section className={styles.section}>
             {playlists.length > 0 ? (
@@ -165,7 +210,6 @@ export default function FriendProfile() {
                     key={playlist.id}
                     className={styles.playlistCard}
                     onClick={() => handleOpenPlaylist(playlist)}
-                    style={{ cursor: "pointer" }}
                   >
                     <div className={styles.playlistCoverWrapper}>
                       {playlist.coverUrl ? (
@@ -175,40 +219,42 @@ export default function FriendProfile() {
                           className={styles.playlistCover}
                         />
                       ) : (
-                        <div className={styles.playlistCoverPlaceholder}>🎵</div>
+                        <div className={styles.playlistCoverPlaceholder}>
+                          🎵
+                        </div>
                       )}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePlayPlaylist();
+                        }}
+                        className={styles.playlistPlayButton}
+                      >
+                        ▶
+                      </button>
                     </div>
 
                     <div className={styles.playlistInfo}>
-                      <div className={styles.playlistName}>
-                        <div className={styles.playlistNameText}>
-                          {playlist.name}
-                        </div>
+                      <div className={styles.playlistNameText}>
+                        {playlist.name}
                       </div>
-
                       <div className={styles.playlistSongCount}>
                         {playlist.songCount} songs
                       </div>
-
-                      {playlist.description && (
-                        <div className={styles.playlistDescription}>
-                          {playlist.description}
-                        </div>
-                      )}
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
               <section className={styles.emptyWrap}>
-                <img className={styles.emptyImage} src={emptyImg} alt="empty playlist" />
+                <img src={emptyImg} alt="empty" className={styles.emptyImage} />
                 <h2 className={styles.emptyTitle}>No public playlists</h2>
               </section>
             )}
           </section>
         )}
 
-        {/* ---------- DETAIL VIEW ---------- */}
+        {/* DETAIL VIEW */}
         {viewMode === "detail" && selectedPlaylist && (
           <section className={detailStyles.container} style={{ padding: 0 }}>
             <div className={detailStyles.headerWrap}>
@@ -240,6 +286,26 @@ export default function FriendProfile() {
                   </div>
                 </div>
               </div>
+
+              {playlistSongs.length > 0 && (
+                <div className={detailStyles.controls}>
+                  <button
+                    onClick={handlePlayPlaylist}
+                    className={detailStyles.playAllBtn}
+                  >
+                    <span className={detailStyles.playIcon}>▶️</span>
+                    Play All
+                  </button>
+
+                  <button
+                    onClick={handleShufflePlaylist}
+                    className={detailStyles.shuffleBtn}
+                  >
+                    <span className={detailStyles.shuffleIcon}>🔀</span>
+                    Shuffle
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className={styles.resultsList}>
@@ -247,6 +313,7 @@ export default function FriendProfile() {
                 playlistSongs.map((item, index) => (
                   <div key={item.id} className={styles.resultItem}>
                     <div className={styles.resultIndex}>{index + 1}</div>
+
                     {item.song.coverUrl && (
                       <img
                         src={item.song.coverUrl}
@@ -254,9 +321,44 @@ export default function FriendProfile() {
                         className={detailStyles.resultCover}
                       />
                     )}
+
                     <div className={detailStyles.resultInfo} style={{ flex: 1 }}>
-                      <div className={detailStyles.resultTitle}>{item.song.title}</div>
-                      <div className={detailStyles.resultArtist}>{item.song.artist}</div>
+                      <div className={detailStyles.resultTitle}>
+                        {item.song.title}
+                      </div>
+                      <div className={detailStyles.resultArtist}>
+                        {item.song.artist}
+                      </div>
+                    </div>
+
+                    <div className={detailStyles.dateText}>
+                      {formatDate(item.addedAt)}
+                    </div>
+
+                    <div className={detailStyles.resultDuration}>
+                      {Math.floor(item.song.duration / 60)}:
+                      {Math.floor(item.song.duration % 60)
+                        .toString()
+                        .padStart(2, "0")}
+                    </div>
+
+                    <div style={{ display: "flex", gap: 5 }}>
+                      <button
+                        onClick={() => handlePlaySong(item.song)}
+                        className={detailStyles.buttonPrimary}
+                      >
+                        Play
+                      </button>
+
+                      <button
+                        onClick={() => handleAddToQueue(item.song)}
+                        className={detailStyles.buttonSecondary}
+                      >
+                        + Queue
+                      </button>
+
+                      <AddToPlaylistButton userId={id!} song={item.song} />
+                      <LikeButton userId={id!} songId={item.song.id} />
                     </div>
                   </div>
                 ))

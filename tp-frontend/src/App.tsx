@@ -70,7 +70,7 @@ export default function App() {
             <Route path="/lokchangrooms" element={<LokchangRooms />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/friends" element={<FriendsPage />} />
-            <Route path="/profile/:id" element={<FriendProfile />} />
+            <Route path="/friends/:id" element={<FriendProfile />} />
           </Routes>
         </main>
       </div>

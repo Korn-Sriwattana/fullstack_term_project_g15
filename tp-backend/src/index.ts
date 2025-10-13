@@ -431,13 +431,13 @@ app.post(
 );
 
 // ----------------- Friend API -----------------
+app.get("/api/users/:id/profile", getUserProfile);
 app.get("/api/friends/requests", getFriendRequests);
 app.post("/api/friends/request", sendFriendRequest);
 app.post("/api/friends/accept", acceptFriendRequest);
 app.delete("/api/friends/remove", removeFriend);
 app.get("/api/friends/list", getFriendsList);
 app.get("/api/friends/search", searchUsers);
-app.get("/api/users/:id/profile", getUserProfile);
 
 // ----------------- Playlist API -----------------
 
