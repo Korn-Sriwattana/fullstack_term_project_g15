@@ -17,27 +17,33 @@ interface HomeProps {
 const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
   const { setUser, user } = useUser();
   const userId = user?.id || "";
+  const [email, setEmail] = useState(localStorage.getItem("email") || ""); // ✅ mock email จาก signup
+
+  // ✅ ตรวจสอบผู้ใช้จาก database โดยตรง
   useEffect(() => {
-    const checkSession = async () => {
+    const checkUserInDatabase = async () => {
       try {
-        const result = await authClient.getSession();
+        if (!email) return;
 
-        // ✅ Better Auth จะคืนค่าเป็น { data, error }
-        const data = result?.data;
+        const res = await fetch(`${API_URL}/api/user/check?email=${email}`);
+        const data = await res.json();
 
-        if (data?.user) {
+        if (data.exists && data.user) {
           setUser({
             id: data.user.id,
             name: data.user.name,
             email: data.user.email,
           });
+        } else {
+          setUser(null);
         }
       } catch (err) {
-        console.error("Session check failed:", err);
+        console.error("Database user check failed:", err);
       }
     };
-    checkSession();
-  }, [setUser]);
+
+    checkUserInDatabase();
+  }, [email, setUser]);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Song[]>([]);
