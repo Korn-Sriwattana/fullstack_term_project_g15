@@ -81,11 +81,7 @@ const QueueSection: React.FC<Props> = ({
             <h4 className={styles.nowPlayingTitle}>Now Playing</h4>
             
              {/* Volume Control - แบบ MusicPlayer */}
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '8px'
-            }}>
+            <div className={styles.volume}>
               <button 
                 onClick={handleToggleMute}
                 style={{
@@ -94,7 +90,8 @@ const QueueSection: React.FC<Props> = ({
                   cursor: 'pointer',
                   padding: '4px',
                   display: 'flex',
-                  alignItems: 'center'
+                  alignItems: 'center',
+                  marginTop: '-15px'
                 }}
                 title={isMuted ? "Unmute" : "Mute"}
               >
@@ -112,18 +109,14 @@ const QueueSection: React.FC<Props> = ({
                 max="100"
                 value={isMuted ? 0 : volume}
                 onChange={handleVolumeChange}
-                style={{
-                  width: '80px',
-                  cursor: 'pointer',
-                  accentColor: '#1db954',
-                  verticalAlign: 'middle',
-                  margin: 0
-                }}
+                className={styles.volumeRange}
                 title={`Volume: ${volume}%`}
               />
               
             </div>
           </div>
+
+          
 
           <p className={styles.nowPlayingTrack}>
             <strong>{nowPlaying.title}</strong>

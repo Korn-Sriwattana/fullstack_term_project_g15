@@ -132,6 +132,33 @@
 .nowPlayingTrack{ margin:0 0 10px; color:#374151; }
 .timeDisplay{ font-size:13px; color:#555; margin-top:6px; display:flex; align-items:center; gap:4px; }
 
+.volumeRange::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 15px !important;
+  height: 15px !important;
+  border-radius: 50%;
+  background: #8E2D97;
+  border: 1px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.15);
+  cursor: pointer;
+  margin-top: -4px !important;
+}
+
+.volume {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-top: 30px; 
+  margin-right: 30px;
+}
+
+.volumeRange {
+  width: 110px  !important;      
+  cursor: pointer;
+  accent-color: #8E2D97; /* สี slider */
+}
 
 /*  skip-bt */
 .skipBtn {
