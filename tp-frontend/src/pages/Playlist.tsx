@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useUser } from "../components/userContext";
 import type { Song } from "../types/song.ts";
 import LikeButton from "../components/LikeButton";
@@ -54,11 +54,9 @@ export default function Playlist() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Song[]>([]);
   
-  // Sort state
   const [sortBy, setSortBy] = useState<'custom' | 'dateAdded' | 'title' | 'artist' | 'duration'>('custom');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   
-  // Drag & Drop state
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   
   const { refreshLikedSongs } = useLikedSongs();
@@ -79,13 +77,6 @@ export default function Playlist() {
       refreshLikedSongs(user.id);
     }
   }, [user?.id, refreshLikedSongs]);
-
-  // Reload เมื่อ sortBy เปลี่ยน
-  useEffect(() => {
-    if (selectedPlaylist && viewMode === 'detail') {
-      loadPlaylistSongs(selectedPlaylist.id);
-    }
-  }, [selectedPlaylist, viewMode, sortBy]);
 
   useEffect(() => {
     const searchSongs = async () => {
@@ -114,7 +105,7 @@ export default function Playlist() {
     try {
       if (!user?.id) return;
 
-     const res = await fetch(`${API_URL}/playlists/${user.id}?mode=owner`);
+      const res = await fetch(`${API_URL}/playlists/${user.id}?mode=owner`);
       const data = await res.json();
       setPlaylists(data);
 
@@ -127,10 +118,9 @@ export default function Playlist() {
     }
   };
 
-  // ส่ง sortBy ไป backend
   const loadPlaylistSongs = async (playlistId: string) => {
     try {
-      const res = await fetch(`${API_URL}/playlists/${playlistId}/songs?sortBy=${sortBy}`);
+      const res = await fetch(`${API_URL}/playlists/${playlistId}/songs`);
       const data = await res.json();
       setPlaylistSongs(data);
     } catch (err) {
@@ -282,7 +272,9 @@ export default function Playlist() {
   const handleOpenPlaylist = (playlist: Playlist) => {
     setSelectedPlaylist(playlist);
     setViewMode('detail');
-    setSortBy('custom'); // Reset เป็น custom เมื่อเปิด playlist ใหม่
+    setSortBy('custom');
+    setSortOrder('asc');
+    loadPlaylistSongs(playlist.id);
   };
 
   const handleBackToList = () => {
@@ -291,14 +283,33 @@ export default function Playlist() {
     setPlaylistSongs([]);
   };
 
+  const sortedPlaylistSongs = useMemo(() => {
+    if (sortBy === 'custom') return playlistSongs;
+    const copy = [...playlistSongs];
+    copy.sort((a, b) => {
+      let cmp = 0;
+      if (sortBy === 'dateAdded') {
+        cmp = new Date(a.addedAt).getTime() - new Date(b.addedAt).getTime();
+      } else if (sortBy === 'title') {
+        cmp = (a.song.title || '').localeCompare(b.song.title || '');
+      } else if (sortBy === 'artist') {
+        cmp = (a.song.artist || '').localeCompare(b.song.artist || '');
+      } else if (sortBy === 'duration') {
+        cmp = (a.song.duration || 0) - (b.song.duration || 0);
+      }
+      return sortOrder === 'asc' ? cmp : -cmp;
+    });
+    return copy;
+  }, [playlistSongs, sortBy, sortOrder]);
+
   const handlePlayPlaylist = async () => {
-    if (!selectedPlaylist || playlistSongs.length === 0) {
+    if (!selectedPlaylist || sortedPlaylistSongs.length === 0) {
       alert("No songs in this playlist");
       return;
     }
 
     if ((window as any).musicPlayer) {
-      const [firstSong, ...restSongs] = playlistSongs.map(item => item.song);
+      const [firstSong, ...restSongs] = sortedPlaylistSongs.map(item => item.song);
       
       await (window as any).musicPlayer.playSong(firstSong);
       
@@ -306,7 +317,7 @@ export default function Playlist() {
         await (window as any).musicPlayer.addToQueue(song);
       }
       
-      alert(`Playing ${playlistSongs.length} songs from ${selectedPlaylist.name}`);
+      alert(`Playing ${sortedPlaylistSongs.length} songs from ${selectedPlaylist.name}`);
     }
   };
 
@@ -314,7 +325,7 @@ export default function Playlist() {
     e.stopPropagation();
     
     try {
-      const res = await fetch(`${API_URL}/playlists/${playlist.id}/songs?sortBy=custom`);
+      const res = await fetch(`${API_URL}/playlists/${playlist.id}/songs`);
       const songs: PlaylistSong[] = await res.json();
       
       if (songs.length === 0) {
@@ -340,13 +351,13 @@ export default function Playlist() {
   };
 
   const handleShufflePlaylist = async () => {
-    if (!selectedPlaylist || playlistSongs.length === 0) {
+    if (!selectedPlaylist || sortedPlaylistSongs.length === 0) {
       alert("No songs in this playlist");
       return;
     }
 
     if ((window as any).musicPlayer) {
-      const shuffled = [...playlistSongs].sort(() => Math.random() - 0.5);
+      const shuffled = [...sortedPlaylistSongs].sort(() => Math.random() - 0.5);
       const [firstSong, ...restSongs] = shuffled.map(item => item.song);
       
       await (window as any).musicPlayer.playSong(firstSong);
@@ -366,10 +377,8 @@ export default function Playlist() {
     }
   };
 
-  //  จัดการ sort โดยไม่ทำ client-side sorting
   const handleSortChange = (newSortBy: 'custom' | 'dateAdded' | 'title' | 'artist' | 'duration') => {
     if (sortBy === newSortBy && newSortBy !== 'custom') {
-      // Toggle sort order
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
       setSortBy(newSortBy);
@@ -377,7 +386,6 @@ export default function Playlist() {
     }
   };
 
-  //  Drag & Drop พร้อมบันทึก backend ทันที
   const handleDragStart = (index: number) => {
     if (sortBy !== 'custom') {
       alert('Please switch to "Custom Order" mode to reorder songs');
@@ -390,7 +398,6 @@ export default function Playlist() {
     e.preventDefault();
   };
 
-  // 🆕 เพิ่ม state สำหรับ toast notification
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
 
@@ -410,14 +417,11 @@ export default function Playlist() {
 
     try {
       const draggedSong = playlistSongs[draggedIndex];
-      
-      // Optimistic update
       const newSongs = [...playlistSongs];
       const [draggedItem] = newSongs.splice(draggedIndex, 1);
       newSongs.splice(dropIndex, 0, draggedItem);
       setPlaylistSongs(newSongs);
       
-      // บันทึกลง backend ทันที
       const res = await fetch(
         `${API_URL}/playlists/${selectedPlaylist.id}/reorder`,
         {
@@ -432,16 +436,12 @@ export default function Playlist() {
 
       if (!res.ok) throw new Error("Failed to reorder");
 
-      // Reload เพื่อ sync กับ backend
       await loadPlaylistSongs(selectedPlaylist.id);
-
-      // แสดง notification
       showNotification("Order saved. Changes will apply on next play.");
       
     } catch (err) {
       console.error("Reorder failed:", err);
       showNotification("❌ Failed to reorder songs");
-      // Revert optimistic update
       await loadPlaylistSongs(selectedPlaylist.id);
     }
 
@@ -474,7 +474,6 @@ export default function Playlist() {
 
   return (
     <div className={styles.container}>
-      {/* Header */}
       <div className={styles.header}>
         <div className={styles.headerLeft}>
           {viewMode === 'detail' && (
@@ -488,7 +487,6 @@ export default function Playlist() {
         </div>
       </div>
       
-      {/* Search + Create */}
       {viewMode === 'list' && (
         <div className={styles.actionsRow}>
           <input
@@ -511,7 +509,6 @@ export default function Playlist() {
         </div>
       )}
 
-      {/* Search Results */}
       {viewMode === 'list' && searchResults.length === 0 && searchQuery.trim() !== "" && (
         <section className={styles.section}>
           <h3>Search Results</h3>
@@ -572,7 +569,6 @@ export default function Playlist() {
         </section>
       )}
 
-      {/* LIST VIEW - Playlists Grid */}
       {viewMode === 'list' && (
         <section className={styles.section}>
           <h3>Playlists ({playlists.length})</h3>
@@ -651,7 +647,6 @@ export default function Playlist() {
         </section>
       )}
 
-      {/* DETAIL VIEW - Playlist Songs (use dedicated CSS) */}
       {viewMode === 'detail' && selectedPlaylist && (
         <section className={detailStyles.container} style={{ padding: 0 }}>
           <div className={detailStyles.headerWrap}>
@@ -677,7 +672,7 @@ export default function Playlist() {
               </div>
             </div>
 
-            {playlistSongs.length > 0 && (
+            {sortedPlaylistSongs.length > 0 && (
               <div className={detailStyles.controls}>
                 <button
                   onClick={handlePlayPlaylist}
@@ -716,7 +711,7 @@ export default function Playlist() {
             )}
           </div>
 
-          {playlistSongs.length > 0 && (
+          {sortedPlaylistSongs.length > 0 && (
             <div className={detailStyles.sortBar}>
               <span className={detailStyles.sortLabel}>Sort by:</span>
 
@@ -759,8 +754,8 @@ export default function Playlist() {
           )}
 
           <div className={detailStyles.resultsList}>
-            {playlistSongs.length > 0 ? (
-              playlistSongs.map((item, index) => (
+            {sortedPlaylistSongs.length > 0 ? (
+              sortedPlaylistSongs.map((item, index) => (
                 <div
                   key={item.id}
                   className={detailStyles.resultItem}
@@ -853,8 +848,6 @@ export default function Playlist() {
         </section>
       )}
 
-
-      {/* Create Playlist Modal */}
       {showCreateModal && (
         <div className={modalStyles.modalOverlay} onClick={() => setShowCreateModal(false)}>
           <div className={modalStyles.modalContent} onClick={(e) => e.stopPropagation()}>
@@ -966,7 +959,6 @@ export default function Playlist() {
         </div>
       )}
 
-      {/* Toast Notification */}
       {showToast && (
         <div style={{
           position: 'fixed',
@@ -991,7 +983,6 @@ export default function Playlist() {
         </div>
       )}
 
-      {/* CSS Animation */}
       <style>{`
         @keyframes slideUp {
           from {
