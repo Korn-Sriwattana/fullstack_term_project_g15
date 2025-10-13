@@ -1,8 +1,8 @@
 import { useEffect, useState, useRef } from "react";
-import { useCurrentUser } from "../hook/useCurrentUser";
+import { useUser } from "../components/userContext"; // ✅ ใช้ context ที่สร้างไว้แทน useCurrentUser
 
 export default function Profile() {
-  const { user, setUser, loading } = useCurrentUser();
+  const { user, setUser, loading } = useUser(); // ✅ ดึงข้อมูลจาก context
   const [playlists, setPlaylists] = useState<any[]>([]);
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState("");
@@ -65,15 +65,16 @@ export default function Profile() {
     loadPlaylists();
   }, [user]);
 
-  // ✅ โหลดข้อมูล user (เมื่อ hook เสร็จ)
+  // ✅ เมื่อ user โหลดเสร็จ ให้ sync ชื่อและรูป
   useEffect(() => {
     if (user) {
       setName(user.name || "");
-      setProfilePic(user.profilePic || "");
+      // ถ้า backend เพิ่ม field profilePic ในตาราง user ให้ใช้ตรงนี้
+      setProfilePic((user as any).profilePic || "");
     }
   }, [user]);
 
-  // ✅ จัดการอัปโหลดรูป
+  // ✅ อัปโหลดรูปโปรไฟล์
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -104,6 +105,7 @@ export default function Profile() {
       setPreview(null);
       setImageError(false);
 
+      // ✅ อัปเดตข้อมูลใน backend
       await fetch(`${API_URL}/api/profile/me`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -111,6 +113,7 @@ export default function Profile() {
         body: JSON.stringify({ name, profilePic: data.imageUrl }),
       });
 
+      // ✅ sync user context
       setUser((prev: any) => ({ ...prev, profilePic: data.imageUrl }));
       alert("Profile picture updated!");
     } catch (err) {
@@ -146,6 +149,7 @@ export default function Profile() {
     return null;
   }
 
+  // ✅ ส่วนแสดงผล (UI เหมือนเดิม)
   return (
     <div
       style={{
@@ -280,7 +284,7 @@ export default function Profile() {
           <strong>{playlists.length}</strong> Playlists
         </span>
         <span>
-          <strong>{user.friendCount || 0}</strong> Friends
+          <strong>{(user as any).friendCount || 0}</strong> Friends
         </span>
       </div>
 

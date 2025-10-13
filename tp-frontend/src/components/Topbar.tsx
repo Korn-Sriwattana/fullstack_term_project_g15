@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "../assets/styles/Topbar.module.css";
-import { useCurrentUser } from "../hook/useCurrentUser";
 import { useUser } from "./userContext";
 import { authClient } from "../lib/auth-client";
 
@@ -21,8 +20,8 @@ export default function Topbar({
   const navigate = useNavigate();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // ✅ ใช้ hook กลางแทน logic เดิมทั้งหมด
-  const { user, setUser, loading } = useCurrentUser();
+  // ✅ ใช้ context ที่รวม useCurrentUser แล้ว
+  const { user, setUser, loading } = useUser();
 
   // ✅ ปิด dropdown เมื่อคลิกนอก
   useEffect(() => {
@@ -38,12 +37,13 @@ export default function Topbar({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // ✅ logout ฟังก์ชัน
   const handleLogout = async () => {
     try {
       // 1️⃣ ใช้ Better Auth signOut โดยตรง
       await authClient.signOut();
 
-      // 2️⃣ ล้าง cookie manual เผื่อบาง browser cache ค้าง
+      // 2️⃣ ล้าง cookie manual (บาง browser cache ค้าง)
       document.cookie =
         "better-auth.session=; Max-Age=0; path=/; SameSite=Lax;";
 
@@ -52,8 +52,8 @@ export default function Topbar({
       localStorage.removeItem("better-auth.session");
       sessionStorage.clear();
 
-      // 4️⃣ แจ้ง logout ให้ทุกแท็บรู้
-      localStorage.setItem("logout-event", Date.now().toString());
+      // 4️⃣ แจ้ง logout ให้ทุกแท็บรู้ => ไม่ต้องจ้าาาา
+      // localStorage.setItem("logout-event", Date.now().toString());
 
       // 5️⃣ ล้าง state และ redirect
       setUser(null);
@@ -63,14 +63,15 @@ export default function Topbar({
     }
   };
 
-  if (loading) return null; // หรือ Skeleton loading ก็ได้
+  // ✅ ถ้ายังโหลด user อยู่
+  if (loading) return null;
 
   // ✅ สร้าง URL ของ avatar
   const avatarSrc =
-    user?.profilePic && user.profilePic.trim() !== ""
-      ? user.profilePic.startsWith("http")
-        ? user.profilePic
-        : `${API_URL}${user.profilePic}`
+    (user as any)?.profilePic && (user as any).profilePic.trim() !== ""
+      ? (user as any).profilePic.startsWith("http")
+        ? (user as any).profilePic
+        : `${API_URL}${(user as any).profilePic}`
       : defaultAvatar;
 
   return (
