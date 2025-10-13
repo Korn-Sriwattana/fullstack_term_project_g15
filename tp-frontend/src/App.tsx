@@ -12,6 +12,7 @@ import { useUser } from "./components/userContext";
 import MusicPlayer from "./components/MusicPlayer";
 import Profile from "./pages/Profile";
 import { authClient } from "./lib/auth-client";
+import FriendsPage from "./pages/Friend";
 
 export default function App() {
   const { user, setUser } = useUser();
@@ -67,6 +68,7 @@ export default function App() {
             <Route path="/playlist" element={<Playlist />} />
             <Route path="/lokchangrooms" element={<LokchangRooms />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/friends" element={<FriendsPage />} />
           </Routes>
         </main>
       </div>
@@ -78,7 +80,6 @@ export default function App() {
           onCurrentIndexUpdate={setGlobalCurrentIndex}
         />
       )}
-      
     </div>
   );
 }
