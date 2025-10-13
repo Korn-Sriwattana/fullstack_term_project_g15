@@ -5,7 +5,6 @@ import type { Song, QueueItem } from "../types/song.ts";
 import LikeButton from "../components/LikeButton";
 import AddToPlaylistButton from "../components/AddToPlaylist";
 import searchIcon from "../assets/images/search-icon.png";
-import { authClient } from "../lib/auth-client";
 
 const API_URL = "http://localhost:3000";
 
@@ -17,7 +16,7 @@ interface HomeProps {
 const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
   const { setUser, user } = useUser();
   const userId = user?.id || "";
-  const [email, setEmail] = useState(localStorage.getItem("email") || ""); // ✅ mock email จาก signup
+  const [email] = useState(localStorage.getItem("email") || ""); // ✅ mock email จาก signup
 
   // ✅ ตรวจสอบผู้ใช้จาก database โดยตรง
   useEffect(() => {

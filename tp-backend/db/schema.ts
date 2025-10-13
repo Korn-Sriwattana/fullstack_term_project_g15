@@ -78,10 +78,11 @@ export const verification = pgTable("verification", {
 
 /* USERS */
 export const users = pgTable("users", {
-  id: text("id").primaryKey(), // ✅ เปลี่ยนจาก uuid → text
+  id: text("id").primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
   email: varchar("email", { length: 255 }).notNull().unique(),
   profilePic: varchar("profile_pic", { length: 255 }),
+  password: varchar("password", { length: 255 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { mode: "date", precision: 3 })
     .$onUpdate(() => new Date())
@@ -92,10 +93,16 @@ export const users = pgTable("users", {
 export const friends = pgTable(
   "friends",
   {
-    userId: text("user_id") // ✅ เปลี่ยนจาก uuid → text
+    userId: text("user_id")
       .notNull()
       .references(() => users.id),
-    friendId: text("friend_id") // ✅ เปลี่ยนจาก uuid → text
+    friendId: text("friend_id")
+      .notNull()
+      .references(() => users.id),
+    status: varchar("status", { length: 20 }) // "pending" | "accepted" | "blocked"
+      .default("pending")
+      .notNull(),
+    requestedBy: text("requested_by") // ใครเป็นคนส่งคำขอ
       .notNull()
       .references(() => users.id),
     createdAt: timestamp("created_at").defaultNow().notNull(),

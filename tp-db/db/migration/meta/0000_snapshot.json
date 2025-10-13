@@ -1,5 +1,5 @@
 {
-  "id": "6802d0e9-b009-42ca-924e-05d8b56a28f7",
+  "id": "6e52b24f-c782-4382-aaab-2128fd704a68",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -127,6 +127,19 @@
           "primaryKey": false,
           "notNull": true
         },
+        "status": {
+          "name": "status",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "requested_by": {
+          "name": "requested_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -178,6 +191,19 @@
           "tableTo": "users",
           "columnsFrom": [
             "friend_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "friends_requested_by_users_id_fk": {
+          "name": "friends_requested_by_users_id_fk",
+          "tableFrom": "friends",
+          "tableTo": "users",
+          "columnsFrom": [
+            "requested_by"
           ],
           "columnsTo": [
             "id"
@@ -1656,6 +1682,12 @@
         },
         "profile_pic": {
           "name": "profile_pic",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "password": {
+          "name": "password",
           "type": "varchar(255)",
           "primaryKey": false,
           "notNull": false

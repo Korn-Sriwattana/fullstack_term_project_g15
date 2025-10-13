@@ -33,6 +33,7 @@
     "db:prototype": "tsx ./db/prototype.ts"
   },
   "dependencies": {
+    "bcrypt": "^6.0.0",
     "better-auth": "^1.3.27",
     "cors": "^2.8.5",
     "debug": "^4.4.1",
@@ -49,6 +50,7 @@
   "devDependencies": {
     "@tsconfig/node-lts": "^22.0.2",
     "@tsconfig/node-ts": "^23.6.1",
+    "@types/bcrypt": "^6.0.0",
     "@types/cors": "^2.8.19",
     "@types/debug": "^4.1.12",
     "@types/express": "^5.0.3",

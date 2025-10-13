@@ -15,21 +15,23 @@ CREATE TABLE "account" (
 );
 --> statement-breakpoint
 CREATE TABLE "friends" (
-	"user_id" uuid NOT NULL,
-	"friend_id" uuid NOT NULL,
+	"user_id" text NOT NULL,
+	"friend_id" text NOT NULL,
+	"status" varchar(20) DEFAULT 'pending' NOT NULL,
+	"requested_by" text NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "liked_songs" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"user_id" uuid NOT NULL,
+	"user_id" text NOT NULL,
 	"song_id" uuid NOT NULL,
 	"liked_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "listening_rooms" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"host_id" uuid NOT NULL,
+	"host_id" text NOT NULL,
 	"name" varchar(255) NOT NULL,
 	"description" text,
 	"is_public" boolean DEFAULT true,
@@ -44,7 +46,7 @@ CREATE TABLE "listening_rooms" (
 --> statement-breakpoint
 CREATE TABLE "personal_queue" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"user_id" uuid NOT NULL,
+	"user_id" text NOT NULL,
 	"song_id" uuid NOT NULL,
 	"queue_index" integer NOT NULL,
 	"source" varchar(50),
@@ -54,13 +56,13 @@ CREATE TABLE "personal_queue" (
 --> statement-breakpoint
 CREATE TABLE "play_history" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"user_id" uuid NOT NULL,
+	"user_id" text NOT NULL,
 	"song_id" uuid NOT NULL,
 	"played_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "player_state" (
-	"user_id" uuid PRIMARY KEY NOT NULL,
+	"user_id" text PRIMARY KEY NOT NULL,
 	"current_song_id" uuid,
 	"current_index" integer DEFAULT 0,
 	"current_time" integer DEFAULT 0,
@@ -84,14 +86,14 @@ CREATE TABLE "playlists" (
 	"name" varchar(255) NOT NULL,
 	"description" text,
 	"is_public" boolean DEFAULT true,
-	"owner_id" uuid NOT NULL,
+	"owner_id" text NOT NULL,
 	"cover_url" varchar(255),
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "room_members" (
 	"room_id" uuid NOT NULL,
-	"user_id" uuid NOT NULL,
+	"user_id" text NOT NULL,
 	"role" varchar(20) DEFAULT 'listener' NOT NULL,
 	"joined_at" timestamp DEFAULT now() NOT NULL
 );
@@ -99,13 +101,13 @@ CREATE TABLE "room_members" (
 CREATE TABLE "room_messages" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"room_id" uuid NOT NULL,
-	"user_id" uuid NOT NULL,
+	"user_id" text NOT NULL,
 	"message" text NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "room_presence" (
-	"user_id" uuid PRIMARY KEY NOT NULL,
+	"user_id" text PRIMARY KEY NOT NULL,
 	"room_id" uuid NOT NULL,
 	"joined_at" timestamp DEFAULT now() NOT NULL,
 	"last_seen_at" timestamp DEFAULT now() NOT NULL,
@@ -116,7 +118,7 @@ CREATE TABLE "room_queue" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"room_id" uuid NOT NULL,
 	"song_id" uuid NOT NULL,
-	"queued_by" uuid NOT NULL,
+	"queued_by" text NOT NULL,
 	"queue_index" integer NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
@@ -162,10 +164,11 @@ CREATE TABLE "user" (
 );
 --> statement-breakpoint
 CREATE TABLE "users" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"id" text PRIMARY KEY NOT NULL,
 	"name" varchar(255) NOT NULL,
 	"email" varchar(255) NOT NULL,
 	"profile_pic" varchar(255),
+	"password" varchar(255),
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp (3) NOT NULL,
 	CONSTRAINT "users_email_unique" UNIQUE("email")
@@ -183,6 +186,7 @@ CREATE TABLE "verification" (
 ALTER TABLE "account" ADD CONSTRAINT "account_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "friends" ADD CONSTRAINT "friends_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "friends" ADD CONSTRAINT "friends_friend_id_users_id_fk" FOREIGN KEY ("friend_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "friends" ADD CONSTRAINT "friends_requested_by_users_id_fk" FOREIGN KEY ("requested_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "liked_songs" ADD CONSTRAINT "liked_songs_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "liked_songs" ADD CONSTRAINT "liked_songs_song_id_songs_id_fk" FOREIGN KEY ("song_id") REFERENCES "public"."songs"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "listening_rooms" ADD CONSTRAINT "listening_rooms_host_id_users_id_fk" FOREIGN KEY ("host_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
