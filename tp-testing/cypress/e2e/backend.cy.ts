@@ -205,4 +205,81 @@ describe("🎧 Lukchang Vibe Backend API Test Suite", () => {
       });
     });
   });
+  describe("🤝 Friend System APIs", () => {
+    const baseUrl = "http://localhost:3000";
+
+    let userA = { id: "", email: "a@example.com", name: "UserA" };
+    let userB = { id: "", email: "b@example.com", name: "UserB" };
+
+    before(() => {
+      // สร้างผู้ใช้สองคนในระบบ
+      cy.request("POST", `${baseUrl}/api/normal-signup`, {
+        email: userA.email,
+        password: "123456",
+        name: userA.name,
+      }).then((res) => (userA.id = res.body.user.id));
+
+      cy.request("POST", `${baseUrl}/api/normal-signup`, {
+        email: userB.email,
+        password: "123456",
+        name: userB.name,
+      }).then((res) => (userB.id = res.body.user.id));
+    });
+
+    it("should send a friend request", () => {
+      cy.request("POST", `${baseUrl}/api/friends/request`, {
+        userId: userA.id,
+        friendId: userB.id,
+      }).then((res) => {
+        expect(res.status).to.eq(200);
+        expect(res.body.message).to.include("Friend request sent");
+      });
+    });
+
+    it("should get pending friend requests", () => {
+      cy.request(`${baseUrl}/api/friends/requests?userId=${userB.id}`).then(
+        (res) => {
+          expect(res.status).to.eq(200);
+          expect(res.body.requests[0].requestedBy).to.eq(userA.id);
+        }
+      );
+    });
+
+    it("should accept a friend request", () => {
+      cy.request("POST", `${baseUrl}/api/friends/accept`, {
+        userId: userB.id,
+        friendId: userA.id,
+      }).then((res) => {
+        expect(res.status).to.eq(200);
+        expect(res.body.message).to.include("accepted");
+      });
+    });
+
+    it("should get friend list for both users", () => {
+      cy.request(`${baseUrl}/api/friends/list?userId=${userA.id}`).then(
+        (res) => {
+          expect(res.status).to.eq(200);
+          expect(res.body.friends[0].id).to.eq(userB.id);
+        }
+      );
+    });
+
+    it("should remove friend", () => {
+      cy.request("DELETE", `${baseUrl}/api/friends/remove`, {
+        userId: userA.id,
+        friendId: userB.id,
+      }).then((res) => {
+        expect(res.status).to.eq(200);
+        expect(res.body.message).to.include("removed");
+      });
+    });
+
+    it("should fetch user profile by id", () => {
+      cy.request(`${baseUrl}/api/users/${userA.id}/profile`).then((res) => {
+        expect(res.status).to.eq(200);
+        expect(res.body.user.id).to.eq(userA.id);
+        expect(res.body.user.email).to.eq(userA.email);
+      });
+    });
+  });
 });
