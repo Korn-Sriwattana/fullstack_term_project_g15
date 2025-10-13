@@ -720,7 +720,6 @@ io.on("connection", (socket) => {
         await sendSystemMessage(io, roomId, `${user.name} joined the room`);
       }
     }
-
     const fullQueue = await dbClient
       .select({
         id: roomQueue.id,
