@@ -706,3 +706,70 @@
   color: #b91c1c;
   font-size: 14px;
 }
+
+/* icon play */
+.playIcon {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  background: url("/src/assets/images/play.png") no-repeat center center;
+  background-size: contain;
+  font-size: 0;
+  vertical-align: middle;
+  padding-right: 30px;
+
+}
+
+/* icon shuffle */
+.shuffleIcon {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  background: url("/src/assets/images/shuffle.png") no-repeat center center;
+  background-size: contain;
+  font-size: 0; 
+  vertical-align: middle;
+  padding-right: 40px;
+}
+
+
+/*sort*/
+.sortBar {
+  display: flex;
+  gap: 8px;
+  padding: 12px 0;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.sortLabel {
+  font-size: 13px;
+  color: #666;
+  margin-right: 8px;
+  line-height: 28px;
+}
+
+.sortBtn {
+  padding: 4px 12px;
+  font-size: 13px;
+  background: #fff;
+  color: #666;
+  border-radius: 16px;
+  cursor: pointer;
+  font-weight: 400;
+}
+
+.indexNum {
+  min-width: 30px;
+  text-align: center;
+  color: #666;
+  font-size: 14px;
+}
+
+.dateText {
+  font-size: 12px;
+  color: #888;
+  min-width: 100px;
+  text-align: left;
+}
