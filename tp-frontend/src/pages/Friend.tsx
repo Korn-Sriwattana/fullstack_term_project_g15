@@ -10,7 +10,7 @@ interface FriendRequest {
   requestedBy: string;
   status: string;
   createdAt: string;
-  requester?: { id: string; name: string; profilePic?: string };
+  requester: { id: string; name: string; profilePic?: string };
 }
 
 interface Friend {
@@ -59,8 +59,12 @@ export default function FriendsPage() {
     await fetch(`${API_URL}/api/friends/accept`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, friendId }),
+      body: JSON.stringify({
+        userId: user?.id,         
+        friendId, 
+      }),
     });
+
     fetchRequests();
     fetchFriends();
   };
@@ -177,33 +181,34 @@ export default function FriendsPage() {
           ) : (
             <div className={styles.cardsList}>
               {requests.map((req) => (
-                <div key={req.friendId} className={styles.card}>
-                  <div className={styles.profile}>
-                    <img
-                      src={req.requester?.profilePic || "/default-avatar.png"}
-                      alt={req.requester?.name}
-                      className={styles.avatar}
-                    />
-                    <span className={styles.userName}>
-                      {req.requester?.name || "Unknown"}
-                    </span>
-                  </div>
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => acceptRequest(req.requester?.id!)}
-                      className={styles.actionButton}
-                    >
-                      ✓
-                    </button>
-                    <button
-                      onClick={() => rejectRequest(req.requester?.id!)}
-                      className={styles.smallButton}
-                    >
-                      ✕
-                    </button>
-                  </div>
+              <div key={req.requester?.id} className={styles.card}>
+                <div className={styles.profile}>
+                  <img
+                    src={req.requester?.profilePic || "/default-avatar.png"}
+                    alt={req.requester?.name}
+                    className={styles.avatar}
+                  />
+                  <span className={styles.userName}>
+                    {req.requester?.name || "Unknown"}
+                  </span>
                 </div>
-              ))}
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => acceptRequest(req.requester?.id!)}
+                    className={styles.actionButton}
+                  >
+                    ✓
+                  </button>
+                  <button
+                    onClick={() => rejectRequest(req.requester?.id!)}
+                    className={styles.smallButton}
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            ))}
+
             </div>
           )}
         </section>

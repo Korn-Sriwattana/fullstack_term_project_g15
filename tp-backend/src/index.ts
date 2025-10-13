@@ -84,6 +84,7 @@ import {
   removeFriend,
   getFriendsList,
   searchUsers,
+  getFriendRequests,
 } from "./controllers/friendController.ts";
 import bcrypt from "bcrypt";
 
@@ -427,17 +428,7 @@ app.post(
 );
 
 // ----------------- Friend API -----------------
-app.get("/api/friends/requests", async (req, res) => {
-  const { userId } = req.query;
-  const rows = await dbClient
-    .select()
-    .from(friends)
-    .where(
-      and(eq(friends.friendId, userId as string), eq(friends.status, "pending"))
-    );
-  res.json({ requests: rows });
-});
-
+app.get("/api/friends/requests", getFriendRequests);
 app.post("/api/friends/request", sendFriendRequest);
 app.post("/api/friends/accept", acceptFriendRequest);
 app.delete("/api/friends/remove", removeFriend);

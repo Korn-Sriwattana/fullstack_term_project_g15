@@ -3,6 +3,39 @@ import { dbClient } from "../../db/client.js";
 import { friends, users } from "../../db/schema.js";
 import { or, and, eq, ilike, not } from "drizzle-orm";
 
+/* 📥 ดึงคำขอเพื่อนที่ส่งมาหา user */
+export const getFriendRequests: RequestHandler = async (req, res) => {
+  const { userId } = req.query;
+
+  if (!userId || typeof userId !== "string") {
+    res.status(400).json({ error: "Missing userId" });
+    return;
+  }
+
+  // ดึงคำขอที่ยัง pending และ friendId คือ user นี้
+  const requests = await dbClient
+    .select({
+      userId: friends.userId,
+      friendId: friends.friendId,
+      requestedBy: friends.requestedBy,
+      status: friends.status,
+      createdAt: friends.createdAt,
+      requester: {
+        id: users.id,
+        name: users.name,
+        profilePic: users.profilePic,
+      },
+    })
+    .from(friends)
+    .leftJoin(users, eq(users.id, friends.requestedBy))
+    .where(
+      and(eq(friends.friendId, userId), eq(friends.status, "pending"))
+    );
+
+  res.json({ requests });
+};
+
+
 /* ส่งคำขอเป็นเพื่อน */
 export const sendFriendRequest: RequestHandler = async (req, res) => {
   const { userId, friendId } = req.body;
@@ -41,6 +74,30 @@ export const sendFriendRequest: RequestHandler = async (req, res) => {
 export const acceptFriendRequest: RequestHandler = async (req, res) => {
   const { userId, friendId } = req.body;
 
+  if (!userId || !friendId) {
+    res.status(400).json({ error: "Missing userId or friendId" });
+    return;
+  }
+
+  // ✅ ตรวจว่ามีคำขอ pending จริงไหม
+  const [existing] = await dbClient
+    .select()
+    .from(friends)
+    .where(
+      and(
+        eq(friends.userId, friendId),
+        eq(friends.friendId, userId),
+        eq(friends.status, "pending")
+      )
+    )
+    .limit(1);
+
+  if (!existing) {
+    res.status(404).json({ error: "Friend request not found" });
+    return;
+  }
+
+  // ✅ อัปเดตสถานะเป็น accepted
   await dbClient
     .update(friends)
     .set({ status: "accepted" })
@@ -48,6 +105,7 @@ export const acceptFriendRequest: RequestHandler = async (req, res) => {
 
   res.json({ message: "Friend request accepted." });
 };
+
 
 /* ยกเลิกคำขอ / ลบเพื่อน */
 export const removeFriend: RequestHandler = async (req, res) => {
@@ -68,21 +126,36 @@ export const removeFriend: RequestHandler = async (req, res) => {
 /* ดึงรายชื่อเพื่อน */
 export const getFriendsList: RequestHandler = async (req, res) => {
   const { userId } = req.query;
+  if (!userId || typeof userId !== "string") {
+    res.status(400).json({ error: "Missing userId" });
+    return;
+  }
 
+  // ดึงเพื่อนทุกคน (ฝั่ง accepted)
   const rows = await dbClient
-    .select()
+    .select({
+      id: users.id,
+      name: users.name,
+      profilePic: users.profilePic,
+      userId: friends.userId,
+      friendId: friends.friendId,
+    })
     .from(friends)
+    .innerJoin(
+      users,
+      or(eq(users.id, friends.userId), eq(users.id, friends.friendId))
+    )
     .where(
       and(
-        or(
-          eq(friends.userId, userId as string),
-          eq(friends.friendId, userId as string)
-        ),
+        or(eq(friends.userId, userId), eq(friends.friendId, userId)),
         eq(friends.status, "accepted")
       )
     );
 
-  res.json({ friends: rows });
+  // ✅ กรองตัวเองออก + return เฉพาะข้อมูล user ของเพื่อน
+  const filtered = rows.filter((r) => r.id !== userId);
+
+  res.json({ friends: filtered });
 };
 
 /* 🔍 ค้นหาผู้ใช้จาก prefix ของ email (เช่น soy100) */
