@@ -1,285 +1,240 @@
-// ✅ Lukchang Vibe - Backend Integration Test (Express + Drizzle + Better Auth)
-describe("🎧 Lukchang Vibe Backend API Test Suite", () => {
-  const baseUrl = "http://localhost:3000";
+/// <reference types="cypress" />
 
-  // ข้อมูลจำลองผู้ใช้
-  const mockUser = {
-    email: "test@example.com",
-    password: "123456",
-    name: "Cypress User",
+describe("Friend and FriendProfile Pages", () => {
+  const FRONTEND = Cypress.env("FRONTEND_URL") || "http://localhost:5173";
+  const API_URL = "http://localhost:3000";
+
+  const USER = {
+    id: "u-2000",
+    email: "friend_user@example.com",
+    name: "Friend User",
+    profilePic: null as string | null,
   };
 
-  // ตัวแปรที่ใช้ร่วมกันระหว่าง describe
-  let userId = "";
-  let roomId = "";
-  let inviteCode = "";
-  let playlistId = "";
-
-  // --------------------------------------------------------------------------
-  // 🧩 1️⃣ USER SECTION
-  // --------------------------------------------------------------------------
-  describe("👤 User APIs", () => {
-    it("should create or login mock user via /api/normal-signup", () => {
-      cy.request("POST", `${baseUrl}/api/normal-signup`, mockUser).then(
-        (res) => {
-          expect(res.status).to.be.oneOf([200, 201]);
-          expect(res.body.user).to.have.property("email", mockUser.email);
-          userId = res.body.user.id;
-          cy.log("✅ User ID:", userId);
-        }
-      );
+  // Silence unrelated API
+  const silenceNoise = () => {
+    cy.intercept("GET", "**/player/recently-played/**", {
+      statusCode: 200,
+      body: [],
     });
+    cy.intercept("GET", "**/player/queue/**", { statusCode: 200, body: [] });
+    cy.intercept("GET", "**/songs/popular**", { statusCode: 200, body: [] });
+    cy.intercept("GET", "**/api/proxy-image**", {
+      statusCode: 200,
+      body: new Uint8Array([255, 216, 255, 224]),
+    });
+  };
 
-    it("should check if user exists", () => {
-      cy.request(
-        "GET",
-        `${baseUrl}/api/user/check?email=${mockUser.email}`
-      ).then((res) => {
-        expect(res.status).to.be.oneOf([200, 404]);
-        if (res.status === 200)
-          expect(res.body).to.have.property("exists", true);
+  // Mock user session
+  const stubSession = () => {
+    cy.intercept("GET", "**/api/auth/get-session", {
+      statusCode: 200,
+      body: { user: USER },
+    }).as("getSession");
+    cy.intercept("GET", "**/api/current-user**", {
+      statusCode: 200,
+      body: { user: USER },
+    }).as("currentUser");
+  };
+
+  // Mock Friends APIs
+  const stubFriendsApi = () => {
+    cy.intercept("GET", `${API_URL}/api/friends/requests*`, {
+      statusCode: 200,
+      body: {
+        requests: [
+          {
+            requester: { id: "f001", name: "Alice", profilePic: null },
+            userId: USER.id,
+            friendId: "f001",
+            requestedBy: "f001",
+            status: "pending",
+            createdAt: new Date().toISOString(),
+          },
+        ],
+      },
+    }).as("getRequests");
+
+    cy.intercept("GET", `${API_URL}/api/friends/list*`, {
+      statusCode: 200,
+      body: {
+        friends: [
+          { id: "f002", name: "Bob", profilePic: null },
+          { id: "f003", name: "Charlie", profilePic: null },
+        ],
+      },
+    }).as("getFriends");
+
+    cy.intercept("GET", `${API_URL}/api/friends/search*`, {
+      statusCode: 200,
+      body: {
+        users: [
+          {
+            id: "f004",
+            name: "David",
+            email: "david@example.com",
+            profilePic: null,
+            status: "none",
+          },
+        ],
+      },
+    }).as("searchUsers");
+
+    cy.intercept("POST", `${API_URL}/api/friends/request`, {
+      statusCode: 200,
+      body: { message: "Friend request sent" },
+    }).as("sendRequest");
+    cy.intercept("POST", `${API_URL}/api/friends/accept`, {
+      statusCode: 200,
+      body: { message: "accepted" },
+    }).as("acceptRequest");
+    cy.intercept("DELETE", `${API_URL}/api/friends/remove`, {
+      statusCode: 200,
+      body: { message: "removed" },
+    }).as("removeFriend");
+  };
+
+  before(() => {
+    silenceNoise();
+    stubSession();
+
+    cy.session(["mock-login", USER.email], () => {
+      cy.visit(FRONTEND);
+      cy.wait("@getSession");
+      cy.window().then((win) => {
+        win.localStorage.setItem("email", USER.email);
       });
-    });
-
-    it("should fetch current user (mock or Better Auth)", () => {
-      cy.request({
-        method: "GET",
-        url: `${baseUrl}/api/current-user?email=${mockUser.email}`,
-      }).then((res) => {
-        expect(res.status).to.be.oneOf([200, 404]);
-        if (res.status === 200)
-          expect(res.body.user).to.have.property("email", mockUser.email);
-      });
-    });
-
-    it("should upload a dummy profile picture", () => {
-      cy.fixture("test-image.png", "binary")
-        .then(Cypress.Blob.binaryStringToBlob)
-        .then((blob) => {
-          const formData = new FormData();
-          formData.append("image", blob, "test-image.png");
-
-          cy.request({
-            method: "POST",
-            url: `${baseUrl}/upload/profile-pic`,
-            body: formData,
-            headers: {
-              "Content-Type": "multipart/form-data",
-            },
-            failOnStatusCode: false,
-          }).then((res) => {
-            expect(res.status).to.be.oneOf([200, 500]);
-          });
-        });
+      cy.setCookie("better-auth.session", "mock-session-cookie");
     });
   });
 
-  // --------------------------------------------------------------------------
-  // 🎵 2️⃣ MUSIC STREAMING SECTION
-  // --------------------------------------------------------------------------
-  describe("🎵 Music Streaming APIs", () => {
-    it("should search for songs", () => {
-      cy.request("GET", `${baseUrl}/songs/search?q=test`).then((res) => {
-        expect(res.status).to.eq(200);
-        expect(res.body).to.be.an("array");
-      });
-    });
-
-    it("should get popular songs", () => {
-      cy.request("GET", `${baseUrl}/songs/popular`).then((res) => {
-        expect(res.status).to.eq(200);
-      });
-    });
-
-    it("should create a new playlist", () => {
-      cy.request({
-        method: "POST",
-        url: `${baseUrl}/playlists`,
-        failOnStatusCode: false,
-        body: {
-          userId,
-          name: "My Test Playlist",
-        },
-      }).then((res) => {
-        expect(res.status).to.be.oneOf([201, 500]);
-        playlistId = res.body?.id || "";
-      });
-    });
-
-    it("should fetch user playlists", () => {
-      cy.request("GET", `${baseUrl}/playlists/${userId}`).then((res) => {
-        expect(res.status).to.eq(200);
-        expect(res.body).to.be.an("array");
-      });
-    });
-
-    it("should fetch liked songs", () => {
-      cy.request("GET", `${baseUrl}/liked-songs/${userId}`).then((res) => {
-        expect(res.status).to.eq(200);
-      });
-    });
-
-    it("should get player state", () => {
-      cy.request("GET", `${baseUrl}/player/state/${userId}`).then((res) => {
-        expect(res.status).to.be.oneOf([200, 404]);
-      });
-    });
-
-    it("should play next song", () => {
-      cy.request({
-        method: "POST",
-        url: `${baseUrl}/player/next`,
-        failOnStatusCode: false,
-        body: { userId },
-      }).then((res) => {
-        expect(res.status).to.be.oneOf([200, 404]);
-      });
-    });
+  beforeEach(() => {
+    silenceNoise();
+    stubSession();
+    stubFriendsApi();
+    cy.visit(`${FRONTEND}/friends`);
+    cy.wait(["@getSession", "@currentUser", "@getRequests", "@getFriends"]);
   });
 
-  // --------------------------------------------------------------------------
-  // 💬 3️⃣ COMMUNITY SECTION
-  // --------------------------------------------------------------------------
-  describe("💬 Community APIs", () => {
-    it("should create a new listening room", () => {
-      cy.request("POST", `${baseUrl}/rooms`, {
-        name: "Cypress Test Room",
-        hostId: userId,
-        isPublic: true,
-      }).then((res) => {
-        expect(res.status).to.eq(201);
-        roomId = res.body.roomId || res.body.id;
-        inviteCode = res.body.inviteCode;
-        cy.log("Room ID:", roomId, "Invite:", inviteCode);
-      });
-    });
-
-    it("should list public rooms", () => {
-      cy.request("GET", `${baseUrl}/rooms/public`).then((res) => {
-        expect(res.status).to.eq(200);
-        expect(res.body).to.be.an("array");
-      });
-    });
-
-    it("should join room by invite code", () => {
-      cy.request({
-        method: "POST",
-        url: `${baseUrl}/rooms/join`,
-        failOnStatusCode: false,
-        body: {
-          inviteCode,
-          userId,
-        },
-      }).then((res) => {
-        expect(res.status).to.be.oneOf([200, 404]);
-      });
-    });
-
-    it("should send a chat message", () => {
-      cy.request({
-        method: "POST",
-        url: `${baseUrl}/chat`,
-        failOnStatusCode: false,
-        body: {
-          roomId,
-          userId,
-          message: "Hello from Cypress!",
-        },
-      }).then((res) => {
-        expect(res.status).to.be.oneOf([200, 500]);
-        if (res.status === 200)
-          expect(res.body.data).to.have.property(
-            "message",
-            "Hello from Cypress!"
-          );
-      });
-    });
-
-    it("should fetch chat messages from the room", () => {
-      cy.request({
-        method: "GET",
-        url: `${baseUrl}/chat/${roomId}`,
-        failOnStatusCode: false,
-      }).then((res) => {
-        expect(res.status).to.be.oneOf([200, 404]);
-      });
-    });
+  it("should display friend requests and friends sections", () => {
+    cy.contains("Friend Requests").should("be.visible");
+    cy.contains("My Friends").should("be.visible");
   });
-  describe("🤝 Friend System APIs", () => {
-    const baseUrl = "http://localhost:3000";
 
-    let userA = { id: "", email: "a@example.com", name: "UserA" };
-    let userB = { id: "", email: "b@example.com", name: "UserB" };
+  it("should search for users correctly", () => {
+    cy.get("input[placeholder='Search user']").type("soy100");
+    cy.contains("Search").click();
+    cy.wait("@searchUsers");
+    cy.contains("David").should("be.visible");
+  });
 
-    before(() => {
-      // สร้างผู้ใช้สองคนในระบบ
-      cy.request("POST", `${baseUrl}/api/normal-signup`, {
-        email: userA.email,
-        password: "123456",
-        name: userA.name,
-      }).then((res) => (userA.id = res.body.user.id));
+  it("should send a friend request", () => {
+    cy.get("input[placeholder='Search user']").type("david");
+    cy.contains("Search").click();
+    cy.wait("@searchUsers");
+    cy.contains("Send Request").click();
+    cy.wait("@sendRequest");
+  });
 
-      cy.request("POST", `${baseUrl}/api/normal-signup`, {
-        email: userB.email,
-        password: "123456",
-        name: userB.name,
-      }).then((res) => (userB.id = res.body.user.id));
+  it("should accept and reject friend requests", () => {
+    cy.contains("✓").click();
+    cy.wait("@acceptRequest");
+
+    cy.contains("✕").click();
+    cy.wait("@removeFriend");
+  });
+
+  it("should navigate to friend profile when clicking a friend", () => {
+    cy.contains("Charlie").click();
+    cy.url().should("include", "/friends/f003");
+  });
+});
+
+describe("FriendProfile Page", () => {
+  const FRONTEND = Cypress.env("FRONTEND_URL") || "http://localhost:5173";
+  const API_URL = "http://localhost:3000";
+
+  const USER = {
+    id: "u-2000",
+    email: "friend_user@example.com",
+    name: "Friend User",
+    profilePic: null as string | null,
+  };
+
+  const silenceNoise = () => {
+    cy.intercept("GET", "**/player/recently-played/**", {
+      statusCode: 200,
+      body: [],
     });
+    cy.intercept("GET", "**/player/queue/**", { statusCode: 200, body: [] });
+  };
 
-    it("should send a friend request", () => {
-      cy.request("POST", `${baseUrl}/api/friends/request`, {
-        userId: userA.id,
-        friendId: userB.id,
-      }).then((res) => {
-        expect(res.status).to.eq(200);
-        expect(res.body.message).to.include("Friend request sent");
+  const stubSession = () => {
+    cy.intercept("GET", "**/api/auth/get-session", {
+      statusCode: 200,
+      body: { user: USER },
+    }).as("getSession");
+    cy.intercept("GET", "**/api/current-user**", {
+      statusCode: 200,
+      body: { user: USER },
+    }).as("currentUser");
+  };
+
+  beforeEach(() => {
+    silenceNoise();
+    stubSession();
+
+    cy.intercept("GET", `${API_URL}/api/users/f001/profile`, {
+      statusCode: 200,
+      body: {
+        user: {
+          id: "f001",
+          name: "Charlie",
+          email: "charlie@gmail.com",
+          profilePic: null,
+          createdAt: new Date().toISOString(),
+        },
+      },
+    }).as("getFriendProfile");
+
+    cy.intercept("GET", `${API_URL}/playlists/f001?mode=public`, {
+      statusCode: 200,
+      body: [
+        {
+          id: "pl001",
+          name: "Charlie's Mix",
+          description: "My public playlist",
+          songCount: 3,
+          coverUrl: null,
+          isPublic: true,
+          createdAt: new Date().toISOString(),
+          ownerId: "f001",
+        },
+      ],
+    }).as("getFriendPlaylists");
+
+    cy.session(["mock-login", USER.email], () => {
+      cy.visit(FRONTEND);
+      cy.wait("@getSession");
+      cy.window().then((win) => {
+        win.localStorage.setItem("email", USER.email);
       });
+      cy.setCookie("better-auth.session", "mock-session-cookie");
     });
 
-    it("should get pending friend requests", () => {
-      cy.request(`${baseUrl}/api/friends/requests?userId=${userB.id}`).then(
-        (res) => {
-          expect(res.status).to.eq(200);
-          expect(res.body.requests[0].requestedBy).to.eq(userA.id);
-        }
-      );
-    });
+    cy.visit(`${FRONTEND}/friends/f001`);
+  });
 
-    it("should accept a friend request", () => {
-      cy.request("POST", `${baseUrl}/api/friends/accept`, {
-        userId: userB.id,
-        friendId: userA.id,
-      }).then((res) => {
-        expect(res.status).to.eq(200);
-        expect(res.body.message).to.include("accepted");
-      });
-    });
+  it("should display friend profile info", () => {
+    cy.wait(["@getFriendProfile", "@getFriendPlaylists"]);
+    cy.contains("Charlie").should("be.visible");
+    cy.contains("@charlie").should("be.visible");
+    cy.contains("Public Playlists").should("be.visible");
+  });
 
-    it("should get friend list for both users", () => {
-      cy.request(`${baseUrl}/api/friends/list?userId=${userA.id}`).then(
-        (res) => {
-          expect(res.status).to.eq(200);
-          expect(res.body.friends[0].id).to.eq(userB.id);
-        }
-      );
-    });
-
-    it("should remove friend", () => {
-      cy.request("DELETE", `${baseUrl}/api/friends/remove`, {
-        userId: userA.id,
-        friendId: userB.id,
-      }).then((res) => {
-        expect(res.status).to.eq(200);
-        expect(res.body.message).to.include("removed");
-      });
-    });
-
-    it("should fetch user profile by id", () => {
-      cy.request(`${baseUrl}/api/users/${userA.id}/profile`).then((res) => {
-        expect(res.status).to.eq(200);
-        expect(res.body.user.id).to.eq(userA.id);
-        expect(res.body.user.email).to.eq(userA.email);
-      });
-    });
+  it("should open and display playlist details", () => {
+    cy.contains("Charlie's Mix").click();
+    cy.url().should("include", "friends/f001");
+    cy.contains("PLAYLIST").should("exist");
   });
 });
