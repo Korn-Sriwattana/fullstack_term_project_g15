@@ -1,6 +1,6 @@
 import { dbClient } from "@db/client.js";
 import { roomQueue, songs, listeningRooms, songStats } from "@db/schema.js";
-import { eq, asc, desc, sql } from "drizzle-orm";
+import { eq, asc, desc, sql, and } from "drizzle-orm";
 
 export async function fetchYoutubeMetadata(videoId: string) {
   const apiKey = process.env.YOUTUBE_API_KEY;
@@ -124,7 +124,7 @@ export async function addToQueue(io: any, { roomId, songId, userId }: any) {
 export async function removeFromQueue(io: any, { roomId, queueId }: any) {
   console.log("🗑️ removeFromQueue called:", { roomId, queueId });
 
-  // เช็ควา queueId ยังมีอยู่จริงหรือไม่
+  // เช็คว่า queueId ยังมีอยู่จริงหรือไม่
   const [queueItem] = await dbClient
     .select({ id: roomQueue.id, songId: roomQueue.songId })
     .from(roomQueue)
@@ -135,13 +135,37 @@ export async function removeFromQueue(io: any, { roomId, queueId }: any) {
     return;
   }
 
-  // เช็ควเพลงที่จะลบคือเพลงที่กำลังเล่นอยู่หรือไม่
+  // เช็คว่าเพลงที่จะลบคือเพลงที่กำลังเล่นอยู่หรือไม่
   const [listening] = await dbClient
     .select({ currentSongId: listeningRooms.currentSongId })
     .from(listeningRooms)
     .where(eq(listeningRooms.id, roomId));
 
-  const isCurrentlyPlaying = queueItem.songId === listening?.currentSongId;
+  // ดึง queue item แรกที่มี songId ตรงกับ currentSongId
+  const [currentPlayingItem] = await dbClient
+    .select({ id: roomQueue.id })
+    .from(roomQueue)
+    .where(
+      and(
+        eq(roomQueue.roomId, roomId),
+        eq(roomQueue.songId, listening?.currentSongId || "")
+      )
+    )
+    .orderBy(asc(roomQueue.queueIndex))
+    .limit(1);
+
+  // ตอนนี้เพลงที่เล่นอยู่ยังอยู่ในคิว เราเทียบ queueId ได้แล้ว
+  const isCurrentlyPlaying = currentPlayingItem?.id === queueId;
+
+  console.log("🔍 Debug info:", {
+    queueIdToRemove: queueId,
+    currentPlayingQueueId: currentPlayingItem?.id,
+    currentSongId: listening?.currentSongId,
+    queueItemSongId: queueItem.songId,
+    isCurrentlyPlaying
+  });
+
+  console.log("🎵 Is currently playing?", isCurrentlyPlaying);
 
   console.log("🎵 Is currently playing?", isCurrentlyPlaying);
 
@@ -190,7 +214,7 @@ export async function removeFromQueue(io: any, { roomId, queueId }: any) {
 
   // 🔥 ถ้าลบเพลงที่กำลังเล่น → ให้ skip ไปเพลงถัดไปโดยไม่ลบอะไรเพิ่ม
   if (isCurrentlyPlaying) {
-    console.log("⏭️ Current song removed, playing next without deleting from queue");
+    console.log("⭐ Current song removed, playing next without deleting from queue");
     
     // ดึงเพลงถัดไป (ถ้ามี)
     const [nextQueueItem] = await dbClient
@@ -251,7 +275,7 @@ export async function playNextSong(io: any, roomId: string) {
   processingRooms.set(roomId, true);
 
   try {
-    console.log("⏭️ playNextSong called for room:", roomId);
+    console.log("⭐ playNextSong called for room:", roomId);
 
     const [nextQueueItem] = await dbClient
       .select({
@@ -285,7 +309,7 @@ export async function playNextSong(io: any, roomId: string) {
       // 🆕 อัปเดต song_stats เมื่อเริ่มเล่นเพลง
       await updateSongStats(nextQueueItem.songId);
 
-      // ส่ง now-playing ก่อนลบ เพื่อให้ client มี queueId
+      // ส่ง now-playing พร้อม queueId เพื่อให้ frontend รู้ว่าเพลงไหนกำลังเล่น
       io.to(roomId).emit("now-playing", {
         roomId,
         song: {
@@ -295,26 +319,9 @@ export async function playNextSong(io: any, roomId: string) {
         startedAt: now,
       });
 
-      // ลบเพลงออกจาก queue
-      await dbClient.delete(roomQueue).where(eq(roomQueue.id, nextQueueItem.id));
-
-      // Reindex เพลงที่เหลือ
-      const remainingItems = await dbClient
-        .select()
-        .from(roomQueue)
-        .where(eq(roomQueue.roomId, roomId))
-        .orderBy(asc(roomQueue.queueIndex));
-
-      console.log("📋 Remaining queue items:", remainingItems.length);
-
-      await dbClient.transaction(async (tx: any) => {
-        for (let i = 0; i < remainingItems.length; i++) {
-          await tx
-            .update(roomQueue)
-            .set({ queueIndex: i })
-            .where(eq(roomQueue.id, remainingItems[i].id));
-        }
-      });
+      // ⚠️ อย่าลบเพลงที่กำลังเล่นออกจาก queue!
+      // แทนที่จะลบ เราจะเก็บไว้และแสดงใน UI ว่ากำลังเล่นอยู่
+      // เมื่อเพลงจบ (song-ended) หรือ skip ถึงจะลบ
 
     } else {
       console.log("🛑 No more songs in queue");
@@ -326,7 +333,7 @@ export async function playNextSong(io: any, roomId: string) {
       io.to(roomId).emit("now-playing", { roomId, song: null, startedAt: null });
     }
 
-    // ส่ง queue อัพเดทกลับไป
+    // ส่ง queue อัพเดทกลับไป (ยังรวมเพลงที่กำลังเล่นด้วย)
     const fullQueue = await dbClient
       .select({
         id: roomQueue.id,

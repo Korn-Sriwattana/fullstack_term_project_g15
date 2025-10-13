@@ -39,7 +39,6 @@ const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
     checkSession();
   }, [setUser]);
 
-  const [userName, setUserName] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Song[]>([]);
   const [youtubeUrl, setYoutubeUrl] = useState("");
@@ -97,45 +96,6 @@ const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
   useEffect(() => {
     loadPopularSongs();
   }, []);
-
-  const handleCreateUser = async () => {
-    if (!userName.trim()) {
-      alert("Please enter a name");
-      return;
-    }
-
-    try {
-      const res = await fetch(`${API_URL}/users`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: userName,
-          email: `${Date.now()}@test.com`,
-          password: "1234",
-        }),
-      });
-
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
-
-      const data = await res.json();
-
-      setUserName(data.name);
-
-      console.log("User created:", data);
-      setUser({
-        id: data.id,
-        name: data.name,
-        email: data.email,
-      });
-
-      alert(`User created: ${data.name}`);
-    } catch (err) {
-      console.error("Create user failed:", err);
-      alert("Failed to create user, check console for details.");
-    }
-  };
 
   function extractVideoId(url: string): string | null {
     try {
@@ -399,24 +359,6 @@ const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
           </section>
         )}
       </div>
-
-      {/* Create User */}
-      <section className={styles.section}>
-        <h3>Create User (Test)</h3>
-        <input
-          type="text"
-          placeholder="Enter your name"
-          value={userName}
-          onChange={(e) => setUserName(e.target.value)}
-          className={styles.inputSmall}
-        />
-        <button onClick={handleCreateUser} className={styles.buttonPrimary}>
-          Create User
-        </button>
-        <p className={styles.userInfo}>
-          Current User: {user?.name || "Not created"}
-        </p>
-      </section>
 
       {/* Popular Songs */}
       {popularSongs.length > 0 && searchQuery.trim() === "" && (

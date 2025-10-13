@@ -68,9 +68,10 @@ import {
   checkLikedSong,
   playLikedSongs,
 } from "./controllers/likedSongsControllers.js";
-import { upload, uploadPlaylistCover } from "./controllers/imageControllers.js";
+import { upload, uploadPlaylistCover, uploadProfile, uploadProfilePic } from "./controllers/imageControllers.js";
 import { toNodeHandler, fromNodeHeaders } from "better-auth/node";
 import { auth } from "./lib/auth.ts";
+import { randomUUID } from "crypto";
 
 const debug = Debug("pf-backend");
 
@@ -131,7 +132,7 @@ app.get("/api/profile/me", async (req, res, next) => {
 
     if (!session?.user) {
       res.status(401).json({ error: "Unauthenticated" });
-      return; // แค่ return เปล่าๆ
+      return;
     }
 
     const [user] = await dbClient
@@ -144,7 +145,7 @@ app.get("/api/profile/me", async (req, res, next) => {
       return;
     }
 
-    res.json(user); // ไม่ต้อง return ตัว res
+    res.json(user);
   } catch (err) {
     next(err);
   }
@@ -160,12 +161,12 @@ app.put(
 
       if (!session?.user) {
         res.status(401).json({ error: "Unauthenticated" });
-        return; // ✅ ไม่ return res.json()
+        return;
       }
 
       const { name, profilePic } = req.body;
 
-      // ✅ อัปเดตเฉพาะ name / profilePic ในตาราง users
+      // อัปเดตเฉพาะ name / profilePic ในตาราง users
       await dbClient
         .update(users)
         .set({
@@ -174,7 +175,7 @@ app.put(
         })
         .where(eq(users.id, session.user.id));
 
-      // ✅ sync กลับไปยัง Better Auth (เฉพาะ name, image)
+      // sync กลับไปยัง Better Auth (เฉพาะ name, image)
       await auth.api.updateUser({
         headers: fromNodeHeaders(req.headers),
         body: {
@@ -183,13 +184,34 @@ app.put(
         },
       });
 
-      res.json({ success: true, name, profilePic }); // ✅ ไม่ต้อง return
+      res.json({ success: true, name, profilePic });
     } catch (err) {
       next(err);
     }
   }
 );
 
+app.get("/api/proxy-image", async (req, res, next) => {
+  try {
+    const { url } = req.query;
+    if (!url || typeof url !== "string") {
+      res.status(400).json({ error: "Missing URL" });
+      return;
+    }
+
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("Failed to fetch image");
+
+    const buffer = await response.arrayBuffer();
+    const contentType = response.headers.get("content-type") || "image/jpeg";
+    
+    res.setHeader("Content-Type", contentType);
+    res.setHeader("Cache-Control", "public, max-age=86400");
+    res.send(Buffer.from(buffer));
+  } catch (err) {
+    next(err);
+  }
+});
 // ----------------- Personal Player API -----------------
 
 // Play single song
@@ -212,7 +234,6 @@ app.post("/player/shuffle", toggleShuffle);
 app.post("/player/repeat", setRepeatMode);
 app.get("/player/recently-played/:userId", getRecentlyPlayed);
 
-// ดึงเพลงยอดนิยม (เรียงตาม playCount)
 // Get popular songs (by play count)
 app.get(
   "/songs/popular",
@@ -251,6 +272,7 @@ app.get(
 
 // ----------------- Image Upload API -----------------
 app.post("/upload/playlist-cover", upload.single("cover"), uploadPlaylistCover);
+app.post("/upload/profile-pic", uploadProfile.single("image"), uploadProfilePic);
 
 // ----------------- Playlist API -----------------
 
@@ -322,7 +344,6 @@ app.get(
           createdAt: roomMessages.createdAt,
           roomId: roomMessages.roomId,
           userId: roomMessages.userId,
-          // แก้ไขส่วนนี้ให้เป็น object
           user: {
             id: users.id,
             name: users.name,
@@ -334,14 +355,12 @@ app.get(
         .where(eq(roomMessages.roomId, roomId))
         .orderBy(asc(roomMessages.createdAt));
 
-      // แปลง results ให้ตรงกับ interface
       const formatted = results.map((row) => ({
         id: row.id,
         message: row.message,
         createdAt: row.createdAt,
         roomId: row.roomId,
         userId: row.userId,
-        // เช็คว่า row.user และ row.user.id มีค่าหรือไม่
         user:
           row.user && row.user.id
             ? {
@@ -367,7 +386,6 @@ app.post("/chat", async (req, res, next) => {
     if (!message || !roomId || !userId)
       throw new Error("Missing required fields");
 
-    // roomId, userId ต้องเป็น UUID เช่น "7a7e8d34-..."
     const result = await dbClient
       .insert(roomMessages)
       .values({ roomId, userId, message })
@@ -499,13 +517,11 @@ app.get("/rooms/:roomId/queue", async (req, res, next) => {
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
-  // เก็บ userId ใน socket เมื่อ connect
   socket.on("set-user", (userId: string) => {
     (socket as any).userId = userId;
     console.log(`Socket ${socket.id} set userId: ${userId}`);
   });
 
-  // Join room
   socket.on("join-room", async (roomId) => {
     socket.join(roomId);
 
@@ -513,7 +529,7 @@ io.on("connection", (socket) => {
 
     io.emit("room-count-updated", { roomId, count: newCount });
 
-    const socketUserId = (socket as any).userId; // เก็บ userId ใน socket
+    const socketUserId = (socket as any).userId;
     if (socketUserId) {
       const [user] = await dbClient.query.users.findMany({
         where: eq(users.id, socketUserId),
@@ -524,7 +540,7 @@ io.on("connection", (socket) => {
         await sendSystemMessage(io, roomId, `${user.name} joined the room`);
       }
     }
-    // fetch queue และ now-playing ล่าสุด
+
     const fullQueue = await dbClient
       .select({
         id: roomQueue.id,
@@ -569,7 +585,6 @@ io.on("connection", (socket) => {
       currentSong = song;
     }
 
-    // ส่ง queue และ now-playing ให้ client
     socket.emit("queue-sync", { queue: fullQueue.map(sanitizeQueueItem) });
     if (currentSong && listening?.currentStartedAt) {
       socket.emit("now-playing", {
@@ -586,19 +601,19 @@ io.on("connection", (socket) => {
         hostId: listening?.hostId,
       });
     }
+
     console.log(
       `User ${socket.id} joined room ${roomId} (${newCount} members)`
     );
+    await broadcastPublicRooms(io);
   });
 
-  // Chat
   socket.on("chat-message", async ({ roomId, userId, message }) => {
     const [msg] = await dbClient
       .insert(roomMessages)
       .values({ roomId, userId, message })
       .returning();
 
-    // ดึงข้อมูล user
     const [user] = await dbClient.query.users.findMany({
       where: eq(users.id, userId),
       limit: 1,
@@ -623,7 +638,6 @@ io.on("connection", (socket) => {
   socket.on("queue-add", async (payload) => {
     await addToQueue(io, payload);
 
-    // หาชื่อ user และชื่อเพลง
     const [user] = await dbClient.query.users.findMany({
       where: eq(users.id, payload.userId),
       limit: 1,
@@ -645,10 +659,10 @@ io.on("connection", (socket) => {
   });
 
   socket.on("play-song", (payload) => playSong(io, payload));
+  
   socket.on("queue-remove", async (payload) => {
     console.log("🔴 queue-remove event received from", socket.id, payload);
 
-    // หาข้อมูลก่อนลบ
     const [queueItem] = await dbClient
       .select({
         song: {
@@ -668,7 +682,6 @@ io.on("connection", (socket) => {
 
     await removeFromQueue(io, payload);
 
-    // ส่ง system message
     if (user && queueItem?.song) {
       await sendSystemMessage(
         io,
@@ -678,18 +691,59 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("song-ended", (payload) => {
+  socket.on("song-ended", async (payload) => {
     console.log("⏹️ song-ended event received from", socket.id);
     const roomId = typeof payload === "string" ? payload : payload?.roomId;
     if (roomId) {
-      playNextSong(io, roomId);
+      // ลบเพลงที่เล่นจบแล้วออกจาก queue ก่อน
+      const [listening] = await dbClient
+        .select({ currentSongId: listeningRooms.currentSongId })
+        .from(listeningRooms)
+        .where(eq(listeningRooms.id, roomId));
+      
+      if (listening?.currentSongId) {
+        const [currentItem] = await dbClient
+          .select({ id: roomQueue.id })
+          .from(roomQueue)
+          .where(
+            and(
+              eq(roomQueue.roomId, roomId),
+              eq(roomQueue.songId, listening.currentSongId)
+            )
+          )
+          .orderBy(asc(roomQueue.queueIndex))
+          .limit(1);
+        
+        if (currentItem) {
+          console.log("🗑️ Removing finished song from queue:", currentItem.id);
+          await dbClient.delete(roomQueue).where(eq(roomQueue.id, currentItem.id));
+          
+          // Reindex queue
+          const remainingItems = await dbClient
+            .select()
+            .from(roomQueue)
+            .where(eq(roomQueue.roomId, roomId))
+            .orderBy(asc(roomQueue.queueIndex));
+
+          await dbClient.transaction(async (tx: any) => {
+            for (let i = 0; i < remainingItems.length; i++) {
+              await tx
+                .update(roomQueue)
+                .set({ queueIndex: i })
+                .where(eq(roomQueue.id, remainingItems[i].id));
+            }
+          });
+        }
+      }
+      
+      // จากนั้นค่อยเล่นเพลงถัดไป
+      await playNextSong(io, roomId);
     }
   });
 
   socket.on("skip-song", async (payload) => {
     console.log("⏭️ skip-song event received from", socket.id, payload);
 
-    // 🆕 หาชื่อเพลงที่กำลังเล่น
     const [listening] = await dbClient
       .select({
         currentSongId: listeningRooms.currentSongId,
@@ -705,6 +759,40 @@ io.on("connection", (socket) => {
         .where(eq(songs.id, listening.currentSongId))
         .limit(1);
       if (song) songTitle = `"${song.title}"`;
+      
+      // ลบเพลงที่ skip ออกจาก queue ก่อน
+      const [currentItem] = await dbClient
+        .select({ id: roomQueue.id })
+        .from(roomQueue)
+        .where(
+          and(
+            eq(roomQueue.roomId, payload.roomId),
+            eq(roomQueue.songId, listening.currentSongId)
+          )
+        )
+        .orderBy(asc(roomQueue.queueIndex))
+        .limit(1);
+      
+      if (currentItem) {
+        console.log("🗑️ Removing skipped song from queue:", currentItem.id);
+        await dbClient.delete(roomQueue).where(eq(roomQueue.id, currentItem.id));
+        
+        // Reindex queue
+        const remainingItems = await dbClient
+          .select()
+          .from(roomQueue)
+          .where(eq(roomQueue.roomId, payload.roomId))
+          .orderBy(asc(roomQueue.queueIndex));
+
+        await dbClient.transaction(async (tx: any) => {
+          for (let i = 0; i < remainingItems.length; i++) {
+            await tx
+              .update(roomQueue)
+              .set({ queueIndex: i })
+              .where(eq(roomQueue.id, remainingItems[i].id));
+          }
+        });
+      }
     }
 
     const socketUserId = (socket as any).userId;
@@ -714,9 +802,9 @@ io.on("connection", (socket) => {
     });
 
     if (payload.roomId) {
+      // เล่นเพลงถัดไป
       await playNextSong(io, payload.roomId);
 
-      // 🆕 ส่ง system message
       if (user) {
         await sendSystemMessage(
           io,
@@ -729,12 +817,13 @@ io.on("connection", (socket) => {
 
   socket.on("queue-reorder", (payload) => reorderQueue(io, payload));
 
-  // Leave room (ผู้ใช้กดออกเอง)
   socket.on("leave-room", async ({ roomId, userId }) => {
     if (!roomId || !userId) {
       console.error("❌ Missing roomId or userId on leave-room");
       return;
     }
+
+    console.log(`👋 User ${userId} leaving room ${roomId}`);
 
     const [user] = await dbClient.query.users.findMany({
       where: eq(users.id, userId),
@@ -743,7 +832,7 @@ io.on("connection", (socket) => {
 
     socket.leave(roomId);
 
-    // ลบจาก room_members
+    // ลบสมาชิกออกจาก database
     await dbClient
       .delete(roomMembers)
       .where(
@@ -752,33 +841,64 @@ io.on("connection", (socket) => {
 
     const newCount = io.sockets.adapter.rooms.get(roomId)?.size || 0;
 
+    // อัพเดท count ให้ทุกคน
     io.emit("room-count-updated", { roomId, count: newCount });
+    
     if (user) {
       await sendSystemMessage(io, roomId, `${user.name} left the room`);
     }
-    console.log(
-      `User ${userId} (${socket.id}) left room ${roomId} (${newCount} members)`
-    );
+
+   console.log(`✅ User ${userId} left room ${roomId} (${newCount} members remaining)`);
+   // ✅ Broadcast updated room list ทันที
+    await broadcastPublicRooms(io);
+
+    // ตรวจสอบและลบห้องถ้าว่าง
+    setTimeout(async () => {
+      await deleteRoomIfEmpty(io, roomId);
+    }, 500);
   });
 
-  // Leave room (ตอน disconnect)
   socket.on("disconnecting", async () => {
+    const roomsToCheck: string[] = [];
+    const socketUserId = (socket as any).userId;
+
     for (const roomId of socket.rooms) {
       if (roomId !== socket.id) {
-        // ลบออกจาก DB ด้วย
-        await dbClient
-          .delete(roomMembers)
-          .where(eq(roomMembers.roomId, roomId));
+        roomsToCheck.push(roomId);
+
+        if (socketUserId) {
+          await dbClient
+            .delete(roomMembers)
+            .where(
+              and(
+                eq(roomMembers.roomId, roomId),
+                eq(roomMembers.userId, socketUserId)
+              )
+            );
+
+          const [user] = await dbClient.query.users.findMany({
+            where: eq(users.id, socketUserId),
+            limit: 1,
+          });
+
+          if (user) {
+            await sendSystemMessage(io, roomId, `${user.name} disconnected`);
+          }
+        }
 
         const room = io.sockets.adapter.rooms.get(roomId);
         const newCount = room ? room.size - 1 : 0;
-
         io.emit("room-count-updated", { roomId, count: newCount });
-        console.log(
-          `User ${socket.id} disconnected from room ${roomId} (${newCount} members)`
-        );
       }
     }
+
+    await broadcastPublicRooms(io);
+
+    setTimeout(async () => {
+      for (const roomId of roomsToCheck) {
+        await deleteRoomIfEmpty(io, roomId);
+      }
+    }, 1000);
   });
 
   socket.on("disconnect", () => {
@@ -807,7 +927,121 @@ function sanitizeQueueItem(item: any) {
   };
 }
 
-// Helper function สำหรับส่ง system message
+// function helper สำหรับลบห้องว่าง
+async function deleteRoomIfEmpty(io: any, roomId: string) {
+  try {
+    const [memberCount] = await dbClient
+      .select({ count: sql<number>`count(*)` })
+      .from(roomMembers)
+      .where(eq(roomMembers.roomId, roomId));
+
+    const dbCount = memberCount?.count || 0;
+    const socketCount = io.sockets.adapter.rooms.get(roomId)?.size || 0;
+
+    console.log(`🔍 Checking room ${roomId}:`, { dbCount, socketCount });
+
+    if (dbCount === 0 && socketCount === 0) {
+      console.log(`🗑️ Deleting empty room: ${roomId}`);
+
+      await dbClient.transaction(async (tx) => {
+        await tx.delete(roomQueue).where(eq(roomQueue.roomId, roomId));
+        await tx.delete(roomMessages).where(eq(roomMessages.roomId, roomId));
+        await tx.delete(roomMembers).where(eq(roomMembers.roomId, roomId));
+        await tx.delete(listeningRooms).where(eq(listeningRooms.id, roomId));
+      });
+
+      io.emit("room-deleted", { roomId });
+      
+      // ✅ Broadcast updated room list
+      await broadcastPublicRooms(io);
+
+      console.log(`✅ Room ${roomId} deleted successfully`);
+      return true;
+    }
+
+    return false;
+  } catch (err) {
+    console.error(`❌ Error checking/deleting room ${roomId}:`, err);
+    return false;
+  }
+}
+
+// helper function สำหรับ broadcast room list
+async function broadcastPublicRooms(io: any) {
+  try {
+    const rooms = await dbClient.query.listeningRooms.findMany({
+      where: (rooms, { eq }) => eq(rooms.isPublic, true),
+      columns: {
+        id: true,
+        name: true,
+        description: true,
+        inviteCode: true,
+        hostId: true,
+        maxMembers: true,
+        createdAt: true,
+      },
+    });
+
+    const formattedRooms = await Promise.all(
+      rooms.map(async (r) => {
+        const [memberCount] = await dbClient
+          .select({ count: sql<number>`count(*)` })
+          .from(roomMembers)
+          .where(eq(roomMembers.roomId, r.id));
+
+        const dbCount = memberCount?.count || 0;
+        const socketCount = io.sockets.adapter.rooms.get(r.id)?.size || 0;
+        const actualCount = Math.max(dbCount, socketCount);
+
+        return {
+          roomId: r.id,
+          roomName: r.name,
+          description: r.description,
+          inviteCode: r.inviteCode,
+          hostId: r.hostId,
+          createdAt: r.createdAt,
+          isPublic: true,
+          count: actualCount,
+          maxMembers: r.maxMembers || 5,
+        };
+      })
+    );
+
+    // กรองเฉพาะห้องที่มีคน
+    const activeRooms = formattedRooms.filter(room => room.count > 0);
+
+    // ส่ง event ไปยัง clients ทั้งหมด
+    io.emit("public-rooms-updated", activeRooms);
+    
+    console.log(`📡 Broadcasted ${activeRooms.length} active public rooms`);
+    return activeRooms;
+  } catch (err) {
+    console.error("❌ Error broadcasting public rooms:", err);
+    return [];
+  }
+}
+
+// เพิ่ม scheduled cleanup (optional - สำหรับความแน่ใจเป็นพิเศษ)
+setInterval(async () => {
+  try {
+    console.log("🧹 Running scheduled room cleanup...");
+
+    const allRooms = await dbClient
+      .select({ id: listeningRooms.id })
+      .from(listeningRooms);
+
+    let deletedCount = 0;
+    for (const room of allRooms) {
+      const deleted = await deleteRoomIfEmpty(io, room.id);
+      if (deleted) deletedCount++;
+    }
+
+    console.log(`✅ Cleanup completed. Deleted ${deletedCount} empty rooms.`);
+  } catch (err) {
+    console.error("❌ Error in scheduled cleanup:", err);
+  }
+}, 2 * 60 * 1000); // ทุก 2 นาที
+
 async function sendSystemMessage(io: any, roomId: string, message: string) {
   const systemMsg = {
     userId: "system",
@@ -817,10 +1051,8 @@ async function sendSystemMessage(io: any, roomId: string, message: string) {
     createdAt: new Date(),
   };
 
-  // ส่งไปยัง client ทันที
   io.to(roomId).emit("chat-message", systemMsg);
 
-  // บันทึกลง database (optional)
   try {
     await dbClient.insert(roomMessages).values({
       roomId,

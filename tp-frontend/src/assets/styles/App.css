@@ -16,6 +16,7 @@
 .app-main {
     flex: 1;
     overflow-y: auto;
+    min-width: 0;
     background-color: #fff;
     margin-left: 100px;
     margin-bottom: 100px; 

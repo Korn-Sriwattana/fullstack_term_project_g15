@@ -17,12 +17,14 @@ interface NowPlaying extends Song {
 interface YoutubePlayerProps {
   nowPlaying?: NowPlaying | null;
   isMuted: boolean;
+  volume?: number; // เพิ่ม volume prop (0-100)
   onEnd: (songId: string) => void;
 }
 
 const YoutubePlayer: React.FC<YoutubePlayerProps> = ({
   nowPlaying,
   isMuted,
+  volume = 70, // default 70%
   onEnd,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -65,8 +67,13 @@ const YoutubePlayer: React.FC<YoutubePlayerProps> = ({
           events: {
             onReady: (event: any) => {
               setIsReady(true);
-              if (isMuted) event.target.mute();
-              else event.target.unMute();
+              // Set initial volume and mute state
+              if (isMuted) {
+                event.target.mute();
+              } else {
+                event.target.unMute();
+                event.target.setVolume(volume);
+              }
             },
             onStateChange: (event: any) => {
               const YT = (window as any).YT;
@@ -102,13 +109,18 @@ const YoutubePlayer: React.FC<YoutubePlayerProps> = ({
     player.playVideo();
   }, [nowPlaying, isReady]);
 
-  // Sync mute/unmute
+  // Sync mute/unmute และ volume
   useEffect(() => {
     const player = playerRef.current;
     if (!player || !isReady) return;
-    if (isMuted) player.mute();
-    else player.unMute();
-  }, [isMuted, isReady]);
+    
+    if (isMuted) {
+      player.mute();
+    } else {
+      player.unMute();
+      player.setVolume(volume);
+    }
+  }, [isMuted, volume, isReady]);
 
   // Progress bar
   useEffect(() => {
