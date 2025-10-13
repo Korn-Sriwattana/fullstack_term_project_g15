@@ -7,8 +7,6 @@ import AddToPlaylistButton from "../components/AddToPlaylist";
 import styles from "../assets/styles/Playlist.module.css";
 import emptyImg from "../assets/images/empty/empty-box.png";
 
-const API_URL = "http://localhost:3000";
-
 interface Playlist {
   id: string;
   name: string;
@@ -151,54 +149,6 @@ export default function Profile() {
     loadPlaylists();
   }, [user]);
 
-  const handleDeletePlaylist = async (playlistId: string) => {
-    if (!confirm("Delete this playlist?")) return;
-
-    try {
-      const res = await fetch(`${API_URL}/playlists/${playlistId}`, {
-        method: "DELETE",
-      });
-
-      if (!res.ok) throw new Error("Failed to delete");
-
-      await loadPlaylists();
-      
-      if (selectedPlaylist?.id === playlistId) {
-        setSelectedPlaylist(null);
-        setPlaylistSongs([]);
-        setViewMode('list');
-      }
-      
-      alert("Playlist deleted!");
-    } catch (err) {
-      console.error("Delete failed:", err);
-      alert("Failed to delete playlist");
-    }
-  };
-
-  const handleRemoveSong = async (playlistSongId: string) => {
-      if (!selectedPlaylist) return;
-  
-      try {
-        const res = await fetch(
-          `${API_URL}/playlists/${selectedPlaylist.id}/songs/${playlistSongId}`,
-          { method: "DELETE" }
-        );
-  
-        if (!res.ok) throw new Error("Failed to remove");
-  
-        await Promise.all([
-          loadPlaylists(),
-          loadPlaylistSongs(selectedPlaylist.id)
-        ]);
-        
-        alert("Song removed from playlist!");
-      } catch (err) {
-        console.error("Remove song failed:", err);
-        alert("Failed to remove song");
-      }
-    };
-  
     const handlePlaySong = async (song: Song) => {
       if (!user?.id) {
         alert("Please create user first");
