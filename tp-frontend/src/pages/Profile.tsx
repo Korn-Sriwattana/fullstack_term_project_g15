@@ -7,6 +7,7 @@ import { useLikedSongs } from "../components/LikedSongsContext";
 
 import styles from "../assets/styles/Playlist.module.css";
 import emptyImg from "../assets/images/empty/empty-box.png";
+import detailStyles from "../assets/styles/PlaylistDetail.module.css";
 
 interface Playlist {
   id: string;
@@ -611,65 +612,75 @@ export default function Profile() {
 
       {/* DETAIL VIEW - Playlist Songs */}
       {viewMode === 'detail' && selectedPlaylist && (
-        <section className={styles.section}>
-          <div className={styles.playlistHeader}>
-            {selectedPlaylist.coverUrl ? (
-              <img 
-                src={`${API_URL}${selectedPlaylist.coverUrl}`}
-                alt={selectedPlaylist.name}
-                className={styles.playlistHeaderCover}
-              />
-            ) : (
-              <div className={styles.playlistHeaderCoverPlaceholder}>
-                🎵
+        <section className={detailStyles.container} style={{ padding: 0 }}>
+          <div className={detailStyles.headerWrap}>
+            <div className={detailStyles.headerRow}>
+              {selectedPlaylist.coverUrl ? (
+                <img
+                  src={`${API_URL}${selectedPlaylist.coverUrl}`}
+                  alt={selectedPlaylist.name}
+                  className={styles.playlistHeaderCover}
+                  style={{ width: 160, height: 160, borderRadius: 12, objectFit: 'cover' }}
+                />
+              ) : (
+                <div className={detailStyles.cover}>🎵</div>
+              )}
+
+              <div className={detailStyles.info}>
+                <div className={detailStyles.playlistLabel}>PLAYLIST</div>
+                <h1 className={detailStyles.titleHeading}>{selectedPlaylist.name}</h1>
+                <div className={detailStyles.subtitle}>
+                  {(user?.name ?? 'You')} • {selectedPlaylist.songCount} songs • Created {formatDate(selectedPlaylist.createdAt)}
+                  {!selectedPlaylist.isPublic ? ' • Private' : ''}
+                </div>
+              </div>
+            </div>
+
+            {playlistSongs.length > 0 && (
+              <div className={detailStyles.controls}>
+                <button
+                  onClick={handlePlayPlaylist}
+                  className={detailStyles.playAllBtn}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.04)';
+                    e.currentTarget.style.background = '#1ed760';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.background = '#1DB954';
+                  }}
+                >
+                  <span className={detailStyles.playIcon}>▶️</span>
+                  Play All
+                </button>
+
+                <button
+                  onClick={handleShufflePlaylist}
+                  className={detailStyles.shuffleBtn}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.04)';
+                    e.currentTarget.style.borderColor = '#000';
+                    e.currentTarget.style.color = '#000';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.borderColor = '#d1d1d1';
+                    e.currentTarget.style.color = '#666';
+                  }}
+                >
+                  <span className={detailStyles.shuffleIcon}>🔀</span>
+                  Shuffle
+                </button>
               </div>
             )}
-
-            <div className={styles.playlistHeaderInfo}>
-              <div>
-                <div className={styles.playlistHeaderLabel}>
-                  PLAYLIST
-                </div>
-                <h1 className={styles.playlistHeaderTitle}>
-                  {selectedPlaylist.name}
-                </h1>
-                {selectedPlaylist.description && (
-                  <p className={styles.playlistHeaderDescription}>
-                    {selectedPlaylist.description}
-                  </p>
-                )}
-                <div className={styles.playlistHeaderMeta}>
-                  {selectedPlaylist.songCount} songs · Created {formatDate(selectedPlaylist.createdAt)}
-                  {!selectedPlaylist.isPublic && ' · Private'}
-                </div>
-              </div>
-
-              {playlistSongs.length > 0 && (
-                <div className={styles.playlistControls}>
-                  <button onClick={handlePlayPlaylist} className={styles.playButton}>
-                    ▶️ Play All
-                  </button>
-
-                  <button onClick={handleShufflePlaylist} className={styles.shuffleButton}>
-                    🔀 Shuffle
-                  </button>
-                </div>
-              )}
-            </div>
           </div>
 
           {/* Sort Controls */}
           {playlistSongs.length > 0 && (
-            <div style={{
-              display: 'flex',
-              gap: '8px',
-              padding: '12px 0',
-              borderBottom: '1px solid #e5e5e5',
-              marginBottom: '12px',
-              flexWrap: 'wrap'
-            }}>
-              <span style={{ fontSize: '13px', color: '#666', marginRight: '8px', lineHeight: '28px' }}>Sort by:</span>
-              <button
+            <div className={detailStyles.sortBar}>
+              <span className={detailStyles.sortLabel}>Sort by:</span>
+
+               <button
                 onClick={() => handleSortChange('custom')}
                 style={{
                   padding: '4px 12px',
@@ -686,63 +697,31 @@ export default function Profile() {
               >
                 🎯 Custom Order (View-only)
               </button>
+
               <button
                 onClick={() => handleSortChange('dateAdded')}
-                style={{
-                  padding: '4px 12px',
-                  fontSize: '13px',
-                  border: sortBy === 'dateAdded' ? '1px solid #1DB954' : '1px solid #ddd',
-                  background: sortBy === 'dateAdded' ? '#f0fff4' : 'white',
-                  color: sortBy === 'dateAdded' ? '#1DB954' : '#666',
-                  borderRadius: '16px',
-                  cursor: 'pointer',
-                  fontWeight: sortBy === 'dateAdded' ? '600' : '400'
-                }}
+                className={`${detailStyles.sortBtn} ${sortBy === 'dateAdded' ? detailStyles.sortBtnActive : ''}`}
               >
                 Date Added {sortBy === 'dateAdded' && (sortOrder === 'asc' ? '↑' : '↓')}
               </button>
+
               <button
                 onClick={() => handleSortChange('title')}
-                style={{
-                  padding: '4px 12px',
-                  fontSize: '13px',
-                  border: sortBy === 'title' ? '1px solid #1DB954' : '1px solid #ddd',
-                  background: sortBy === 'title' ? '#f0fff4' : 'white',
-                  color: sortBy === 'title' ? '#1DB954' : '#666',
-                  borderRadius: '16px',
-                  cursor: 'pointer',
-                  fontWeight: sortBy === 'title' ? '600' : '400'
-                }}
+                className={`${detailStyles.sortBtn} ${sortBy === 'title' ? detailStyles.sortBtnActive : ''}`}
               >
                 Title {sortBy === 'title' && (sortOrder === 'asc' ? '↑' : '↓')}
               </button>
+
               <button
                 onClick={() => handleSortChange('artist')}
-                style={{
-                  padding: '4px 12px',
-                  fontSize: '13px',
-                  border: sortBy === 'artist' ? '1px solid #1DB954' : '1px solid #ddd',
-                  background: sortBy === 'artist' ? '#f0fff4' : 'white',
-                  color: sortBy === 'artist' ? '#1DB954' : '#666',
-                  borderRadius: '16px',
-                  cursor: 'pointer',
-                  fontWeight: sortBy === 'artist' ? '600' : '400'
-                }}
+                className={`${detailStyles.sortBtn} ${sortBy === 'artist' ? detailStyles.sortBtnActive : ''}`}
               >
                 Artist {sortBy === 'artist' && (sortOrder === 'asc' ? '↑' : '↓')}
               </button>
+
               <button
                 onClick={() => handleSortChange('duration')}
-                style={{
-                  padding: '4px 12px',
-                  fontSize: '13px',
-                  border: sortBy === 'duration' ? '1px solid #1DB954' : '1px solid #ddd',
-                  background: sortBy === 'duration' ? '#f0fff4' : 'white',
-                  color: sortBy === 'duration' ? '#1DB954' : '#666',
-                  borderRadius: '16px',
-                  cursor: 'pointer',
-                  fontWeight: sortBy === 'duration' ? '600' : '400'
-                }}
+                className={`${detailStyles.sortBtn} ${sortBy === 'duration' ? detailStyles.sortBtnActive : ''}`}
               >
                 Duration {sortBy === 'duration' && (sortOrder === 'asc' ? '↑' : '↓')}
               </button>
@@ -765,34 +744,39 @@ export default function Profile() {
                   </div>
                   
                   {item.song.coverUrl && (
-                    <img 
-                      src={item.song.coverUrl} 
+                    <img
+                      src={item.song.coverUrl}
                       alt={item.song.title}
-                      className={styles.resultCover}
+                      className={detailStyles.resultCover}
                     />
                   )}
                   
-                  <div className={styles.resultInfo}>
-                    <div className={styles.resultTitle}>{item.song.title}</div>
-                    <div className={styles.resultArtist}>{item.song.artist}</div>
+                  <div className={detailStyles.resultInfo} style={{ flex: 1 }}>
+                    <div className={detailStyles.resultTitle}>{item.song.title}</div>
+                    <div className={detailStyles.resultArtist}>{item.song.artist}</div>
                   </div>
-                  
-                  <div className={styles.resultDuration}>
+
+                  <div className={detailStyles.dateText}>
+                    {formatDate(item.addedAt)}
+                  </div>
+
+                  <div className={detailStyles.resultDuration}>
                     {formatTime(item.song.duration)}
                   </div>
-                  
-                  <div className={styles.resultActions}>
-                    <button 
+
+                  <div style={{ display: 'flex', gap: 5 }}>
+                    <button
                       onClick={() => handlePlaySong(item.song)}
-                      className={styles.buttonPrimary}
-                      style={{ padding: '6px 12px', fontSize: '13px' }}
+                      className={detailStyles.buttonPrimary}
+                      style={{ padding: '6px 12px', fontSize: 13 }}
                     >
                       Play
                     </button>
-                    <button 
+
+                    <button
                       onClick={() => handleAddToQueue(item.song)}
-                      className={styles.buttonSecondary}
-                      style={{ padding: '6px 12px', fontSize: '13px' }}
+                      className={detailStyles.buttonSecondary}
+                      style={{ padding: '6px 12px', fontSize: 13 }}
                     >
                       + Queue
                     </button>
