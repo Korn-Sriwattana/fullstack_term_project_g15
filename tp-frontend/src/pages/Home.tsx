@@ -5,6 +5,8 @@ import type { Song, QueueItem } from "../types/song.ts";
 import LikeButton from "../components/LikeButton";
 import AddToPlaylistButton from "../components/AddToPlaylist";
 import searchIcon from "../assets/images/search-icon.png";
+import { authClient } from "../lib/auth-client";
+import { useLikedSongs } from "../components/LikedSongsContext";
 
 const API_URL = "http://localhost:3000";
 
@@ -16,9 +18,11 @@ interface HomeProps {
 const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
   const { setUser, user } = useUser();
   const userId = user?.id || "";
-  const [email] = useState(localStorage.getItem("email") || ""); // ✅ mock email จาก signup
+  const [email, setEmail] = useState(localStorage.getItem("email") || ""); // ✅ mock email จาก signup
 
-  // ✅ ตรวจสอบผู้ใช้จาก database โดยตรง
+  const { refreshLikedSongs } = useLikedSongs();
+
+  //  ตรวจสอบผู้ใช้จาก database โดยตรง
   useEffect(() => {
     const checkUserInDatabase = async () => {
       try {
@@ -63,6 +67,13 @@ const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
       setShowLoginPopup(false); // ✅ ปิด popup เมื่อ login แล้ว
     }
   }, [userId]);
+
+  useEffect(() => {
+    if (userId) {
+      console.log("🔄 Auto-refreshing liked songs for user:", userId);
+      refreshLikedSongs(userId);
+    }
+  }, [userId, refreshLikedSongs]);
 
   // Real-time search with debounce
   useEffect(() => {

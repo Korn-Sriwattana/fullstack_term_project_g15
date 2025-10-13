@@ -3,11 +3,10 @@ import { useUser } from "../components/userContext";
 import type { Song } from "../types/song.ts";
 import LikeButton from "../components/LikeButton";
 import AddToPlaylistButton from "../components/AddToPlaylist";
+import { useLikedSongs } from "../components/LikedSongsContext";
 
 import styles from "../assets/styles/Playlist.module.css";
 import emptyImg from "../assets/images/empty/empty-box.png";
-
-const API_URL = "http://localhost:3000";
 
 interface Playlist {
   id: string;
@@ -49,6 +48,13 @@ export default function Profile() {
     const [sortBy, setSortBy] = useState<'custom' | 'dateAdded' | 'title' | 'artist' | 'duration'>('custom');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
     
+    const { refreshLikedSongs } = useLikedSongs();
+
+    useEffect(() => {
+      if (user?.id) {
+        refreshLikedSongs(user.id);
+      }
+    }, [user?.id, refreshLikedSongs]);
     useEffect(() => {
       if (user?.id) {
         loadPlaylists();
@@ -151,54 +157,6 @@ export default function Profile() {
     loadPlaylists();
   }, [user]);
 
-  const handleDeletePlaylist = async (playlistId: string) => {
-    if (!confirm("Delete this playlist?")) return;
-
-    try {
-      const res = await fetch(`${API_URL}/playlists/${playlistId}`, {
-        method: "DELETE",
-      });
-
-      if (!res.ok) throw new Error("Failed to delete");
-
-      await loadPlaylists();
-      
-      if (selectedPlaylist?.id === playlistId) {
-        setSelectedPlaylist(null);
-        setPlaylistSongs([]);
-        setViewMode('list');
-      }
-      
-      alert("Playlist deleted!");
-    } catch (err) {
-      console.error("Delete failed:", err);
-      alert("Failed to delete playlist");
-    }
-  };
-
-  const handleRemoveSong = async (playlistSongId: string) => {
-      if (!selectedPlaylist) return;
-  
-      try {
-        const res = await fetch(
-          `${API_URL}/playlists/${selectedPlaylist.id}/songs/${playlistSongId}`,
-          { method: "DELETE" }
-        );
-  
-        if (!res.ok) throw new Error("Failed to remove");
-  
-        await Promise.all([
-          loadPlaylists(),
-          loadPlaylistSongs(selectedPlaylist.id)
-        ]);
-        
-        alert("Song removed from playlist!");
-      } catch (err) {
-        console.error("Remove song failed:", err);
-        alert("Failed to remove song");
-      }
-    };
-  
     const handlePlaySong = async (song: Song) => {
       if (!user?.id) {
         alert("Please create user first");
