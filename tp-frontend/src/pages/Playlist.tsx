@@ -107,8 +107,7 @@ export default function Playlist() {
     try {
       if (!user?.id) return;
 
-      const viewerId = localStorage.getItem("viewerId") || user.id;
-      const res = await fetch(`${API_URL}/playlists/${user.id}?viewerId=${viewerId}`);
+     const res = await fetch(`${API_URL}/playlists/${user.id}?mode=owner`);
       const data = await res.json();
       setPlaylists(data);
 

@@ -581,7 +581,7 @@ export default function Profile() {
                       </button>
                     )}
                     <h1 className={styles.title}>
-                      {viewMode === 'list' ? 'Public Playlist' : selectedPlaylist?.name}
+                      {viewMode === 'list' ? 'Public Playlists' : selectedPlaylist?.name}
                     </h1>
                   </div>
                 </div>
