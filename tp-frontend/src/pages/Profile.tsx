@@ -1,20 +1,20 @@
 import { useEffect, useState, useRef } from "react";
+import { useUser } from "../components/userContext"; // ✅ ใช้ context ที่สร้างไว้แทน useCurrentUser
 
 export default function Profile() {
-  const [user, setUser] = useState<any>(null);
+  const { user, setUser, loading } = useUser(); // ✅ ดึงข้อมูลจาก context
   const [playlists, setPlaylists] = useState<any[]>([]);
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState("");
   const [profilePic, setProfilePic] = useState("");
   const [preview, setPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-
   const [imageError, setImageError] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const API_URL = "http://localhost:3000";
 
-  // ✅ สร้าง SVG Avatar
+  // ✅ ฟังก์ชันสร้าง Avatar SVG
   const createSvgAvatar = (name: string) => {
     const initials = name
       .split(" ")
@@ -26,81 +26,55 @@ export default function Profile() {
     const svg = `
       <svg width="120" height="120" xmlns="http://www.w3.org/2000/svg">
         <rect width="120" height="120" fill="#a855f7"/>
-        <text x="50%" y="50%" font-family="Arial" font-size="48" font-weight="bold" 
+        <text x="50%" y="50%" font-family="Arial" font-size="48" font-weight="bold"
               fill="white" text-anchor="middle" dominant-baseline="central">
           ${initials}
         </text>
       </svg>
     `;
-
     return `data:image/svg+xml;base64,${btoa(svg)}`;
   };
 
-  // ✅ Helper function เพื่อจัดการ URL ของรูป
+  // ✅ Helper สำหรับแปลง URL ของรูป
   const getImageUrl = (picUrl: string | null) => {
-    if (!picUrl) {
-      return createSvgAvatar(name || "User");
-    }
+    if (!picUrl) return createSvgAvatar(name || "User");
 
-    // ถ้า URL เป็น external (เช่น จาก Google)
     if (picUrl.startsWith("http://") || picUrl.startsWith("https://")) {
       if (picUrl.includes("googleusercontent.com")) {
-        // ✅ ใช้ backend proxy เพื่อแก้ปัญหา CORS
-        const proxyUrl = `${API_URL}/api/proxy-image?url=${encodeURIComponent(
-          picUrl
-        )}`;
-        console.log("🖼️ Using proxy for Google image");
-        return proxyUrl;
+        return `${API_URL}/api/proxy-image?url=${encodeURIComponent(picUrl)}`;
       }
-      console.log("🖼️ External image URL:", picUrl);
       return picUrl;
     }
 
-    // ถ้าเป็น path ภายใน server ต่อ API_URL
-    const fullUrl = `${API_URL}${picUrl}`;
-    console.log("🖼️ Local image URL:", fullUrl);
-    return fullUrl;
+    return `${API_URL}${picUrl}`;
   };
 
+  // ✅ โหลด playlist ของ user
   useEffect(() => {
-    const loadUser = async () => {
+    const loadPlaylists = async () => {
+      if (!user?.id) return;
       try {
-        const email = localStorage.getItem("email") || "";
-        const res = await fetch(
-          `${API_URL}/api/current-user${
-            email ? `?email=${encodeURIComponent(email)}` : ""
-          }`,
-          { credentials: "include" }
-        );
-
-        if (!res.ok) {
-          console.warn("No active user found. Redirecting to signin...");
-          window.location.href = "/signin";
-          return;
-        }
-
+        const res = await fetch(`${API_URL}/playlists/${user.id}`);
         const data = await res.json();
-        console.log("👤 Active user:", data.user, "source:", data.source);
-
-        setUser(data.user);
-        setName(data.user.name || "");
-        setProfilePic(data.user.profilePic || "");
-
-        // โหลด playlists ของ user นั้น
-        const playlistsRes = await fetch(
-          `${API_URL}/playlists/${data.user.id}`
-        );
-        const playlistsData = await playlistsRes.json();
-        setPlaylists(playlistsData);
+        setPlaylists(data);
       } catch (err) {
-        console.error("Failed to fetch current user:", err);
-        window.location.href = "/signin";
+        console.error("Failed to load playlists:", err);
       }
     };
 
-    loadUser();
-  }, []);
+    loadPlaylists();
+  }, [user]);
 
+  // ✅ เมื่อ user โหลดเสร็จ ให้ sync ชื่อและรูป
+  useEffect(() => {
+    if (user) {
+      setName(user.name || "");
+      // ถ้า backend เพิ่ม field profilePic ในตาราง user ให้ใช้ตรงนี้
+      setProfilePic((user as any).profilePic || "");
+    }
+  }, [user]);
+
+  // ✅ อัปโหลดรูปโปรไฟล์
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -118,21 +92,20 @@ export default function Profile() {
     try {
       const formData = new FormData();
       formData.append("image", file);
+
       const res = await fetch(`${API_URL}/upload/profile-pic`, {
         method: "POST",
         body: formData,
       });
 
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || "Upload failed");
-      }
+      if (!res.ok) throw new Error("Upload failed");
 
       const data = await res.json();
       setProfilePic(data.imageUrl);
       setPreview(null);
-      setImageError(false); // ✅ Reset error state
+      setImageError(false);
 
+      // ✅ อัปเดตข้อมูลใน backend
       await fetch(`${API_URL}/api/profile/me`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -140,37 +113,43 @@ export default function Profile() {
         body: JSON.stringify({ name, profilePic: data.imageUrl }),
       });
 
+      // ✅ sync user context
       setUser((prev: any) => ({ ...prev, profilePic: data.imageUrl }));
       alert("Profile picture updated!");
     } catch (err) {
       console.error("Upload error:", err);
-      alert(
-        `Failed to upload image: ${
-          err instanceof Error ? err.message : "Unknown error"
-        }`
-      );
+      alert("Failed to upload image.");
       setPreview(null);
     } finally {
       setUploading(false);
     }
   };
 
+  // ✅ บันทึกชื่อใหม่
   const handleSave = async () => {
-    await fetch(`${API_URL}/api/profile/me`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ name, profilePic }),
-    });
-
-    // ✅ อัปเดต user state
-    setUser((prev: any) => ({ ...prev, name, profilePic }));
-    alert("Profile updated!");
-    setEditing(false);
+    try {
+      await fetch(`${API_URL}/api/profile/me`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ name, profilePic }),
+      });
+      setUser((prev: any) => ({ ...prev, name, profilePic }));
+      alert("Profile updated!");
+      setEditing(false);
+    } catch (err) {
+      console.error("Failed to update profile:", err);
+    }
   };
 
-  if (!user) return <p>Loading...</p>;
+  // ✅ Loading & Redirect
+  if (loading) return <p>Loading...</p>;
+  if (!user) {
+    window.location.href = "/signin";
+    return null;
+  }
 
+  // ✅ ส่วนแสดงผล (UI เหมือนเดิม)
   return (
     <div
       style={{
@@ -179,19 +158,16 @@ export default function Profile() {
         color: "#222",
       }}
     >
+      {/* Header Section */}
       <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
         <div style={{ position: "relative" }}>
-          {/* ✅ ลบ crossOrigin และแก้ onError */}
           <img
             src={
               preview ||
               (imageError ? createSvgAvatar(name) : getImageUrl(profilePic))
             }
             alt="Profile"
-            onError={(e) => {
-              console.error("❌ Failed to load image:", e.currentTarget.src);
-              setImageError(true);
-            }}
+            onError={() => setImageError(true)}
             style={{
               width: 120,
               height: 120,
@@ -212,7 +188,7 @@ export default function Profile() {
           {editing && (
             <button
               onClick={() => fileInputRef.current?.click()}
-              disabled={uploading} // ✅ ปิดปุ่มขณะกำลังอัปโหลด
+              disabled={uploading}
               style={{
                 position: "absolute",
                 bottom: 0,
@@ -231,18 +207,6 @@ export default function Profile() {
                 justifyContent: "center",
                 fontSize: "16px",
                 transition: "all 0.2s ease",
-              }}
-              onMouseEnter={(e) => {
-                if (!uploading) {
-                  e.currentTarget.style.background = "#f3e8ff";
-                  e.currentTarget.style.color = "#7e22ce";
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!uploading) {
-                  e.currentTarget.style.background = "white";
-                  e.currentTarget.style.color = "#444";
-                }
               }}
               title={uploading ? "Uploading..." : "Change profile picture"}
             >
@@ -314,17 +278,19 @@ export default function Profile() {
         )}
       </div>
 
+      {/* Stats */}
       <div style={{ marginTop: "1rem", color: "#555" }}>
         <span style={{ marginRight: "1.5rem" }}>
           <strong>{playlists.length}</strong> Playlists
         </span>
         <span>
-          <strong>{user.friendCount || 0}</strong> Friends
+          <strong>{(user as any).friendCount || 0}</strong> Friends
         </span>
       </div>
 
       <hr style={{ margin: "1.5rem 0", border: "1px solid #eee" }} />
 
+      {/* Playlist Section */}
       <div>
         <h2 style={{ fontWeight: "700", fontSize: "1.2rem" }}>Your Playlist</h2>
 
@@ -338,24 +304,17 @@ export default function Profile() {
         >
           {playlists.length > 0 ? (
             playlists.map((pl) => (
-              <div
-                key={pl.id}
-                style={{
-                  width: 160,
-                  cursor: "pointer",
-                }}
-              >
+              <div key={pl.id} style={{ width: 160, cursor: "pointer" }}>
                 <img
                   src={getImageUrl(pl.coverUrl)}
                   alt={pl.name}
                   onError={(e) => {
-                    // ✅ ใช้ SVG แทน
                     const initials = pl.name.slice(0, 2).toUpperCase();
                     const svg = `<svg width="160" height="160" xmlns="http://www.w3.org/2000/svg">
                       <rect width="160" height="160" fill="#${Math.floor(
                         Math.random() * 16777215
                       ).toString(16)}"/>
-                      <text x="50%" y="50%" font-family="Arial" font-size="48" font-weight="bold" 
+                      <text x="50%" y="50%" font-family="Arial" font-size="48" font-weight="bold"
                             fill="white" text-anchor="middle" dominant-baseline="central">${initials}</text>
                     </svg>`;
                     e.currentTarget.src = `data:image/svg+xml;base64,${btoa(
