@@ -309,7 +309,7 @@ export default function FriendsPage() {
                 <div
                   key={f.id}
                   className={styles.card}
-                  onClick={() => navigate(`/profile/${f.id}`)}
+                  onClick={() => navigate(`/friends/${f.id}`)}
                   style={{ cursor: "pointer" }}
                 >
                   <div className={styles.profile}>
