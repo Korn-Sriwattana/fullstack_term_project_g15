@@ -1,6 +1,6 @@
 /// <reference types="cypress" />
 
-describe("👫 Friend and FriendProfile Pages (Mocked Login)", () => {
+describe("Friend and FriendProfile Pages", () => {
   const FRONTEND = Cypress.env("FRONTEND_URL") || "http://localhost:5173";
   const API_URL = "http://localhost:3000";
 
@@ -150,7 +150,7 @@ describe("👫 Friend and FriendProfile Pages (Mocked Login)", () => {
   });
 });
 
-describe("👤 FriendProfile Page (Mocked Login)", () => {
+describe("FriendProfile Page", () => {
   const FRONTEND = Cypress.env("FRONTEND_URL") || "http://localhost:5173";
   const API_URL = "http://localhost:3000";
 
