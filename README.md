@@ -6,25 +6,25 @@ Group Member
 
 13 OCT (20.29)ทำครั้งเดียว
 - backend
-pnpm add -D @types/bcrypt
+`pnpm add -D @types/bcrypt`
 
 better-auth installation(ทำครั้งเดียวพอ)
 - db, backend, frontend
-pnpm add better-auth@latest
+`pnpm add better-auth@latest`
 - db, backend 
-pnmp dlx @better-auth/cli@latest generate
+`pnmp dlx @better-auth/cli@latest generate`
 - db
 File init.sh เปลี่ยนจาก CRLF เป็น LF
 .npmrc ให้ uncomment อันที่ตัวเองใช้
-1. pnpm install
-2. npm run db:generate
-3. docker compose up -d
-4. npm run db:push
+1. `pnpm install`
+2. `npm run db:generate`
+3. `docker compose up -d`
+4. `npm run db:push`
 (ทำครั้งเดียวหลังจากนั้นรันบน docker ได้เลย)
 
 - backend & frontend
-1. pnpm install 
-2. npm run dev 
+1. `pnpm install` 
+2. `npm run dev` 
 
 - testing
 1. pnpm install
