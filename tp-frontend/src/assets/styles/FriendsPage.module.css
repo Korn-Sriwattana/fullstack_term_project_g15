@@ -116,6 +116,7 @@
   border-radius: 8px;
   cursor: pointer;
   transition: background 0.2s ease;
+  margin-right: 10px;
 }
 
 .actionButton:hover {

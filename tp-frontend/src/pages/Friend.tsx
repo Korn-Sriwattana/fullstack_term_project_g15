@@ -74,7 +74,7 @@ export default function FriendsPage() {
     if (!url) return "/default-avatar.png";
 
     if (url.startsWith("http")) return url; // google / external images
-    return `${API_URL}${url}`;              // ✅ prefix ด้วย backend URL
+    return `${API_URL}${url}`;              // prefix ด้วย backend URL
   };
 
 
@@ -102,7 +102,7 @@ export default function FriendsPage() {
     }
   };
 
-  // ✅ ฟังก์ชันยอมรับคำขอเพื่อน
+  // ฟังก์ชันยอมรับคำขอเพื่อน
   const acceptRequest = async (friendId: string) => {
     try {
       if (!userId) return alert("User not loaded yet");
@@ -130,7 +130,7 @@ export default function FriendsPage() {
     }
   };
 
-  // ✅ ปฏิเสธคำขอเพื่อน
+  // ปฏิเสธคำขอเพื่อน
   const rejectRequest = async (friendId: string) => {
     try {
       await fetch(`${API_URL}/api/friends/remove`, {
@@ -144,7 +144,7 @@ export default function FriendsPage() {
     }
   };
 
-  // ✅ ลบเพื่อน
+  // ลบเพื่อน
   const removeFriend = async (friendId: string) => {
     try {
       await fetch(`${API_URL}/api/friends/remove`, {
@@ -158,7 +158,7 @@ export default function FriendsPage() {
     }
   };
 
-  // ✅ ค้นหาเพื่อนใหม่
+  // ค้นหาเพื่อนใหม่
   const handleSearch = async () => {
     if (!searchTerm.trim()) return;
     try {
@@ -174,7 +174,7 @@ export default function FriendsPage() {
     }
   };
 
-  // ✅ ส่งคำขอเพื่อน
+  // ส่งคำขอเพื่อน
   const sendRequest = async (friendId: string) => {
     try {
       await fetch(`${API_URL}/api/friends/request`, {
