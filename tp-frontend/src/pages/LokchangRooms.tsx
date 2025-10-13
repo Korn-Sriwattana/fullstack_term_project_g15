@@ -343,9 +343,9 @@ const LokchangRooms = () => {
       const queueData = await queueRes.json();
       setRawQueue(queueData);
 
-      alert(
-        `Room created & joined: ${created.roomName} (${created.isPublic ? "Public" : "Private"})`
-      );
+      // alert(
+      //   `Room created & joined: ${created.roomName} (${created.isPublic ? "Public" : "Private"})`
+      // );
 
     } catch (error) {
       console.error("Error creating room:", error);
