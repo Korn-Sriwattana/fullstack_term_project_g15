@@ -540,31 +540,32 @@ const MusicPlayer = ({ userId, onQueueUpdate, onCurrentIndexUpdate, className }:
                   />
                 )}
                 <div className={styles.meta}>
-                  <div className={styles.title}>
-                    {currentSong.title}
-                  </div>
-                  <div className={styles.artist}>
-                    {currentSong.artist}
-                  </div>
+                  <div className={styles.title}>{currentSong.title}</div>
+                  <div className={styles.artist}>{currentSong.artist}</div>
+
+                  {/* ✅ ปุ่มอยู่ใต้รายละเอียดเพลง */}
+                  {user?.id && (
+                    <div className={styles.songActions}>
+                      <AddToPlaylist
+                        userId={user.id}
+                        song={currentSong}
+                        iconOnly={false}
+                        buttonStyle={{ padding: "4px 8px", fontSize: "12px", marginRight: "8px" }}
+                      />
+                      <LikeButton
+                        userId={user.id}
+                        songId={currentSong.id}
+                        onLikeChange={(isLiked) =>
+                          console.log(
+                            `Song ${currentSong.title} is now ${isLiked ? "liked" : "unliked"}`
+                          )
+                        }
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {user?.id && (
-                <div className={styles.actions}>
-                  <div className={styles.iconAdd}>
-                    <AddToPlaylist userId={user.id} song={currentSong} />
-                  </div>
-                  <div className={styles.iconLike}>
-                    <LikeButton
-                      userId={user.id}
-                      songId={currentSong.id}
-                      onLikeChange={(isLiked) => {
-                        console.log(`Song ${currentSong.title} is now ${isLiked ? "liked" : "unliked"}`);
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
 
               {/* Controls */}
               <div className={styles.controls}>

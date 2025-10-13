@@ -7,27 +7,35 @@ import { eq, and, asc, sql, desc } from "drizzle-orm";
 export const getUserPlaylists: RequestHandler = async (req, res, next) => {
   try {
     const { userId } = req.params;
+    const viewerId = req.query.viewerId as string | undefined;
+    const mode = req.query.mode as string | undefined; // 👈 เพิ่ม mode
 
     if (!userId) {
       res.status(400).json({ error: "Missing userId" });
       return;
     }
 
-    // ดึง playlists พร้อมนับจำนวนเพลง
+    // ✅ ถ้าเป็นหน้า Playlist ของตัวเอง (mode=owner)
+    // หรือ viewerId == userId → เห็นทั้งหมด
+    const condition =
+      mode === "owner" || viewerId === userId
+        ? eq(playlists.ownerId, userId)
+        : and(eq(playlists.ownerId, userId), eq(playlists.isPublic, true));
+
     const userPlaylists = await dbClient
       .select({
         id: playlists.id,
         name: playlists.name,
         description: playlists.description,
         coverUrl: playlists.coverUrl,
-        isPublic: playlists.isPublic, 
+        isPublic: playlists.isPublic,
         createdAt: playlists.createdAt,
+        ownerId: playlists.ownerId,
       })
       .from(playlists)
-      .where(eq(playlists.ownerId, userId))
+      .where(condition)
       .orderBy(asc(playlists.createdAt));
 
-    // นับจำนวนเพลงในแต่ละ playlist
     const playlistsWithCount = await Promise.all(
       userPlaylists.map(async (playlist) => {
         const [count] = await dbClient
@@ -35,10 +43,7 @@ export const getUserPlaylists: RequestHandler = async (req, res, next) => {
           .from(playlistSongs)
           .where(eq(playlistSongs.playlistId, playlist.id));
 
-        return {
-          ...playlist,
-          songCount: Number(count.count) || 0,
-        };
+        return { ...playlist, songCount: Number(count.count) || 0 };
       })
     );
 

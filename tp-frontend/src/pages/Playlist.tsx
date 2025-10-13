@@ -21,6 +21,7 @@ interface Playlist {
   songCount: number;
   isPublic: boolean;
   createdAt: string;
+  ownerId: string;
 }
 
 interface PlaylistSong {
@@ -65,6 +66,13 @@ export default function Playlist() {
     }
   }, [userId]);
 
+  useEffect(() => {
+    if (user?.id) {
+      localStorage.setItem("viewerId", user.id);
+    }
+  }, [user]);
+
+
   // Reload เมื่อ sortBy เปลี่ยน
   useEffect(() => {
     if (selectedPlaylist && viewMode === 'detail') {
@@ -97,15 +105,15 @@ export default function Playlist() {
 
   const loadPlaylists = async () => {
     try {
-      const res = await fetch(`${API_URL}/playlists/${userId}`);
+      if (!user?.id) return;
+
+     const res = await fetch(`${API_URL}/playlists/${user.id}?mode=owner`);
       const data = await res.json();
       setPlaylists(data);
-      
+
       if (selectedPlaylist) {
         const updatedPlaylist = data.find((p: Playlist) => p.id === selectedPlaylist.id);
-        if (updatedPlaylist) {
-          setSelectedPlaylist(updatedPlaylist);
-        }
+        if (updatedPlaylist) setSelectedPlaylist(updatedPlaylist);
       }
     } catch (err) {
       console.error("Load playlists failed:", err);
