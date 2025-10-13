@@ -10,7 +10,7 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 
-/* === USERS === */ // ตาราง users สำหรับเก็บข้อมูลผู้ใช้ (สำหรับ better-auth)
+/* === USER === */ // ตาราง users สำหรับเก็บข้อมูลผู้ใช้ (สำหรับ better-auth)
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),

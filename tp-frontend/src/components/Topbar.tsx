@@ -1,31 +1,29 @@
 import { useState, useRef, useEffect } from "react";
-import type { User } from "../types/user";
-import styles from "../assets/styles/Topbar.module.css";
 import { useNavigate } from "react-router-dom";
-import { authClient } from "../lib/auth-client";
+import styles from "../assets/styles/Topbar.module.css";
+import { useCurrentUser } from "../hook/useCurrentUser";
 import { useUser } from "./userContext";
 
-//images
+// Images
 import defaultAvatar from "../assets/images/default-avatar.png";
 import logoutIcon from "../assets/images/logout-icon.png";
 import toggleIcon from "../assets/images/view-bar.png";
 
-type Props = {
-  user?: User | null;
+const API_URL = "http://localhost:3000";
+
+export default function Topbar({
+  onToggleSidebar,
+}: {
   onToggleSidebar?: () => void;
-};
-
-export default function Topbar({ user, onToggleSidebar }: Props) {
+}) {
   const [open, setOpen] = useState(false);
-  const avatarSrc =
-    user && user.avatarUrl && user.avatarUrl.trim() !== ""
-      ? user.avatarUrl
-      : defaultAvatar;
-
-  const API_URL = "http://localhost:3000";
   const navigate = useNavigate();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // ✅ ใช้ hook กลางแทน logic เดิมทั้งหมด
+  const { user, setUser, loading } = useCurrentUser();
+
+  // ✅ ปิด dropdown เมื่อคลิกนอก
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -38,16 +36,32 @@ export default function Topbar({ user, onToggleSidebar }: Props) {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-  const { setUser } = useUser();
 
+  // ✅ Logout (ใช้ได้กับทั้ง Better Auth และ mock)
   const handleLogout = async () => {
-    await fetch(`${API_URL}/api/auth/signout`, { credentials: "include" }); // better-auth logout
-    localStorage.removeItem("email"); // mock logout
+    try {
+      await fetch(`${API_URL}/api/auth/signout`, { credentials: "include" });
+    } catch (err) {
+      console.warn("Logout warning:", err);
+    }
+    localStorage.removeItem("email");
+    setUser(null);
     window.location.href = "/signin";
   };
 
+  if (loading) return null; // หรือ Skeleton loading ก็ได้
+
+  // ✅ สร้าง URL ของ avatar
+  const avatarSrc =
+    user?.profilePic && user.profilePic.trim() !== ""
+      ? user.profilePic.startsWith("http")
+        ? user.profilePic
+        : `${API_URL}${user.profilePic}`
+      : defaultAvatar;
+
   return (
     <div className={styles.topbar}>
+      {/* ☰ ปุ่มเปิด sidebar */}
       <button
         type="button"
         onClick={onToggleSidebar}
@@ -61,6 +75,7 @@ export default function Topbar({ user, onToggleSidebar }: Props) {
         />
       </button>
 
+      {/* 👤 ข้อมูลผู้ใช้ */}
       <div className={styles.profileContainer} ref={dropdownRef}>
         <span className={styles.greeting}>
           Hi,&nbsp;<strong>{user?.name || "Guest"}</strong>
@@ -71,6 +86,10 @@ export default function Topbar({ user, onToggleSidebar }: Props) {
           alt={user?.name ? `${user.name}'s avatar` : "Default avatar"}
           className={styles.avatar}
           onClick={() => setOpen((prev) => !prev)}
+          onError={(e) => {
+            console.warn("❌ Avatar load failed, fallback to default.");
+            e.currentTarget.src = defaultAvatar;
+          }}
         />
 
         {open && (
@@ -87,7 +106,7 @@ export default function Topbar({ user, onToggleSidebar }: Props) {
                 alt="logout"
                 className={styles.logoutIcon}
               />
-              log out
+              Log out
             </button>
           </div>
         )}
