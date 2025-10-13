@@ -3,6 +3,7 @@ import { useUser } from "../components/userContext";
 import type { Song } from "../types/song.ts";
 import LikeButton from "../components/LikeButton";
 import AddToPlaylistButton from "../components/AddToPlaylist";
+import { useLikedSongs } from "../components/LikedSongsContext";
 
 import styles from "../assets/styles/Playlist.module.css";
 import emptyImg from "../assets/images/empty/empty-box.png";
@@ -47,6 +48,13 @@ export default function Profile() {
     const [sortBy, setSortBy] = useState<'custom' | 'dateAdded' | 'title' | 'artist' | 'duration'>('custom');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
     
+    const { refreshLikedSongs } = useLikedSongs();
+
+    useEffect(() => {
+      if (user?.id) {
+        refreshLikedSongs(user.id);
+      }
+    }, [user?.id, refreshLikedSongs]);
     useEffect(() => {
       if (user?.id) {
         loadPlaylists();

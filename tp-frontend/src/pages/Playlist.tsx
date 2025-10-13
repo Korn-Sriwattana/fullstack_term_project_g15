@@ -10,6 +10,7 @@ import modalStyles from "../assets/styles/CreatePlaylistModal.module.css";
 
 import searchIcon from "../assets/images/search-icon.png";
 import emptyImg from "../assets/images/empty/empty-box.png";
+import { useLikedSongs } from "../components/LikedSongsContext.tsx";
 
 const API_URL = "http://localhost:3000";
 
@@ -60,6 +61,7 @@ export default function Playlist() {
   // Drag & Drop state
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   
+  const { refreshLikedSongs } = useLikedSongs();
   useEffect(() => {
     if (userId) {
       loadPlaylists();
@@ -72,6 +74,11 @@ export default function Playlist() {
     }
   }, [user]);
 
+  useEffect(() => {
+    if (user?.id) {
+      refreshLikedSongs(user.id);
+    }
+  }, [user?.id, refreshLikedSongs]);
 
   // Reload เมื่อ sortBy เปลี่ยน
   useEffect(() => {
