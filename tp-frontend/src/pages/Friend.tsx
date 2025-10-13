@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useUser } from "../components/userContext";
+import { useUser } from "../components/userContext.tsx"; // ✅ path แก้ให้ตรงกับของคุณ
 import styles from "../assets/styles/FriendsPage.module.css";
 
 const API_URL = "http://localhost:3000";
@@ -34,6 +34,7 @@ export default function FriendsPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState<FriendUser[]>([]);
+
   const userId = user?.id || "";
 
   useEffect(() => {
@@ -43,66 +44,115 @@ export default function FriendsPage() {
   }, [userId]);
 
   const fetchRequests = async () => {
-    const res = await fetch(`${API_URL}/api/friends/requests?userId=${userId}`);
-    const data = await res.json();
-    setRequests(data.requests || []);
+    try {
+      const res = await fetch(
+        `${API_URL}/api/friends/requests?userId=${userId}`
+      );
+      const data = await res.json();
+      setRequests(data.requests || []);
+    } catch (err) {
+      console.error("❌ Failed to fetch friend requests:", err);
+    }
   };
 
   const fetchFriends = async () => {
-    const res = await fetch(`${API_URL}/api/friends/list?userId=${userId}`);
-    const data = await res.json();
-    setFriends(data.friends || []);
-    setLoading(false);
+    try {
+      const res = await fetch(`${API_URL}/api/friends/list?userId=${userId}`);
+      const data = await res.json();
+      setFriends(data.friends || []);
+    } catch (err) {
+      console.error("❌ Failed to fetch friends:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
+  // ✅ ฟังก์ชันยอมรับคำขอเพื่อน
   const acceptRequest = async (friendId: string) => {
-    await fetch(`${API_URL}/api/friends/accept`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, friendId }),
-    });
-    fetchRequests();
-    fetchFriends();
+    try {
+      if (!userId) return alert("User not loaded yet");
+
+      console.log("📩 Accepting friend request", { userId, friendId });
+
+      const res = await fetch(`${API_URL}/api/friends/accept`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, friendId }),
+      });
+
+      const data = await res.json();
+      console.log("✅ Accept response:", data);
+
+      if (!res.ok) {
+        alert(data.error || "Failed to accept friend request");
+        return;
+      }
+
+      fetchRequests();
+      fetchFriends();
+    } catch (err) {
+      console.error("❌ Error accepting friend request:", err);
+    }
   };
 
+  // ✅ ปฏิเสธคำขอเพื่อน
   const rejectRequest = async (friendId: string) => {
-    await fetch(`${API_URL}/api/friends/remove`, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, friendId }),
-    });
-    fetchRequests();
+    try {
+      await fetch(`${API_URL}/api/friends/remove`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, friendId }),
+      });
+      fetchRequests();
+    } catch (err) {
+      console.error("❌ Error rejecting friend request:", err);
+    }
   };
 
+  // ✅ ลบเพื่อน
   const removeFriend = async (friendId: string) => {
-    await fetch(`${API_URL}/api/friends/remove`, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, friendId }),
-    });
-    fetchFriends();
+    try {
+      await fetch(`${API_URL}/api/friends/remove`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, friendId }),
+      });
+      fetchFriends();
+    } catch (err) {
+      console.error("❌ Error removing friend:", err);
+    }
   };
 
+  // ✅ ค้นหาเพื่อนใหม่
   const handleSearch = async () => {
     if (!searchTerm.trim()) return;
-    const res = await fetch(
-      `${API_URL}/api/friends/search?query=${encodeURIComponent(
-        searchTerm
-      )}&userId=${userId}`
-    );
-    const data = await res.json();
-    setSearchResults(data.users || []);
+    try {
+      const res = await fetch(
+        `${API_URL}/api/friends/search?query=${encodeURIComponent(
+          searchTerm
+        )}&userId=${userId}`
+      );
+      const data = await res.json();
+      setSearchResults(data.users || []);
+    } catch (err) {
+      console.error("❌ Error searching users:", err);
+    }
   };
 
+  // ✅ ส่งคำขอเพื่อน
   const sendRequest = async (friendId: string) => {
-    await fetch(`${API_URL}/api/friends/request`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, friendId }),
-    });
-    setSearchResults((prev) =>
-      prev.map((u) => (u.id === friendId ? { ...u, status: "requested" } : u))
-    );
+    try {
+      await fetch(`${API_URL}/api/friends/request`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, friendId }),
+      });
+      setSearchResults((prev) =>
+        prev.map((u) => (u.id === friendId ? { ...u, status: "requested" } : u))
+      );
+    } catch (err) {
+      console.error("❌ Error sending friend request:", err);
+    }
   };
 
   if (loading) return <p>Loading...</p>;
