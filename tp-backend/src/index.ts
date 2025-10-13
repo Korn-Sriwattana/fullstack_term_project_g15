@@ -1071,6 +1071,7 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
   });
+
 });
 
 function sanitizeSong(song: any) {
@@ -1231,6 +1232,12 @@ async function sendSystemMessage(io: any, roomId: string, message: string) {
   }
 }
 
+// ส่ง event เมื่อรับเพื่อนสำเร็จ
+export const notifyFriendAccepted = (userId: string, friendId: string) => {
+  io.to(userId).emit("friend-updated", { friendId });
+  io.to(friendId).emit("friend-updated", { friendId: userId });
+};
+export { io };
 // ----------------- Error Middleware -----------------
 const jsonErrorHandler: ErrorRequestHandler = (
   err: Error,

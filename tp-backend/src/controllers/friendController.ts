@@ -2,6 +2,7 @@ import type { RequestHandler } from "express";
 import { dbClient } from "../../db/client.js";
 import { friends, users } from "../../db/schema.js";
 import { or, and, eq, ilike, not } from "drizzle-orm";
+import { io, notifyFriendAccepted } from "../index.js";
 
 /* 📥 ดึงคำขอเพื่อนที่ส่งมาหา user */
 export const getFriendRequests: RequestHandler = async (req, res) => {
@@ -67,8 +68,15 @@ export const sendFriendRequest: RequestHandler = async (req, res) => {
     status: "pending",
   });
 
+  // ✅ แจ้งแบบ realtime ให้ฝั่ง friendId
+  io.to(friendId).emit("friend-updated", {
+    type: "incoming-request",
+    from: userId,
+  });
+
   res.json({ message: "Friend request sent." });
 };
+
 
 /* ยอมรับคำขอ */
 export const acceptFriendRequest: RequestHandler = async (req, res) => {
@@ -104,6 +112,7 @@ export const acceptFriendRequest: RequestHandler = async (req, res) => {
     .where(and(eq(friends.userId, friendId), eq(friends.friendId, userId)));
 
   res.json({ message: "Friend request accepted." });
+  notifyFriendAccepted(userId, friendId);
 };
 
 

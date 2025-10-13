@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import { useUser } from "../components/userContext.tsx"; // ✅ path แก้ให้ตรงกับของคุณ
 import styles from "../assets/styles/FriendsPage.module.css";
+import { io } from "socket.io-client";
+const socket = io("http://localhost:3000", {
+   transports: ["websocket"],
+   reconnection: true,
+   reconnectionAttempts: 5,
+ });
 
 const API_URL = "http://localhost:3000";
 
@@ -36,12 +42,31 @@ export default function FriendsPage() {
   const [searchResults, setSearchResults] = useState<FriendUser[]>([]);
 
   const userId = user?.id || "";
-
+  useEffect(() => {
+    if (userId) {
+      socket.emit("set-user", userId);
+      socket.on("friend-updated", () => {
+        fetchRequests();
+        fetchFriends();
+      });
+    }
+    return () => {
+      socket.disconnect();
+    };
+  }, [userId])
   useEffect(() => {
     if (!userId) return;
     fetchRequests();
     fetchFriends();
   }, [userId]);
+
+  const getImageUrl = (url?: string) => {
+    if (!url) return "/default-avatar.png";
+
+    if (url.startsWith("http")) return url; // google / external images
+    return `${API_URL}${url}`;              // ✅ prefix ด้วย backend URL
+  };
+
 
   const fetchRequests = async () => {
     try {
@@ -182,10 +207,11 @@ export default function FriendsPage() {
                 <div key={u.id} className={styles.card}>
                   <div className={styles.profile}>
                     <img
-                      src={u.profilePic || "/default-avatar.png"}
-                      alt={u.name}
-                      className={styles.avatar}
-                    />
+                    src={getImageUrl(u.profilePic)}
+                    alt={u.name}
+                    className={styles.avatar}
+                  />
+
                     <div className={styles.userText}>
                       <span className={styles.userName}>{u.name}</span>
                       <span className={styles.userEmail}>
@@ -230,7 +256,7 @@ export default function FriendsPage() {
               <div key={req.requester?.id} className={styles.card}>
                 <div className={styles.profile}>
                   <img
-                    src={req.requester?.profilePic || "/default-avatar.png"}
+                    src={getImageUrl(req.requester?.profilePic)}
                     alt={req.requester?.name}
                     className={styles.avatar}
                   />
@@ -270,10 +296,11 @@ export default function FriendsPage() {
                 <div key={f.id} className={styles.card}>
                   <div className={styles.profile}>
                     <img
-                      src={f.profilePic || "/default-avatar.png"}
+                      src={getImageUrl(f.profilePic)}
                       alt={f.name}
                       className={styles.avatar}
                     />
+
                     <span className={styles.userName}>{f.name}</span>
                   </div>
                   <button
