@@ -10,6 +10,7 @@ import modalStyles from "../assets/styles/CreatePlaylistModal.module.css";
 
 import searchIcon from "../assets/images/search-icon.png";
 import emptyImg from "../assets/images/empty/empty-box.png";
+import { useLikedSongs } from "../components/LikedSongsContext.tsx";
 
 const API_URL = "http://localhost:3000";
 
@@ -21,6 +22,7 @@ interface Playlist {
   songCount: number;
   isPublic: boolean;
   createdAt: string;
+  ownerId: string;
 }
 
 interface PlaylistSong {
@@ -59,11 +61,24 @@ export default function Playlist() {
   // Drag & Drop state
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   
+  const { refreshLikedSongs } = useLikedSongs();
   useEffect(() => {
     if (userId) {
       loadPlaylists();
     }
   }, [userId]);
+
+  useEffect(() => {
+    if (user?.id) {
+      localStorage.setItem("viewerId", user.id);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (user?.id) {
+      refreshLikedSongs(user.id);
+    }
+  }, [user?.id, refreshLikedSongs]);
 
   // Reload เมื่อ sortBy เปลี่ยน
   useEffect(() => {
@@ -97,15 +112,15 @@ export default function Playlist() {
 
   const loadPlaylists = async () => {
     try {
-      const res = await fetch(`${API_URL}/playlists/${userId}`);
+      if (!user?.id) return;
+
+     const res = await fetch(`${API_URL}/playlists/${user.id}?mode=owner`);
       const data = await res.json();
       setPlaylists(data);
-      
+
       if (selectedPlaylist) {
         const updatedPlaylist = data.find((p: Playlist) => p.id === selectedPlaylist.id);
-        if (updatedPlaylist) {
-          setSelectedPlaylist(updatedPlaylist);
-        }
+        if (updatedPlaylist) setSelectedPlaylist(updatedPlaylist);
       }
     } catch (err) {
       console.error("Load playlists failed:", err);
