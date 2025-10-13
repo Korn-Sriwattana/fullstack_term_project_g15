@@ -2,7 +2,8 @@ import type { RequestHandler } from "express";
 import { dbClient } from "../../db/client.js";
 import { friends, users } from "../../db/schema.js";
 import { or, and, eq, ilike, not } from "drizzle-orm";
-import { io, notifyFriendAccepted } from "../index.js";
+import { io } from "../index.js";
+import type { Request, Response } from "express";
 
 /* 📥 ดึงคำขอเพื่อนที่ส่งมาหา user */
 export const getFriendRequests: RequestHandler = async (req, res) => {
@@ -220,4 +221,39 @@ export const searchUsers: RequestHandler = async (req, res) => {
   }
 
   res.json({ users: userList });
+};
+
+
+// 🔍 ดึงโปรไฟล์เพื่อนด้วย userId
+export const getUserProfile = async (req: Request, res: Response): Promise<void> => {
+  const { id } = req.params;
+
+  if (!id) {
+    res.status(400).json({ error: "Missing user ID" });
+    return;
+  }
+
+  try {
+    const [user] = await dbClient
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        profilePic: users.profilePic,
+        createdAt: users.createdAt,
+      })
+      .from(users)
+      .where(eq(users.id, id))
+      .limit(1);
+
+    if (!user) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+
+    res.json({ user });
+  } catch (err) {
+    console.error("❌ Error fetching user profile:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
 };
