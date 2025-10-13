@@ -36,7 +36,6 @@ export const getFriendRequests: RequestHandler = async (req, res) => {
   res.json({ requests });
 };
 
-
 /* ส่งคำขอเป็นเพื่อน */
 export const sendFriendRequest: RequestHandler = async (req, res) => {
   const { userId, friendId } = req.body;
@@ -68,7 +67,7 @@ export const sendFriendRequest: RequestHandler = async (req, res) => {
     status: "pending",
   });
 
-  // ✅ แจ้งแบบ realtime ให้ฝั่ง friendId
+  console.log(`📨 ${userId} sent friend request to ${friendId}`);
   io.to(friendId).emit("friend-updated", {
     type: "incoming-request",
     from: userId,
@@ -82,12 +81,6 @@ export const sendFriendRequest: RequestHandler = async (req, res) => {
 export const acceptFriendRequest: RequestHandler = async (req, res) => {
   const { userId, friendId } = req.body;
 
-  if (!userId || !friendId) {
-    res.status(400).json({ error: "Missing userId or friendId" });
-    return;
-  }
-
-  // ✅ ตรวจว่ามีคำขอ pending จริงไหม
   const [existing] = await dbClient
     .select()
     .from(friends)
@@ -105,14 +98,16 @@ export const acceptFriendRequest: RequestHandler = async (req, res) => {
     return;
   }
 
-  // ✅ อัปเดตสถานะเป็น accepted
   await dbClient
     .update(friends)
     .set({ status: "accepted" })
     .where(and(eq(friends.userId, friendId), eq(friends.friendId, userId)));
 
+  console.log(`🤝 ${userId} accepted friend request from ${friendId}`);
+  io.to(userId).emit("friend-updated", { type: "friend-accepted", friendId });
+  io.to(friendId).emit("friend-updated", { type: "friend-accepted", friendId: userId });
+
   res.json({ message: "Friend request accepted." });
-  notifyFriendAccepted(userId, friendId);
 };
 
 
@@ -128,6 +123,10 @@ export const removeFriend: RequestHandler = async (req, res) => {
         and(eq(friends.userId, friendId), eq(friends.friendId, userId))
       )
     );
+
+  console.log(`❌ ${userId} removed friend ${friendId}`);
+  io.to(userId).emit("friend-updated", { type: "friend-removed", friendId });
+  io.to(friendId).emit("friend-updated", { type: "friend-removed", friendId: userId });
 
   res.json({ message: "Friend removed." });
 };

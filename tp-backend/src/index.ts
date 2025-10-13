@@ -102,7 +102,7 @@ app.use(
     credentials: true,
   })
 );
-
+const userSockets = new Map<string, string>();
 // Middleware
 app.use(morgan("dev"));
 app.use(
@@ -678,6 +678,21 @@ app.get("/rooms/:roomId/queue", async (req, res, next) => {
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
+    socket.on("set-user-friend", (userId: string) => {
+      if (!userId) return;
+      userSockets.set(userId, socket.id);
+      socket.join(userId);
+      console.log(`👤 ${userId} joined socket room (socket: ${socket.id})`);
+
+      // ส่งกลับให้ client รู้ว่าตั้งค่าเรียบร้อย
+      socket.emit("friend-connected", { ok: true, userId });
+    });
+
+    socket.on("friend-event", (data) => {
+      console.log("📨 Friend event received:", data);
+    });
+
+
   socket.on("set-user", (userId: string) => {
     (socket as any).userId = userId;
     console.log(`Socket ${socket.id} set userId: ${userId}`);
@@ -1069,6 +1084,13 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
+    for (const [uid, sid] of userSockets.entries()) {
+      if (sid === socket.id) {
+        userSockets.delete(uid);
+        console.log(`🔴 ${uid} disconnected`);
+        break;
+      }
+    }
     console.log("User disconnected:", socket.id);
   });
 
@@ -1211,6 +1233,17 @@ setInterval(async () => {
 }, 2 * 60 * 1000); // ทุก 2 นาที
 
 async function sendSystemMessage(io: any, roomId: string, message: string) {
+  const [room] = await dbClient
+    .select({ id: listeningRooms.id })
+    .from(listeningRooms)
+    .where(eq(listeningRooms.id, roomId))
+    .limit(1);
+
+  if (!room) {
+    console.warn("⚠️ Cannot send system message, room not found:", roomId);
+    return;
+  }
+
   const systemMsg = {
     userId: "system",
     userName: "System",
@@ -1231,6 +1264,7 @@ async function sendSystemMessage(io: any, roomId: string, message: string) {
     console.error("Failed to save system message:", err);
   }
 }
+
 
 // ส่ง event เมื่อรับเพื่อนสำเร็จ
 export const notifyFriendAccepted = (userId: string, friendId: string) => {

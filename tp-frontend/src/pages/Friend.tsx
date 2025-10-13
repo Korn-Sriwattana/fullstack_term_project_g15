@@ -43,17 +43,27 @@ export default function FriendsPage() {
 
   const userId = user?.id || "";
   useEffect(() => {
-    if (userId) {
-      socket.emit("set-user", userId);
-      socket.on("friend-updated", () => {
-        fetchRequests();
-        fetchFriends();
-      });
-    }
+    if (!userId) return;
+
+    socket.emit("set-user-friend", userId);
+    console.log("👋 Joined socket as:", userId);
+
+    socket.on("connect", () => console.log("✅ Socket connected:", socket.id));
+    socket.on("disconnect", () => console.log("❌ Socket disconnected"));
+    socket.on("friend-updated", (data) => {
+      console.log("🔔 Friend update received:", data);
+      fetchRequests();
+      fetchFriends();
+    });
+
     return () => {
-      socket.disconnect();
+      socket.off("friend-updated");
+      socket.off("connect");
+      socket.off("disconnect");
     };
-  }, [userId])
+  }, [userId]);
+
+
   useEffect(() => {
     if (!userId) return;
     fetchRequests();
