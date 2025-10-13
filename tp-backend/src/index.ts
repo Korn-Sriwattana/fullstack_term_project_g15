@@ -8,6 +8,7 @@ import {
   listeningRooms,
   songs,
   songStats,
+  friends,
 } from "@db/schema.js";
 import cors from "cors";
 import Debug from "debug";
@@ -77,6 +78,14 @@ import {
 import { toNodeHandler, fromNodeHeaders } from "better-auth/node";
 import { auth } from "./lib/auth.ts";
 import { randomUUID } from "crypto";
+import {
+  sendFriendRequest,
+  acceptFriendRequest,
+  removeFriend,
+  getFriendsList,
+  searchUsers,
+} from "./controllers/friendController.ts";
+import bcrypt from "bcrypt";
 
 const debug = Debug("pf-backend");
 
@@ -172,28 +181,48 @@ app.post(
         .where(eq(users.email, email))
         .limit(1);
 
+      // ✅ ถ้ามีผู้ใช้อยู่แล้ว → ลองตรวจรหัสผ่านแทน
       if (existing.length > 0) {
+        const existingUser = existing[0];
+        if (existingUser.password === null) {
+          res.status(400).json({
+            error:
+              "This account is registered via Google. Please sign in with Google.",
+          });
+          return;
+        }
+
+        const isValid = await bcrypt.compare(password, existingUser.password);
+        if (!isValid) {
+          res.status(401).json({ error: "Invalid password" });
+          return;
+        }
+
         res.status(200).json({
-          message: "User already exists — mock login success",
-          user: existing[0],
+          message: "Login successful",
+          user: existingUser,
         });
         return;
       }
 
+      // ✅ สร้าง user ใหม่ (signup)
+      const hashedPassword = await bcrypt.hash(password, 10);
       const id = randomUUID();
-      const [user] = await dbClient
+
+      const [newUser] = await dbClient
         .insert(users)
         .values({
           id,
-          name: name || "Create Normal User",
+          name: name || email.split("@")[0],
           email,
+          password: hashedPassword,
           profilePic: null,
         })
         .returning();
 
       res.status(201).json({
-        message: "Normal signup success",
-        user,
+        message: "Signup success",
+        user: newUser,
       });
     } catch (err) {
       console.error("Normal signup failed:", err);
@@ -201,6 +230,7 @@ app.post(
     }
   }
 );
+
 // ✅ ตรวจสอบผู้ใช้จาก database โดยตรง (mock login)
 app.get("/api/user/check", async (req: Request, res: Response) => {
   try {
@@ -395,6 +425,24 @@ app.post(
   uploadProfile.single("image"),
   uploadProfilePic
 );
+
+// ----------------- Friend API -----------------
+app.get("/api/friends/requests", async (req, res) => {
+  const { userId } = req.query;
+  const rows = await dbClient
+    .select()
+    .from(friends)
+    .where(
+      and(eq(friends.friendId, userId as string), eq(friends.status, "pending"))
+    );
+  res.json({ requests: rows });
+});
+
+app.post("/api/friends/request", sendFriendRequest);
+app.post("/api/friends/accept", acceptFriendRequest);
+app.delete("/api/friends/remove", removeFriend);
+app.get("/api/friends/list", getFriendsList);
+app.get("/api/friends/search", searchUsers);
 
 // ----------------- Playlist API -----------------
 
@@ -1066,7 +1114,7 @@ async function deleteRoomIfEmpty(io: any, roomId: string) {
     const dbCount = memberCount?.count || 0;
     const socketCount = io.sockets.adapter.rooms.get(roomId)?.size || 0;
 
-    console.log(`🔍 Checking room ${roomId}:`, { dbCount, socketCount });
+    //console.log(`🔍 Checking room ${roomId}:`, { dbCount, socketCount });
 
     if (dbCount === 0 && socketCount === 0) {
       console.log(`🗑️ Deleting empty room: ${roomId}`);
@@ -1152,7 +1200,7 @@ async function broadcastPublicRooms(io: any) {
 // เพิ่ม scheduled cleanup (optional - สำหรับความแน่ใจเป็นพิเศษ)
 setInterval(async () => {
   try {
-    console.log("🧹 Running scheduled room cleanup...");
+    //console.log("🧹 Running scheduled room cleanup...");
 
     const allRooms = await dbClient
       .select({ id: listeningRooms.id })

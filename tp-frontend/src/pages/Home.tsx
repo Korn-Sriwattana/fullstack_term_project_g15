@@ -19,9 +19,9 @@ const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
   const { setUser, user } = useUser();
   const userId = user?.id || "";
   const [email, setEmail] = useState(localStorage.getItem("email") || ""); // ✅ mock email จาก signup
-  
+
   const { refreshLikedSongs } = useLikedSongs();
-   
+
   //  ตรวจสอบผู้ใช้จาก database โดยตรง
   useEffect(() => {
     const checkUserInDatabase = async () => {
@@ -68,13 +68,12 @@ const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
     }
   }, [userId]);
 
-   useEffect(() => {
-      if (userId) {
-        console.log("🔄 Auto-refreshing liked songs for user:", userId);
-        refreshLikedSongs(userId);
-      }
-    }, [userId, refreshLikedSongs]);
-
+  useEffect(() => {
+    if (userId) {
+      console.log("🔄 Auto-refreshing liked songs for user:", userId);
+      refreshLikedSongs(userId);
+    }
+  }, [userId, refreshLikedSongs]);
 
   // Real-time search with debounce
   useEffect(() => {
