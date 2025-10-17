@@ -6,8 +6,8 @@ Group Member
 
 - สรุปขั้นตอนการนำไปพัฒนาต่อว่า หลังจากที่ clone project แล้วต้องรันคำสั่งอะไรบ้าง จึงเริ่มพัฒนาต่อได้
     - db
-    File init.sh เปลี่ยนจาก CRLF เป็น LF
-    .npmrc ให้ uncomment อันที่ตัวเองใช้
+        - File init.sh เปลี่ยนจาก CRLF เป็น LF
+        - .npmrc ให้ uncomment อันที่ตัวเองใช้
         1. pnpm install
         2. pnpm dlx @better-auth/cli@latest generate
         3. npm run db:generate
