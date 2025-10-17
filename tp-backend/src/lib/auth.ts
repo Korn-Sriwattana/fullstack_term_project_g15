@@ -13,6 +13,7 @@ export const auth = betterAuth({
   advanced: {
     database: {
       generateId: () => randomUUID(),
+      migrate: false,
     },
   },
 
@@ -99,5 +100,10 @@ export const auth = betterAuth({
 
   emailAndPassword: {
     enabled: true,
+  },
+
+   redirectURLs: {
+    afterSignIn: "http://localhost:5173/", // ไปหน้า frontend หลัง login เสร็จ
+    afterSignOut: "http://localhost:5173/",
   },
 });

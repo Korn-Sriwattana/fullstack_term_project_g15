@@ -9,7 +9,9 @@
     "paths": {
       "@db/*": ["./db/*"],
       "@/*": ["src/*"]
-    }
+    },
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
   },
   "include": ["./*", "./src/**/*", "./db/**/*"]
 }
