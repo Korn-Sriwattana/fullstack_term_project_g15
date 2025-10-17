@@ -1,8 +1,22 @@
 # fullstack_term_project_g15
 
+Project_Overview
+
+เว็บไซต์สำหรับฟังเพลงที่ให้ผู้ใช้ที่รักการฟังเพลงสามารถเล่นเพลงได้เต็มรูปแบบ สร้างและจัดการเพลย์ลิสต์ส่วนตัว อีกทั้งยังเป็นศูนย์รวมสำหรับสร้าง community ของเด็กมช. ที่มีรสนิยมการฟังเพลงคล้ายกัน ซึ่งสามารถเข้าร่วมห้องฟังเพลงร่วมกันแบบ real-time และพูดคุยแลกเปลี่ยนความคิดเห็นเกี่ยวกับเพลงและอื่น ๆ ได้
+
 Group Member
 
 660610738	Korn Sriwattana	660610779	Pimolnat Kaewboot	660612137	Kachapat Punthong	660610863	Yada Pholam
+
+Technology Stack 
+
+| **Layer** | **Technologies** |
+|------------|------------------|
+| **Backend** | Express, Authentication (BCrypt), Better Auth, YouTube API (Data v3), WebSocket |
+| **Frontend** | React, Vite |
+| **Database** | PostgreSQL, Drizzle ORM |
+| **Testing** | Cypress |
+
 
 13 OCT (20.29)ทำครั้งเดียว
 - backend
