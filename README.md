@@ -6,13 +6,13 @@ Group Member
 
 - สรุปขั้นตอนการนำไปพัฒนาต่อว่า หลังจากที่ clone project แล้วต้องรันคำสั่งอะไรบ้าง จึงเริ่มพัฒนาต่อได้
     - db
-        - File init.sh เปลี่ยนจาก CRLF เป็น LF
-        - .npmrc ให้ uncomment อันที่ตัวเองใช้
-        1. pnpm install
-        2. pnpm dlx @better-auth/cli@latest generate
-        3. npm run db:generate
-        3. docker compose up -d
-        4. npm run db:push
+        1. File init.sh เปลี่ยนจาก CRLF เป็น LF
+        2. .npmrc ให้ uncomment อันที่ตัวเองใช้
+        3. pnpm install
+        4. pnpm dlx @better-auth/cli@latest generate
+        5. npm run db:generate
+        6. docker compose up -d
+        7. npm run db:push
 
     - backend
         1. pnpm install
