@@ -12,7 +12,7 @@ Technology Stack
 
 | **Layer** | **Technologies** |
 |------------|------------------|
-| **Backend** | Express, Authentication (BCrypt), Better Auth, YouTube API (Data v3), WebSocket |
+| **Backend** | Express, Authentication (BCrypt), Better Auth, YouTube API (Youtube Player api, Youtube Data api v3) , WebSocket |
 | **Frontend** | React, Vite |
 | **Database** | PostgreSQL, Drizzle ORM |
 | **Testing** | Cypress |
