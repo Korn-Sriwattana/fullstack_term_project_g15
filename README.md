@@ -40,3 +40,7 @@ Technology Stack
         1. pnpm install
         2. npx cypress install
         3. npm run test
+
+- ขั้นตอนและ script สำหรับการ seed ข้อมูลเบื้องต้นลงใน database ที่ใช้งาน
+    - seed
+    - 
