@@ -21,26 +21,35 @@ Technology Stack
     - db
         1. File init.sh เปลี่ยนจาก CRLF เป็น LF
         2. .npmrc ให้ uncomment อันที่ตัวเองใช้
-        3. pnpm install
-        4. pnpm dlx @better-auth/cli@latest generate
-        5. npm run db:generate
-        6. docker compose up -d
-        7. npm run db:push
+        3. `pnpm install`
+        4. `pnpm dlx @better-auth/cli@latest generate`
+        5. `npm run db:generate`
+        6. `docker compose up -d`
+        7. `npm run db:push`
 
     - backend
-        1. pnpm install
-        2. pnpm dlx @better-auth/cli@latest generate
-        3. docker compose up -d
+        1. `pnpm install`
+        2. `pnpm dlx @better-auth/cli@latest generate`
+        3. `docker compose up -d`
 
     - frontend
-        1. pnpm install
-        2. docker compose up -d
+        1. `pnpm install`
+        2. `docker compose up -d`
 
     - testing
-        1. pnpm install
-        2. npx cypress install
-        3. npm run test
+        1. `pnpm install`
+        2. `npx cypress install`
+        3. `npm run test`
 
 - ขั้นตอนและ script สำหรับการ seed ข้อมูลเบื้องต้นลงใน database ที่ใช้งาน
-    - seed
-    - 
+  - ขั้นตอนการ seed ข้อมูล
+        1. `cd tp-backend`
+        2. `npm run seed`
+    - ข้อมูลที่ให้สำหรับ seed ได้แก่
+      users: Alice, Bob, Charlie
+      songs: ที่คั่นหนังสือ (Sometimes), IRIS OUT, FaSHioN, Lover Boy 88, Shape of You, Don't Stop Me Now
+      playlists: Morning Soft, Focus Beats, Workout Energy, Night Drive, Chillwave Mix, Retro Vibes
+      friends: Alice↔Bob (สถานะ: accepted), Alice→Charlie (สถานะ: pending)
+      likedSongs: Alice(ที่คั่นหนังสือ), Bob(Don't Stop Me Now), Charlie(FaSHioN)
+      images: dummy01.png–dummy15.png
+
