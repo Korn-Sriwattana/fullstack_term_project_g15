@@ -8,6 +8,20 @@
       "when": 1760361046642,
       "tag": "0000_jazzy_bishop",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1761280443665,
+      "tag": "0001_curly_victor_mancha",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1761286976597,
+      "tag": "0002_sweet_storm",
+      "breakpoints": true
     }
   ]
 }

@@ -73,7 +73,7 @@ export default function Topbar({
         ? (user as any).profilePic
         : `${API_URL}${(user as any).profilePic}`
       : defaultAvatar;
-
+  console.log("🧩 Avatar URL:", avatarSrc);
   return (
     <div className={styles.topbar}>
       {/* ☰ ปุ่มเปิด sidebar */}
