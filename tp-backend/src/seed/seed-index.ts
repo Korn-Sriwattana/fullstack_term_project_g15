@@ -5,7 +5,6 @@ import { seedSongs } from "./seed-data/songs.seed.ts";
 import { seedPlaylists } from "./seed-data/playlists.seed.ts";
 import { seedFriends } from "./seed-data/friends.seed.ts";
 import { seedLikedSongs } from "./seed-data/liked-songs.seed.ts";
-import { seedRooms } from "./seed-data/rooms.seed.ts";
 import { seedSongStats } from "./seed-data/song-stats.seed.ts";
 
 async function main() {
@@ -31,9 +30,6 @@ async function main() {
 
   await seedLikedSongs(userMap, songMap);
   console.log("Finished seeding liked songs\n");
-
-  await seedRooms(userMap, songMap);
-  console.log("Finished seeding listening rooms\n");
 
   console.log("\n🎉 All seeding tasks completed successfully!");
   process.exit(0);

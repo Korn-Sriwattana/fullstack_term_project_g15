@@ -22,32 +22,6 @@ const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
 
   const { refreshLikedSongs } = useLikedSongs();
 
-  //  ตรวจสอบผู้ใช้จาก database โดยตรง
-  useEffect(() => {
-    const checkUserInDatabase = async () => {
-      try {
-        if (!email) return;
-
-        const res = await fetch(`${API_URL}/api/user/check?email=${email}`);
-        const data = await res.json();
-
-        if (data.exists && data.user) {
-          setUser({
-            id: data.user.id,
-            name: data.user.name,
-            email: data.user.email,
-          });
-        } else {
-          setUser(null);
-        }
-      } catch (err) {
-        console.error("Database user check failed:", err);
-      }
-    };
-
-    checkUserInDatabase();
-  }, [email, setUser]);
-
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Song[]>([]);
   const [youtubeUrl, setYoutubeUrl] = useState("");

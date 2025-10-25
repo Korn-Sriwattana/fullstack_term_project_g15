@@ -32,7 +32,7 @@ export default function Profile() {
   console.log("👤 user from context:", user);
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState("");
-  const [profile_pic, setProfilePic] = useState("");
+  const [profilePic, setProfilePic] = useState("");
   const [preview, setPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -360,7 +360,7 @@ export default function Profile() {
     if (user) {
       setName(user.name || "");
       // ถ้า backend เพิ่ม field profilePic ในตาราง user ให้ใช้ตรงนี้
-      setProfilePic((user as any).profile_pic || "");
+      setProfilePic(user.profile_pic || "");
     }
   }, [user]);
 
@@ -400,11 +400,11 @@ export default function Profile() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ name, profilePic: data.imageUrl }),
+        body: JSON.stringify({ name, profile_pic: data.imageUrl }),
       });
 
       // ✅ sync user context
-      setUser((prev: any) => ({ ...prev, profilePic: data.imageUrl }));
+      setUser((prev: any) => ({ ...prev, profile_pic: data.imageUrl }));
       alert("Profile picture updated!");
     } catch (err) {
       console.error("Upload error:", err);
@@ -422,9 +422,9 @@ export default function Profile() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ name, profilePic: profile_pic }),
+        body: JSON.stringify({ name, profile_pic: profilePic }),
       });
-      setUser((prev: any) => ({ ...prev, name, profilePic: profile_pic }));
+      setUser((prev: any) => ({ ...prev, name, profile_pic: profilePic }));
       alert("Profile updated!");
       setEditing(false);
     } catch (err) {
@@ -454,7 +454,7 @@ export default function Profile() {
           <img
             src={
               preview ||
-              (imageError ? createSvgAvatar(name) : getImageUrl(profile_pic))
+              (imageError ? createSvgAvatar(name) : getImageUrl(profilePic))
             }
             alt="Profile"
             onError={() => setImageError(true)}
