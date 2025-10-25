@@ -1,5 +1,5 @@
-import { dbClient } from "../../client.ts";
-import { users } from "../../schema.ts";
+import { dbClient } from "../../../db/client.ts";
+import { users } from "../../../db/schema.ts";
 import { randomUUID } from "crypto";
 import bcrypt from "bcrypt";
 import { eq } from "drizzle-orm";

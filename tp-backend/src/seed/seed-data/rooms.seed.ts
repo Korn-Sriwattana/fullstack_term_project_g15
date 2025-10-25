@@ -1,5 +1,5 @@
-import { dbClient } from "../../client.ts";
-import { listeningRooms, roomMembers } from "../../schema.ts";
+import { dbClient } from "../../../db/client.ts";
+import { listeningRooms, roomMembers } from "../../../db/schema.ts";
 import { randomUUID } from "crypto";
 import { eq } from "drizzle-orm";
 

@@ -1,12 +1,12 @@
 import "dotenv/config";
-import { copySeedImages } from "./seed-data/copy-images.seed.js";
-import { seedUsers } from "./seed-data/users.seed.js";
-import { seedSongs } from "./seed-data/songs.seed.js";
-import { seedPlaylists } from "./seed-data/playlists.seed.js";
-import { seedFriends } from "./seed-data/friends.seed.js";
-import { seedLikedSongs } from "./seed-data/liked-songs.seed.js";
-import { seedRooms } from "./seed-data/rooms.seed.js";
-import { seedSongStats } from "./seed-data/song-stats.seed.js";
+import { copySeedImages } from "./seed-data/copy-images.seed.ts";
+import { seedUsers } from "./seed-data/users.seed.ts";
+import { seedSongs } from "./seed-data/songs.seed.ts";
+import { seedPlaylists } from "./seed-data/playlists.seed.ts";
+import { seedFriends } from "./seed-data/friends.seed.ts";
+import { seedLikedSongs } from "./seed-data/liked-songs.seed.ts";
+import { seedRooms } from "./seed-data/rooms.seed.ts";
+import { seedSongStats } from "./seed-data/song-stats.seed.ts";
 
 async function main() {
   console.log("🌱 Starting structured seed process...\n");

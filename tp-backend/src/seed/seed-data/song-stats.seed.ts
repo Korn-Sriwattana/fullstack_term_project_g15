@@ -1,5 +1,5 @@
-import { dbClient } from "../../client.ts";
-import { songStats } from "../../schema.ts";
+import { dbClient } from "../../../db/client.ts";
+import { songStats } from "../../../db/schema.ts";
 import { eq } from "drizzle-orm";
 
 export async function seedSongStats(songMap: Record<string, string>) {
