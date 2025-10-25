@@ -1,0 +1,14 @@
+[
+  {
+    "userEmail": "alice@example.com",
+    "friendEmail": "bob@example.com",
+    "requestedBy": "alice@example.com",
+    "status": "accepted"
+  },
+  {
+    "userEmail": "alice@example.com",
+    "friendEmail": "charlie@example.com",
+    "requestedBy": "alice@example.com",
+    "status": "pending"
+  }
+]

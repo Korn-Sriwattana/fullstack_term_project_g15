@@ -1,30 +1,19 @@
-import { dbClient } from "../../../db/client.ts";
-import { users } from "../../../db/schema.ts";
+import fs from "fs";
+import path from "path";
+import { dbClient } from "../../../db/client.js";
+import { users } from "../../../db/schema.js";
 import { randomUUID } from "crypto";
 import bcrypt from "bcrypt";
 import { eq } from "drizzle-orm";
 
 export async function seedUsers() {
-  const baseUsers = [
-    {
-      name: "Alice",
-      email: "alice@example.com",
-      password: "a1234",
-      profile_pic: "/uploads/profile-pics/alice.png",
-    },
-    {
-      name: "Bob",
-      email: "bob@example.com",
-      password: "b1234",
-      profile_pic: "/uploads/profile-pics/bob.png",
-    },
-    {
-      name: "Charlie",
-      email: "charlie@example.com",
-      password: "c1234",
-      profile_pic: "/uploads/profile-pics/charlie.png",
-    },
-  ];
+  const dataPath = path.resolve("data/users.json");
+  if (!fs.existsSync(dataPath)) {
+    throw new Error(`❌ users.json not found at ${dataPath}`);
+  }
+
+  const fileContent = fs.readFileSync(dataPath, "utf-8");
+  const baseUsers = JSON.parse(fileContent);
 
   const userMap: Record<string, string> = {};
 
@@ -34,6 +23,7 @@ export async function seedUsers() {
       .from(users)
       .where(eq(users.email, u.email))
       .limit(1);
+
     if (existing.length === 0) {
       const hashed = await bcrypt.hash(u.password, 10);
       const [inserted] = await dbClient
@@ -53,6 +43,7 @@ export async function seedUsers() {
       console.log(`✅ User exists: ${u.email}`);
     }
   }
+
   console.log("Finished seeding users\n");
   return userMap;
 }

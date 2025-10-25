@@ -36,10 +36,11 @@ export const auth = betterAuth({
               .from(users)
               .where(eq(users.email, newUser.email))
               .limit(1);
+
             // ✅ แปลง URL เป็นขนาดใหญ่ก่อนเก็บ
-            let profilePic = newUser.image;
-            if (profilePic?.includes("googleusercontent.com")) {
-              profilePic = profilePic.replace(/=s\d+-c$/, "=s500");
+            let profile_pic = newUser.image;
+            if (profile_pic?.includes("googleusercontent.com")) {
+              profile_pic = profile_pic.replace(/=s\d+-c$/, "=s500");
             }
 
             if (!existing) {
@@ -48,7 +49,7 @@ export const auth = betterAuth({
                 id: newUser.id,
                 name: newUser.name,
                 email: newUser.email,
-                profilePic: newUser.image, // ✅ copy รูปจาก Google OAuth
+                profile_pic, // ✅ ใช้ชื่อ field ให้ตรงกับ schema
               });
               console.log(
                 "✅ Created new user with profile pic:",
@@ -59,7 +60,7 @@ export const auth = betterAuth({
               if (!existing.profile_pic && newUser.image) {
                 await db
                   .update(users)
-                  .set({ profilePic: newUser.image })
+                  .set({ profile_pic: newUser.image }) // ✅ ใช้ชื่อ field ตรงกับ schema
                   .where(eq(users.id, existing.id));
                 console.log(
                   "✅ Updated profile pic for existing user:",
@@ -90,7 +91,7 @@ export const auth = betterAuth({
             if (updatedUser.image !== undefined) {
               await db
                 .update(users)
-                .set({ profilePic: updatedUser.image })
+                .set({ profile_pic: updatedUser.image }) // ✅ ใช้ชื่อ field ตรงกับ schema
                 .where(eq(users.id, updatedUser.id));
               console.log(
                 "✅ Synced profile pic to users table:",
@@ -111,7 +112,7 @@ export const auth = betterAuth({
     enabled: true,
   },
 
-   redirectURLs: {
+  redirectURLs: {
     afterSignIn: "http://localhost:5173/", // ไปหน้า frontend หลัง login เสร็จ
     afterSignOut: "http://localhost:5173/",
   },
