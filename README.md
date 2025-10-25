@@ -48,6 +48,7 @@ Technology Stack
   - ข้อมูลที่ให้สำหรับ seed ได้แก่
   - users: Alice, Bob, Charlie
   - songs: ที่คั่นหนังสือ (Sometimes), IRIS OUT, FaSHioN, Lover Boy 88, Shape of You, Don't Stop Me Now
+  - song-stat:เลขสมมติของจำนวนการฟังของเพลงนั้นๆ มีค่าระหว่าง 1 ถึง 50
   - playlists: Morning Soft, Focus Beats, Workout Energy, Night Drive, Chillwave Mix, Retro Vibes
   - friends: Alice↔Bob (สถานะ: accepted), Alice→Charlie (สถานะ: pending)
   - likedSongs: Alice(ที่คั่นหนังสือ), Bob(Don't Stop Me Now), Charlie(FaSHioN)
