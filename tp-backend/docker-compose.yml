@@ -5,16 +5,24 @@ services:
     build: .
     ports:
       - ${PORT}:3000
+    env_file:
+      - .env
     networks:
-      - term_tp-net
+      - term-project_tp-net
     environment:
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_PORT=${POSTGRES_PORT}
       - POSTGRES_HOST=${POSTGRES_HOST}
       - POSTGRES_APP_USER=${POSTGRES_APP_USER}
       - POSTGRES_APP_PASSWORD=${POSTGRES_APP_PASSWORD}
+      - BETTER_AUTH_URL=${BETTER_AUTH_URL}
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - YOUTUBE_API_KEY=${YOUTUBE_API_KEY}
     volumes:
       - ./logs:/app/logs
+      - ./uploads:/app/uploads
     post_start:
       - command:
           [
@@ -23,5 +31,5 @@ services:
             'npm run db:migrate | awk ''{ print strftime("[%Y-%m-%d %H:%M:%S]"), $0; fflush(); }'' | tee -a /app/logs/migration.log',
           ]
 networks:
-  term_tp-net: # Check by using `docker network ls` command
+  term-project_tp-net: # Check by using `docker network ls` command
     external: true

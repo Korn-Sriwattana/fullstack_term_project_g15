@@ -13,6 +13,8 @@ COPY . .
 # Install project dependencies using pnpm
 RUN pnpm install
 
+COPY public ./public
+
 # Build the application (for example, compiles source code and bundles files)
 RUN npm run build
 
