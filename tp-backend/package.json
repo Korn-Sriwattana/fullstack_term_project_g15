@@ -31,15 +31,7 @@
     "db:push": "cross-env NODE_OPTIONS='--import tsx' drizzle-kit push",
     "db:migrate": "cross-env NODE_OPTIONS='--import tsx' drizzle-kit migrate",
     "db:prototype": "tsx ./db/prototype.ts",
-    "seed": "tsx ./src/seed/seed-index.ts",
-    "seed:images": "tsx ./src/seed/seed-data/copy-images.seed.ts",
-    "seed:users": "tsx ./src/seed/seed-data/users.seed.ts",
-    "seed:songs": "tsx ./src/seed/seed-data/songs.seed.ts",
-    "seed:playlists": "tsx ./src/seed/seed-data/playlists.seed.ts",
-    "seed:liked": "tsx ./src/seed/seed-data/liked-songs.seed.ts",
-    "seed:friends": "tsx ./src/seed/seed-data/friends.seed.ts",
-    "seed:rooms": "tsx ./src/seed/seed-data/rooms.seed.ts",
-    "seed:stats": "tsx ./src/seed/seed-data/song-stats.seed.ts"
+    "seed": "tsx ./src/seed/seed-index.ts"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
