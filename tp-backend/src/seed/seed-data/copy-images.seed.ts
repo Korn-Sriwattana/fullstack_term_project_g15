@@ -2,8 +2,8 @@ import fs from "fs";
 import path from "path";
 
 export async function copySeedImages() {
-  const seedDir = "./src/seed/seed-image";
-  console.log("📁 Found seed-image:", fs.readdirSync(seedDir));
+  const seedDir = "./data/image";
+  // console.log("📁 Found seed-image:", fs.readdirSync(seedDir)); //สำหรับDebug
   const destProfiles = "./uploads/profile-pics";
   const destCovers = "./uploads/playlist-covers";
 

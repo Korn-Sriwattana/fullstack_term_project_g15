@@ -1,0 +1,20 @@
+[
+  {
+    "name": "Alice",
+    "email": "alice@example.com",
+    "password": "a1234",
+    "profile_pic": "/uploads/profile-pics/alice.png"
+  },
+  {
+    "name": "Bob",
+    "email": "bob@example.com",
+    "password": "b1234",
+    "profile_pic": "/uploads/profile-pics/bob.png"
+  },
+  {
+    "name": "Charlie",
+    "email": "charlie@example.com",
+    "password": "c1234",
+    "profile_pic": "/uploads/profile-pics/charlie.png"
+  }
+]

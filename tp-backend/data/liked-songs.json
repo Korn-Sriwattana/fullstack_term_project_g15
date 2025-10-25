@@ -1,0 +1,5 @@
+[
+  { "userEmail": "alice@example.com", "youtubeVideoId": "L051YSpEEYU" },
+  { "userEmail": "bob@example.com", "youtubeVideoId": "HgzGwKwLmgM" },
+  { "userEmail": "charlie@example.com", "youtubeVideoId": "42wfEs7oIP8" }
+]

@@ -10,7 +10,7 @@
       "@db/*": ["./db/*"],
       "@/*": ["src/*"]
     },
-    "ignoreDeprecations": "6.0"
+    "ignoreDeprecations": "6.0",
     "noUnusedLocals": false,
     "noUnusedParameters": false
   },
