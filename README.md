@@ -43,13 +43,13 @@ Technology Stack
 
 - ขั้นตอนและ script สำหรับการ seed ข้อมูลเบื้องต้นลงใน database ที่ใช้งาน
   - ขั้นตอนการ seed ข้อมูล
-        1. `cd tp-backend`
-        2. `npm run seed`
-    - ข้อมูลที่ให้สำหรับ seed ได้แก่
-      users: Alice, Bob, Charlie
-      songs: ที่คั่นหนังสือ (Sometimes), IRIS OUT, FaSHioN, Lover Boy 88, Shape of You, Don't Stop Me Now
-      playlists: Morning Soft, Focus Beats, Workout Energy, Night Drive, Chillwave Mix, Retro Vibes
-      friends: Alice↔Bob (สถานะ: accepted), Alice→Charlie (สถานะ: pending)
-      likedSongs: Alice(ที่คั่นหนังสือ), Bob(Don't Stop Me Now), Charlie(FaSHioN)
-      images: dummy01.png–dummy15.png
+  1. `cd tp-backend`
+  2. `npm run seed`
+  - ข้อมูลที่ให้สำหรับ seed ได้แก่
+  - users: Alice, Bob, Charlie
+  - songs: ที่คั่นหนังสือ (Sometimes), IRIS OUT, FaSHioN, Lover Boy 88, Shape of You, Don't Stop Me Now
+  - playlists: Morning Soft, Focus Beats, Workout Energy, Night Drive, Chillwave Mix, Retro Vibes
+  - friends: Alice↔Bob (สถานะ: accepted), Alice→Charlie (สถานะ: pending)
+  - likedSongs: Alice(ที่คั่นหนังสือ), Bob(Don't Stop Me Now), Charlie(FaSHioN)
+  - images: dummy01.png–dummy15.png
 
