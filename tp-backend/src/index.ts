@@ -220,7 +220,7 @@ app.post(
           name: name || email.split("@")[0],
           email,
           password: hashedPassword,
-          profilePic: null,
+          profile_pic: null,
         })
         .returning();
 
@@ -316,14 +316,14 @@ app.put(
         return;
       }
 
-      const { name, profilePic } = req.body;
+      const { name, profile_pic } = req.body;
 
       // อัปเดตเฉพาะ name / profilePic ในตาราง users
       await dbClient
         .update(users)
         .set({
           name,
-          profilePic,
+          profile_pic,
         })
         .where(eq(users.id, session.user.id));
 
@@ -332,11 +332,11 @@ app.put(
         headers: fromNodeHeaders(req.headers),
         body: {
           name,
-          image: profilePic,
+          image: profile_pic,
         },
       });
 
-      res.json({ success: true, name, profilePic });
+      res.json({ success: true, name, profile_pic });
     } catch (err) {
       next(err);
     }
@@ -512,7 +512,7 @@ app.get(
           user: {
             id: users.id,
             name: users.name,
-            profilePic: users.profilePic,
+            profilePic: users.profile_pic,
           },
         })
         .from(roomMessages)
@@ -682,20 +682,19 @@ app.get("/rooms/:roomId/queue", async (req, res, next) => {
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
-    socket.on("set-user-friend", (userId: string) => {
-      if (!userId) return;
-      userSockets.set(userId, socket.id);
-      socket.join(userId);
-      console.log(`👤 ${userId} joined socket room (socket: ${socket.id})`);
+  socket.on("set-user-friend", (userId: string) => {
+    if (!userId) return;
+    userSockets.set(userId, socket.id);
+    socket.join(userId);
+    console.log(`👤 ${userId} joined socket room (socket: ${socket.id})`);
 
-      // ส่งกลับให้ client รู้ว่าตั้งค่าเรียบร้อย
-      socket.emit("friend-connected", { ok: true, userId });
-    });
+    // ส่งกลับให้ client รู้ว่าตั้งค่าเรียบร้อย
+    socket.emit("friend-connected", { ok: true, userId });
+  });
 
-    socket.on("friend-event", (data) => {
-      console.log("📨 Friend event received:", data);
-    });
-
+  socket.on("friend-event", (data) => {
+    console.log("📨 Friend event received:", data);
+  });
 
   socket.on("set-user", (userId: string) => {
     (socket as any).userId = userId;
@@ -808,7 +807,7 @@ io.on("connection", (socket) => {
         ? {
             id: user.id,
             name: user.name,
-            profilePic: user.profilePic,
+            profile_pic: user.profile_pic,
           }
         : undefined,
     });
@@ -1096,7 +1095,6 @@ io.on("connection", (socket) => {
     }
     console.log("User disconnected:", socket.id);
   });
-
 });
 
 function sanitizeSong(song: any) {

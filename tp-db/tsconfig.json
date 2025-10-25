@@ -8,6 +8,7 @@
     "baseUrl": "./",
     "paths": {
       "@db/*": ["./db/*"]
-    }
+    },
+    "ignoreDeprecations": "6.0"
   }
 }

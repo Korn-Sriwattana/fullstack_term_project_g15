@@ -1,5 +1,5 @@
 {
-  "name": "",
+  "name": "tp-backend",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -31,7 +31,7 @@
     "db:push": "cross-env NODE_OPTIONS='--import tsx' drizzle-kit push",
     "db:migrate": "cross-env NODE_OPTIONS='--import tsx' drizzle-kit migrate",
     "db:prototype": "tsx ./db/prototype.ts",
-    "seed": "tsx ./db/seed.ts"
+    "seed": "tsx ./db/seed/seed-index.ts"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
