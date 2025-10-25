@@ -43,8 +43,13 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         );
         const data = await res.json();
 
-        if (data.user) setUser(data.user);
-        else setUser(null);
+        if (data.users && Array.isArray(data.users)) {
+          setUser(data.users[0]);
+        } else if (data.user) {
+          setUser(data.user);
+        } else {
+          setUser(null);
+        }
       } catch (err) {
         console.error("❌ Failed to load current user:", err);
         setUser(null);

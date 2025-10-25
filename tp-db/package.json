@@ -28,7 +28,8 @@
     "db:push": "cross-env NODE_OPTIONS='--import tsx' drizzle-kit push",
     "db:migrate": "cross-env NODE_OPTIONS='--import tsx' drizzle-kit migrate",
     "db:prototype": "tsx ./db/prototype.ts",
-    "eol": "eolConverter _entrypoint/*.sh"
+    "eol": "eolConverter _entrypoint/*.sh",
+    "seed": "tsx ./db/seed.ts"
   },
   "devDependencies": {
     "@tsconfig/node-lts": "^22.0.2",
@@ -44,6 +45,7 @@
     "better-auth": "^1.3.27",
     "dotenv": "^16.6.0",
     "drizzle-orm": "^0.44.2",
-    "postgres": "^3.4.7"
+    "postgres": "^3.4.7",
+    "bcrypt": "^6.0.0"
   }
 }
