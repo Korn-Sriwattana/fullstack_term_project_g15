@@ -52,4 +52,5 @@ export async function copySeedImages() {
       console.log(`🖼️ Copied ${path.basename(f.src)} → ${f.dest}`);
     }
   }
+  console.log("Finished copying seed images\n");
 }

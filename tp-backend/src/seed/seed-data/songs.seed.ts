@@ -65,6 +65,6 @@ export async function seedSongs() {
       console.log(`✅ Song exists: ${s.title}`);
     }
   }
-
+  console.log("Finished seeding liked songs\n");
   return songMap;
 }

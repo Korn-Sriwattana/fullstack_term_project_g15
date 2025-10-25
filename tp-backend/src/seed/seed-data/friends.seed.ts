@@ -31,4 +31,5 @@ export async function seedFriends(userMap: Record<string, string>) {
   } else {
     console.log("✅ Friends already exist for Alice");
   }
+  console.log("Finished seeding friends\n");
 }

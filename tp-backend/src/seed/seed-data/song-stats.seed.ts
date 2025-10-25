@@ -18,4 +18,5 @@ export async function seedSongStats(songMap: Record<string, string>) {
       console.log(`📊 Stats created for song ID: ${id}`);
     }
   }
+  console.log("Finished seeding song stats\n");
 }

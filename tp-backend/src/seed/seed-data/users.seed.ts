@@ -53,6 +53,6 @@ export async function seedUsers() {
       console.log(`✅ User exists: ${u.email}`);
     }
   }
-
+  console.log("Finished seeding users\n");
   return userMap;
 }

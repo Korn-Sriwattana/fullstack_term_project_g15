@@ -126,6 +126,6 @@ export async function seedPlaylists(
     }
   }
 
-  console.log("🎶 Finished seeding playlists and playlist_songs.\n");
+  console.log("Finished seeding playlists and playlist_songs.\n");
   return playlistMap;
 }

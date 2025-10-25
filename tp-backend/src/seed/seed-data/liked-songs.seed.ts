@@ -25,4 +25,5 @@ export async function seedLikedSongs(
       console.log(`💖 Added liked song for ${l.userEmail}`);
     }
   }
+  console.log("Finished seeding songs\n");
 }
