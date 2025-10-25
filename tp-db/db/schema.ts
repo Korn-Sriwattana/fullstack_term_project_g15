@@ -11,7 +11,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
-/* === USER === */ // ตาราง users สำหรับเก็บข้อมูลผู้ใช้ (สำหรับ better-auth)
+/* === USERS === */ // ตาราง users สำหรับเก็บข้อมูลผู้ใช้ (สำหรับ better-auth)
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
@@ -82,7 +82,7 @@ export const users = pgTable("users", {
   id: text("id").primaryKey().default(sql`gen_random_uuid()`),
   name: varchar("name", { length: 255 }).notNull(),
   email: varchar("email", { length: 255 }).notNull().unique(),
-  profilePic: varchar("profile_pic", { length: 255 }),
+  profile_pic: varchar("profile_pic", { length: 255 }),
   password: varchar("password", { length: 255 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { mode: "date", precision: 3 })
@@ -128,7 +128,9 @@ export const playlists = pgTable(
       .notNull()
       .references(() => users.id),
     coverUrl: varchar("cover_url", { length: 255 }),
-    createdAt: timestamp("created_at", {withTimezone: true}).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (t) => ({
     ownerIdx: index("playlists_owner_idx").on(t.ownerId),
@@ -159,7 +161,9 @@ export const playlistSongs = pgTable(
     songId: uuid("song_id")
       .notNull()
       .references(() => songs.id, { onDelete: "cascade" }),
-    addedAt: timestamp("added_at", {withTimezone: true}).defaultNow().notNull(),
+    addedAt: timestamp("added_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
     customOrder: integer("custom_order"),
   },
   (t) => ({
@@ -368,7 +372,9 @@ export const likedSongs = pgTable(
     songId: uuid("song_id")
       .notNull()
       .references(() => songs.id),
-    likedAt: timestamp("liked_at", {withTimezone: true}).defaultNow().notNull(),
+    likedAt: timestamp("liked_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (t) => ({
     userSongUk: uniqueIndex("liked_songs_user_song_uk").on(t.userId, t.songId),

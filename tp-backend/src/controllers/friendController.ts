@@ -25,14 +25,12 @@ export const getFriendRequests: RequestHandler = async (req, res) => {
       requester: {
         id: users.id,
         name: users.name,
-        profilePic: users.profilePic,
+        profilePic: users.profile_pic,
       },
     })
     .from(friends)
     .leftJoin(users, eq(users.id, friends.requestedBy))
-    .where(
-      and(eq(friends.friendId, userId), eq(friends.status, "pending"))
-    );
+    .where(and(eq(friends.friendId, userId), eq(friends.status, "pending")));
 
   res.json({ requests });
 };
@@ -77,7 +75,6 @@ export const sendFriendRequest: RequestHandler = async (req, res) => {
   res.json({ message: "Friend request sent." });
 };
 
-
 /* ยอมรับคำขอ */
 export const acceptFriendRequest: RequestHandler = async (req, res) => {
   const { userId, friendId } = req.body;
@@ -106,11 +103,13 @@ export const acceptFriendRequest: RequestHandler = async (req, res) => {
 
   console.log(`🤝 ${userId} accepted friend request from ${friendId}`);
   io.to(userId).emit("friend-updated", { type: "friend-accepted", friendId });
-  io.to(friendId).emit("friend-updated", { type: "friend-accepted", friendId: userId });
+  io.to(friendId).emit("friend-updated", {
+    type: "friend-accepted",
+    friendId: userId,
+  });
 
   res.json({ message: "Friend request accepted." });
 };
-
 
 /* ยกเลิกคำขอ / ลบเพื่อน */
 export const removeFriend: RequestHandler = async (req, res) => {
@@ -127,7 +126,10 @@ export const removeFriend: RequestHandler = async (req, res) => {
 
   console.log(`❌ ${userId} removed friend ${friendId}`);
   io.to(userId).emit("friend-updated", { type: "friend-removed", friendId });
-  io.to(friendId).emit("friend-updated", { type: "friend-removed", friendId: userId });
+  io.to(friendId).emit("friend-updated", {
+    type: "friend-removed",
+    friendId: userId,
+  });
 
   res.json({ message: "Friend removed." });
 };
@@ -145,7 +147,7 @@ export const getFriendsList: RequestHandler = async (req, res) => {
     .select({
       id: users.id,
       name: users.name,
-      profilePic: users.profilePic,
+      profilePic: users.profile_pic,
       userId: friends.userId,
       friendId: friends.friendId,
     })
@@ -185,7 +187,7 @@ export const searchUsers: RequestHandler = async (req, res) => {
       id: users.id,
       name: users.name,
       email: users.email,
-      profilePic: users.profilePic,
+      profilePic: users.profile_pic,
     })
     .from(users)
     .where(
@@ -223,9 +225,11 @@ export const searchUsers: RequestHandler = async (req, res) => {
   res.json({ users: userList });
 };
 
-
 // 🔍 ดึงโปรไฟล์เพื่อนด้วย userId
-export const getUserProfile = async (req: Request, res: Response): Promise<void> => {
+export const getUserProfile = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   const { id } = req.params;
 
   if (!id) {
@@ -239,7 +243,7 @@ export const getUserProfile = async (req: Request, res: Response): Promise<void>
         id: users.id,
         name: users.name,
         email: users.email,
-        profilePic: users.profilePic,
+        profilePic: users.profile_pic,
         createdAt: users.createdAt,
       })
       .from(users)

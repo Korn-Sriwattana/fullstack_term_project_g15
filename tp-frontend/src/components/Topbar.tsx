@@ -67,13 +67,17 @@ export default function Topbar({
   if (loading) return null;
 
   // ✅ สร้าง URL ของ avatar
+  const rawPic = user?.profile_pic || "";
+
   const avatarSrc =
-    (user as any)?.profilePic && (user as any).profilePic.trim() !== ""
-      ? (user as any).profilePic.startsWith("http")
-        ? (user as any).profilePic
-        : `${API_URL}${(user as any).profilePic}`
+    rawPic && rawPic.trim() !== ""
+      ? rawPic.startsWith("http")
+        ? rawPic
+        : `${API_URL}${rawPic}`
       : defaultAvatar;
+
   console.log("🧩 Avatar URL:", avatarSrc);
+
   return (
     <div className={styles.topbar}>
       {/* ☰ ปุ่มเปิด sidebar */}
