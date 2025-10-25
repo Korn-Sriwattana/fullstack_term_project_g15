@@ -40,5 +40,33 @@
     "ownerEmail": "charlie@example.com",
     "coverUrl": "/uploads/playlist-covers/dummy06.png",
     "songs": ["HgzGwKwLmgM", "kxopViU98Xo", "3AtDnEC4zak"]
+  },
+  {
+    "name": "Sunset Chill",
+    "description": "Relax and watch the sun go down 🌇",
+    "ownerEmail": "alice@example.com",
+    "coverUrl": "/uploads/playlist-covers/dummy07.png",
+    "songs": ["42wfEs7oIP8", "3AtDnEC4zak", "LmZD-TU96q4"]
+  },
+  {
+    "name": "Deep Focus",
+    "description": "Ambient beats to help you concentrate 💻",
+    "ownerEmail": "bob@example.com",
+    "coverUrl": "/uploads/playlist-covers/dummy08.png",
+    "songs": ["kxopViU98Xo", "L051YSpEEYU", "42wfEs7oIP8"]
+  },
+  {
+    "name": "Lazy Sunday",
+    "description": "Take it slow with cozy tunes ☕",
+    "ownerEmail": "charlie@example.com",
+    "coverUrl": "/uploads/playlist-covers/dummy09.png",
+    "songs": ["LmZD-TU96q4", "3AtDnEC4zak"]
+  },
+  {
+    "name": "Midnight Coding",
+    "description": "Stay in the zone with late-night energy ⚡",
+    "ownerEmail": "alice@example.com",
+    "coverUrl": "/uploads/playlist-covers/dummy10.png",
+    "songs": ["HgzGwKwLmgM", "42wfEs7oIP8", "L051YSpEEYU"]
   }
 ]
