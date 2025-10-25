@@ -1,5 +1,5 @@
-import { dbClient } from "../../client.ts";
-import { songs } from "../../schema.ts";
+import { dbClient } from "../../../db/client.ts";
+import { songs } from "../../../db/schema.ts";
 import { eq } from "drizzle-orm";
 
 export async function seedSongs() {
@@ -65,6 +65,6 @@ export async function seedSongs() {
       console.log(`✅ Song exists: ${s.title}`);
     }
   }
-
+  console.log("Finished seeding liked songs\n");
   return songMap;
 }

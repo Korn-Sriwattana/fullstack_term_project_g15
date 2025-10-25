@@ -2,12 +2,13 @@ import fs from "fs";
 import path from "path";
 
 export async function copySeedImages() {
-  const seedDir = "./seed-image";
+  const seedDir = "./src/seed/seed-image";
+  console.log("📁 Found seed-image:", fs.readdirSync(seedDir));
   const destProfiles = "./uploads/profile-pics";
   const destCovers = "./uploads/playlist-covers";
 
   if (!fs.existsSync(seedDir)) {
-    console.warn("⚠️ seed-image directory not found, skipping image copy");
+    console.warn("⚠️ seed-images directory not found, skipping image copy");
     return;
   }
 
@@ -52,4 +53,5 @@ export async function copySeedImages() {
       console.log(`🖼️ Copied ${path.basename(f.src)} → ${f.dest}`);
     }
   }
+  console.log("Finished copying seed images\n");
 }

@@ -1,5 +1,5 @@
-import { dbClient } from "../../client.ts";
-import { likedSongs } from "../../schema.ts";
+import { dbClient } from "../../../db/client.ts";
+import { likedSongs } from "../../../db/schema.ts";
 import { eq } from "drizzle-orm";
 
 export async function seedLikedSongs(
@@ -25,4 +25,5 @@ export async function seedLikedSongs(
       console.log(`💖 Added liked song for ${l.userEmail}`);
     }
   }
+  console.log("Finished seeding songs\n");
 }

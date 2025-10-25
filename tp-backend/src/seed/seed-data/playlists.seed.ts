@@ -1,5 +1,5 @@
-import { dbClient } from "../../client.ts";
-import { playlists, playlistSongs } from "../../schema.ts";
+import { dbClient } from "../../../db/client.ts";
+import { playlists, playlistSongs } from "../../../db/schema.ts";
 import { randomUUID } from "crypto";
 import { eq, and } from "drizzle-orm";
 
@@ -126,6 +126,6 @@ export async function seedPlaylists(
     }
   }
 
-  console.log("🎶 Finished seeding playlists and playlist_songs.\n");
+  console.log("Finished seeding playlists and playlist_songs.\n");
   return playlistMap;
 }

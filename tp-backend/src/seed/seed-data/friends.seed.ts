@@ -1,5 +1,5 @@
-import { dbClient } from "../../client.ts";
-import { friends } from "../../schema.ts";
+import { dbClient } from "../../../db/client.ts";
+import { friends } from "../../../db/schema.ts";
 import { eq } from "drizzle-orm";
 
 export async function seedFriends(userMap: Record<string, string>) {
@@ -31,4 +31,5 @@ export async function seedFriends(userMap: Record<string, string>) {
   } else {
     console.log("✅ Friends already exist for Alice");
   }
+  console.log("Finished seeding friends\n");
 }

@@ -1,5 +1,5 @@
-import { dbClient } from "../../client.ts";
-import { songStats } from "../../schema.ts";
+import { dbClient } from "../../../db/client.ts";
+import { songStats } from "../../../db/schema.ts";
 import { eq } from "drizzle-orm";
 
 export async function seedSongStats(songMap: Record<string, string>) {
@@ -18,4 +18,5 @@ export async function seedSongStats(songMap: Record<string, string>) {
       console.log(`📊 Stats created for song ID: ${id}`);
     }
   }
+  console.log("Finished seeding song stats\n");
 }

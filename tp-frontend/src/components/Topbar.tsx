@@ -20,8 +20,14 @@ export default function Topbar({
   const navigate = useNavigate();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // ✅ ใช้ context ที่รวม useCurrentUser แล้ว
   const { user, setUser, loading } = useUser();
+
+  // ✅ ฟังก์ชันสร้าง URL รูปภาพ (เหมือนใน FriendsPage)
+  const getImageUrl = (url?: string | null) => {
+    if (!url || url.trim() === "") return defaultAvatar;
+    if (url.startsWith("http")) return url;
+    return `${API_URL}${url}`;
+  };
 
   // ✅ ปิด dropdown เมื่อคลิกนอก
   useEffect(() => {
@@ -40,22 +46,12 @@ export default function Topbar({
   // ✅ logout ฟังก์ชัน
   const handleLogout = async () => {
     try {
-      // 1️⃣ ใช้ Better Auth signOut โดยตรง
       await authClient.signOut();
-
-      // 2️⃣ ล้าง cookie manual (บาง browser cache ค้าง)
       document.cookie =
         "better-auth.session=; Max-Age=0; path=/; SameSite=Lax;";
-
-      // 3️⃣ ล้าง localStorage / sessionStorage
       localStorage.removeItem("email");
       localStorage.removeItem("better-auth.session");
       sessionStorage.clear();
-
-      // 4️⃣ แจ้ง logout ให้ทุกแท็บรู้ => ไม่ต้องจ้าาาา
-      // localStorage.setItem("logout-event", Date.now().toString());
-
-      // 5️⃣ ล้าง state และ redirect
       setUser(null);
       window.location.replace("/signin");
     } catch (err) {
@@ -66,17 +62,10 @@ export default function Topbar({
   // ✅ ถ้ายังโหลด user อยู่
   if (loading) return null;
 
-  // ✅ สร้าง URL ของ avatar
-  const rawPic = user?.profile_pic || "";
+  // ✅ ใช้ชื่อฟิลด์ profilePic (normalize แล้วใน UserContext)
+  const avatarSrc = getImageUrl(user?.profile_pic);
 
-  const avatarSrc =
-    rawPic && rawPic.trim() !== ""
-      ? rawPic.startsWith("http")
-        ? rawPic
-        : `${API_URL}${rawPic}`
-      : defaultAvatar;
-
-  console.log("🧩 Avatar URL:", avatarSrc);
+  // console.log("🧩 Avatar URL:", avatarSrc); ไว้debugเรื่องภาพไม่ขึ้น
 
   return (
     <div className={styles.topbar}>
