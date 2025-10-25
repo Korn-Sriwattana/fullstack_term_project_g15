@@ -31,7 +31,7 @@
     "db:push": "cross-env NODE_OPTIONS='--import tsx' drizzle-kit push",
     "db:migrate": "cross-env NODE_OPTIONS='--import tsx' drizzle-kit migrate",
     "db:prototype": "tsx ./db/prototype.ts",
-    "seed": "tsx ./src/seed/seed-index.ts"
+    "seed": "powershell -Command \"if (Test-Path /.dockerenv) { Write-Host ' Running inside container...'; npx tsx ./src/seed/seed-index.ts } else { Write-Host ' Running from host...'; docker exec tp-backend npx tsx ./src/seed/seed-index.ts }\""
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
