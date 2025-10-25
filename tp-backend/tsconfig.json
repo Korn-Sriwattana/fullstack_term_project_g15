@@ -11,6 +11,8 @@
       "@/*": ["src/*"]
     },
     "ignoreDeprecations": "6.0"
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
   },
   "include": ["./*", "./src/**/*", "./db/**/*"]
 }

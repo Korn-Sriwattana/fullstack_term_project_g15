@@ -9,8 +9,13 @@ export default function Signin() {
   const navigate = useNavigate(); // ✅ ใช้สำหรับ redirect
 
   const handleGoogleLogin = async () => {
-    await authClient.signIn.social({ provider: "google" });
-  };
+  await authClient.signIn.social({
+    provider: "google",
+    disableRedirect: false,
+    callbackURL: "http://localhost:5173/", // ✅ หลัง login สำเร็จ
+  });
+};
+
 
   const handleEmailSignUp = async () => {
     try {

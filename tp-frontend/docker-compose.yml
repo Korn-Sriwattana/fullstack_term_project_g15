@@ -6,10 +6,10 @@ services:
     ports:
       - ${NGINX_PORT}:5173
     networks:
-      - term_tp-net
+      - term-project_tp-net
     environment:
       - NGINX_PROXY=${NGINX_PROXY}
       - NGINX_PORT=${NGINX_PORT}
 networks:
-  term_tp-net: # Check by using `docker network ls` command
+  term-project_tp-net: # Check by using `docker network ls` command
     external: true

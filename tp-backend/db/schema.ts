@@ -9,6 +9,7 @@ import {
   index,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 /* === USERS === */ // ตาราง users สำหรับเก็บข้อมูลผู้ใช้ (สำหรับ better-auth)
 export const user = pgTable("user", {
@@ -78,7 +79,7 @@ export const verification = pgTable("verification", {
 
 /* USERS */
 export const users = pgTable("users", {
-  id: text("id").primaryKey(),
+  id: text("id").primaryKey().default(sql`gen_random_uuid()`),
   name: varchar("name", { length: 255 }).notNull(),
   email: varchar("email", { length: 255 }).notNull().unique(),
   profile_pic: varchar("profile_pic", { length: 255 }),

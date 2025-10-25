@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useUser } from "../components/userContext";
 import styles from "../assets/styles/Home.module.css";
+import logo from "../assets/images/logo.png";
 import type { Song, QueueItem } from "../types/song.ts";
 import LikeButton from "../components/LikeButton";
 import AddToPlaylistButton from "../components/AddToPlaylist";
@@ -598,7 +599,7 @@ const Home = ({ queue = [], currentIndex = 0 }: HomeProps) => {
           >
             {/* ✅ โลโก้ด้านบน */}
             <img
-              src="src\assets\images\logo.png" // 🔸 import logo จาก assets ด้านบนของไฟล์ เช่น: import logo from "../assets/images/logo.png";
+              src={logo}
               alt="Lukchang Vibe Logo"
               style={{
                 width: "100px",
