@@ -23,6 +23,8 @@ services:
     volumes:
       - ./logs:/app/logs
       - ./uploads:/app/uploads
+      - ./src:/app/src
+      - ./data:/app/data 
     post_start:
       - command:
           [
